@@ -1,0 +1,122 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">长文转图片</text>
+    <text class="page-subtitle">智能排版，高清长图一键生成</text>
+  </view>
+
+  <view class="card">
+    <view class="section-title">
+        <text>输入内容</text>
+        <view class="char-count">{{content.length}}/5000</view>
+    </view>
+    <textarea class="text-area" 
+        placeholder="在这里粘贴文章内容..." 
+        value="{{content}}" 
+        bindinput="onContentInput" 
+        maxlength="5000"
+        disable-default-padding
+    ></textarea>
+  
+    <view class="signature-box">
+        <text class="input-label">✍️ 署名：</text>
+        <input class="signature-input" 
+            placeholder="可选：输入作者或来源" 
+            value="{{author}}" 
+            bindinput="onAuthorInput" 
+            maxlength="20"
+        />
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">样式设置</view>
+    
+    <view class="setting-row">
+      <text class="setting-label">背景主题</text>
+      <scroll-view scroll-x class="color-scroll" enable-flex>
+        <view class="color-list">
+            <view 
+            class="color-item {{bgColor === item.value ? 'active' : ''}}"
+            wx:for="{{bgColors}}"
+            wx:key="value"
+            style="background-color: {{item.value}}; border: 2rpx solid #e2e8f0;"
+            bindtap="selectBgColor"
+            data-color="{{item.value}}"
+            >
+                <view class="color-check" wx:if="{{bgColor === item.value}}">✓</view>
+            </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="setting-row">
+      <text class="setting-label">文字颜色</text>
+      <scroll-view scroll-x class="color-scroll" enable-flex>
+        <view class="color-list">
+            <view 
+            class="color-item {{textColor === item ? 'active' : ''}}"
+            wx:for="{{textColors}}"
+            wx:key="*this"
+            style="background-color: {{item}};"
+            bindtap="selectTextColor"
+            data-color="{{item}}"
+            >
+                <view class="color-check" wx:if="{{textColor === item}}">✓</view>
+            </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="setting-row">
+      <text class="setting-label">字号大小</text>
+      <slider class="setting-slider" min="20" max="60" value="{{fontSize}}" bindchange="onFontSizeChange" activeColor="#6366f1" block-size="20"/>
+      <text class="setting-value">{{fontSize}}</text>
+    </view>
+
+    <view class="setting-row">
+      <text class="setting-label">行间距</text>
+      <slider class="setting-slider" min="1" max="3" step="0.1" value="{{lineHeightScale}}" bindchange="onLineHeightChange" activeColor="#6366f1" block-size="20"/>
+      <text class="setting-value">{{lineHeightScale}}</text>
+    </view>
+
+    <view class="setting-row">
+      <text class="setting-label">排版控制</text>
+      <view class="ctrl-btns">
+         <view class="ctrl-btn {{textAlign === 'left' ? 'active' : ''}}" bindtap="toggleAlign">
+            <text wx:if="{{textAlign === 'left'}}">左对齐</text>
+            <text wx:else>居中</text>
+         </view>
+         
+         <view class="ctrl-btn {{fontWeight === 'bold' ? 'active' : ''}}" bindtap="toggleBold" style="font-weight: bold;">B</view>
+         
+         <view class="ctrl-btn {{showWatermark ? 'active' : ''}}" bindtap="toggleWatermark">水印</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card preview-card" wx:if="{{previewImage}}">
+    <view class="section-title">生成结果</view>
+    <scroll-view scroll-y class="preview-scroll">
+      <image class="preview-image" src="{{previewImage}}" mode="widthFix" show-menu-by-longpress></image>
+    </scroll-view>
+    <view class="preview-tip">长按图片也可发送给朋友</view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar">
+    <button wx:if="{{!previewImage}}" class="btn-primary" bindtap="generateImage">生成预览</button>
+
+    <block wx:else>
+        <view class="btn-group">
+            <button class="btn-icon" bindtap="generateImage">🔄</button>
+            <button class="btn-icon" open-type="share">📤</button>
+        </view>
+        <button class="btn-primary" bindtap="saveImage">保存长图</button>
+    </block>
+  </view>
+
+  <view style="height: 220rpx;"></view>
+</view>

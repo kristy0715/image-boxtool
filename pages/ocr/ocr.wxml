@@ -1,0 +1,86 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">文字提取 (OCR)</text>
+    <text class="page-subtitle">微信提取 -> 粘贴保存</text>
+  </view>
+
+  <view class="card step-card">
+    <view class="step-header">
+      <view class="step-badge">1</view>
+      <text class="step-title">获取文字</text>
+    </view>
+    
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">📷</text>
+      <text class="upload-text">点击上传图片</text>
+    </view>
+
+    <view class="preview-area" wx:else>
+      <view class="preview-box" bindtap="previewAndRecognize">
+        <image class="mini-img" src="{{imagePath}}" mode="aspectFill"></image>
+        <view class="preview-mask">
+          <text class="preview-btn">🔍 全屏预览</text>
+          <text class="preview-hint">长按图片 提取文字</text>
+        </view>
+      </view>
+      <view class="re-upload" bindtap="chooseImage">更换</view>
+    </view>
+  </view>
+
+  <view class="card step-card">
+    <view class="step-header">
+      <view class="step-badge">2</view>
+      <text class="step-title">粘贴编辑</text>
+      <view class="header-tools" wx:if="{{recognizedText}}">
+        <text class="tool-btn warning" bindtap="clearText">清空</text>
+        <text class="tool-btn" bindtap="copyText">复制</text>
+      </view>
+    </view>
+
+    <view class="paste-zone" wx:if="{{!recognizedText}}" bindtap="pasteFromClipboard">
+      <view class="paste-btn">
+        <text class="paste-icon">📋</text>
+        <text>点击此处 粘贴文字</text>
+      </view>
+      <text class="paste-desc">在预览页复制文字后，点此粘贴</text>
+    </view>
+
+    <block wx:else>
+      <textarea 
+        class="result-textarea" 
+        value="{{recognizedText}}" 
+        bindinput="onTextInput"
+        maxlength="5000"
+        cursor-spacing="100"
+        placeholder="文字内容..."
+      ></textarea>
+      <view class="text-stat">共 {{recognizedText.length}} 字</view>
+    </block>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar">
+    <button class="btn-icon" open-type="share">📤</button>
+    <button class="btn-primary" bindtap="onSaveCard" disabled="{{!recognizedText}}">生成文字卡片</button>
+  </view>
+
+  <view style="height: 220rpx;"></view>
+
+  <view class="guide-modal" wx:if="{{showGuide}}">
+    <view class="guide-card">
+      <view class="guide-title">💡 操作指引</view>
+      <view class="guide-steps">
+        <view class="g-step">1. 马上会进入<text class="highlight">全屏预览</text></view>
+        <view class="g-step">2. <text class="highlight">长按图片</text>，选择"提取文字"</view>
+        <view class="g-step">3. 选中并<text class="highlight">复制</text>需要的文字</view>
+        <view class="g-step">4. 关闭预览，回来点击<text class="highlight">粘贴</text></view>
+      </view>
+      <button class="guide-btn" bindtap="previewAndRecognize">知道了，去提取</button>
+    </view>
+  </view>
+
+  <canvas type="2d" id="cardCanvas" style="position:fixed; left:-9999px; width:{{canvasWidth}}px; height:{{canvasHeight}}px;"></canvas>
+</view>

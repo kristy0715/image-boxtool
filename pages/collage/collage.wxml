@@ -1,0 +1,111 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">图片拼接</text>
+    <text class="page-subtitle">多图拼接，支持横向/纵向/网格布局</text>
+  </view>
+
+  <view class="card preview-card" wx:if="{{imageList.length === 0}}">
+    <view class="upload-area" bindtap="addImages">
+      <text class="upload-icon">🖼️</text>
+      <text class="upload-text">点击添加图片</text>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="preview-area">
+      <scroll-view 
+        class="preview-scroll" 
+        scroll-x="{{layoutType === 'horizontal'}}" 
+        scroll-y="{{layoutType !== 'horizontal'}}"
+        enable-flex
+      >
+        <view class="collage-board" style="width: {{previewWidth}}rpx; height: {{previewHeight}}rpx; background-color: {{bgColor}};">
+          <block wx:for="{{previewItems}}" wx:key="index">
+            <image 
+              class="collage-item"
+              src="{{item.path}}" 
+              mode="aspectFill"
+              style="left: {{item.x}}rpx; top: {{item.y}}rpx; width: {{item.w}}rpx; height: {{item.h}}rpx;"
+            ></image>
+            <view class="item-number" wx:if="{{showNumber}}" style="left: {{item.x + 10}}rpx; top: {{item.y + 10}}rpx;">
+              {{index + 1}}
+            </view>
+          </block>
+        </view>
+      </scroll-view>
+      <view class="preview-tip">所见即所得，点击底部保存即可</view>
+    </view>
+
+    <view class="manage-card">
+      <view class="section-title">已选图片 ({{imageList.length}}/9)</view>
+      <scroll-view scroll-x class="manage-scroll" enable-flex>
+        <view class="manage-list">
+          <view class="manage-item" wx:for="{{imageList}}" wx:key="index">
+            <image src="{{item}}" mode="aspectFill"></image>
+            <view class="delete-btn" catchtap="removeImage" data-index="{{index}}">×</view>
+          </view>
+          <view class="manage-item add-btn" bindtap="addImages" wx:if="{{imageList.length < 9}}"></view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="setting-card">
+      <view class="setting-group">
+        <view class="group-title">拼接模式</view>
+        <view class="layout-tabs">
+          <view class="layout-tab {{layoutType === 'horizontal' ? 'active' : ''}}" bindtap="selectLayout" data-type="horizontal">横向</view>
+          <view class="layout-tab {{layoutType === 'vertical' ? 'active' : ''}}" bindtap="selectLayout" data-type="vertical">纵向</view>
+          <view class="layout-tab {{layoutType === 'grid' ? 'active' : ''}}" bindtap="selectLayout" data-type="grid">网格</view>
+        </view>
+      </view>
+
+      <view class="setting-group">
+        <view class="group-header">
+          <text class="group-title">间距</text>
+          <text class="group-val">{{spacing}}</text>
+        </view>
+        <slider min="0" max="60" value="{{spacing}}" activeColor="#6366f1" block-size="20" bindchange="onSpacingChange" bindinput="onSpacingChange"/>
+      </view>
+
+      <view class="setting-group">
+        <view class="group-title">背景</view>
+        <scroll-view scroll-x class="color-scroll" enable-flex>
+          <view class="color-list">
+            <view class="color-item {{bgColor === item ? 'active' : ''}}" 
+              wx:for="{{bgColors}}" wx:key="*this" 
+              style="background-color: {{item}};" 
+              bindtap="selectBgColor" data-color="{{item}}">
+              <view class="check" wx:if="{{bgColor === item}}">✓</view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+      
+      <view class="setting-row-between">
+        <text class="group-title">显示编号</text>
+        <switch checked="{{showNumber}}" bindchange="toggleNumber" color="#6366f1" style="transform: scale(0.8);"/>
+      </view>
+    </view>
+  </block>
+
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imageList.length > 0}}">
+    <button class="btn-icon" bindtap="addImages" wx:if="{{imageList.length < 9}}">➕</button>
+    <button class="btn-icon" open-type="share">📤</button>
+    <button class="btn-primary" bindtap="saveImage" disabled="{{imageList.length < 2 && layoutType !== 'grid'}}">
+      保存到相册
+    </button>
+  </view>
+
+  <view style="height: 220rpx;" wx:if="{{imageList.length > 0}}"></view>
+
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">{{loadingText}}</text>
+    </view>
+  </view>
+</view>

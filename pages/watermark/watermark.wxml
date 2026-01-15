@@ -1,0 +1,92 @@
+<view class="container">
+  <view class="mode-tabs">
+    <view class="tab-item {{mode === 'manual' ? 'active' : ''}}" bindtap="switchMode" data-mode="manual">
+      <text>👆 手动涂抹</text>
+    </view>
+    <view class="tab-item {{mode === 'auto' ? 'active' : ''}}" bindtap="switchMode" data-mode="auto">
+      <text>🤖 智能检测</text>
+    </view>
+  </view>
+
+  <view class="card editor-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <view class="upload-icon-box"><text class="upload-icon-emoji">✨</text></view>
+      <text class="upload-text">点击上传图片</text>
+      <text class="upload-hint">去除水印 / 字幕 / 杂物</text>
+    </view>
+
+    <view class="editor-wrapper" wx:else>
+      <view class="canvas-container">
+        <canvas type="2d" id="editCanvas" class="edit-canvas"
+          style="width: {{canvasDisplayWidth}}px; height: {{canvasDisplayHeight}}px;"
+          catchtouchstart="{{mode === 'manual' ? 'onTouchStart' : ''}}"
+          catchtouchmove="{{mode === 'manual' ? 'onTouchMove' : ''}}"
+          catchtouchend="{{mode === 'manual' ? 'onTouchEnd' : ''}}"
+        ></canvas>
+        <view class="loading-mask" wx:if="{{isProcessing}}">
+            <view class="loading-spinner"></view>
+            <text>正在消除中...</text>
+        </view>
+      </view>
+
+      <block wx:if="{{mode === 'manual'}}">
+        <view class="toolbar">
+            <view class="tool-group">
+                <view class="tool-btn" bindtap="undoAction"><text>↩️ 撤销</text></view>
+                <view class="tool-btn" bindtap="clearMask"><text>🗑️ 重置</text></view>
+            </view>
+            <view class="brush-indicator"><text>涂抹水印区域</text></view>
+        </view>
+      
+        <view class="brush-settings">
+            <text class="setting-label">笔刷</text>
+            <view class="brush-sizes">
+              <view class="brush-size {{brushSize === 10 ? 'active' : ''}}" bindtap="setBrushSize" data-size="10">
+                <view class="brush-dot" style="width: 12rpx; height: 12rpx;"></view>
+              </view>
+              <view class="brush-size {{brushSize === 20 ? 'active' : ''}}" bindtap="setBrushSize" data-size="20">
+                <view class="brush-dot" style="width: 20rpx; height: 20rpx;"></view>
+              </view>
+              <view class="brush-size {{brushSize === 35 ? 'active' : ''}}" bindtap="setBrushSize" data-size="35">
+                <view class="brush-dot" style="width: 32rpx; height: 32rpx;"></view>
+              </view>
+              <view class="brush-size {{brushSize === 50 ? 'active' : ''}}" bindtap="setBrushSize" data-size="50">
+                <view class="brush-dot" style="width: 44rpx; height: 44rpx;"></view>
+              </view>
+            </view>
+        </view>
+      </block>
+
+      <view class="auto-tips" wx:if="{{mode === 'auto'}}">
+         <text>🚧 智能检测功能开发中，请使用手动涂抹</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card result-card" wx:if="{{resultImage}}">
+    <view class="section-title">
+      <text>🎉 处理完成</text>
+      <view class="compare-btn" bindtouchstart="startCompare" bindtouchend="endCompare" bindtouchcancel="endCompare">👀 长按对比原图</view>
+    </view>
+    <view class="result-box">
+        <image class="result-image" src="{{isComparing ? imagePath : resultImage}}" mode="widthFix" show-menu-by-longpress></image>
+        <view class="compare-tag" wx:if="{{isComparing}}">原图</view>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 0 0 20rpx 0;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view style="height: 220rpx;"></view>
+
+  <view class="bottom-bar">
+    <view class="btn-group">
+      <button class="btn-icon" bindtap="chooseImage">🔄</button>
+      <button class="btn-primary" bindtap="startProcess" disabled="{{!imagePath || isProcessing}}">
+        {{isProcessing ? '处理中...' : '立即消除'}}
+      </button>
+    </view>
+    <button class="btn-save" bindtap="saveImage" disabled="{{!resultImage}}">保存到相册</button>
+  </view>
+</view>

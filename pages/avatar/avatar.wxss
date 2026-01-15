@@ -1,0 +1,150 @@
+/* pages/avatar/avatar.wxss */
+page {
+  background-color: #f7f8fa;
+}
+
+.container {
+  padding: 30rpx;
+}
+
+.card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+}
+
+.preview-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* === 删除掉了原本在这里的 page-header/title/subtitle 样式 === */
+
+.upload-area {
+  padding: 120rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-icon {
+  font-size: 100rpx;
+  margin-bottom: 20rpx;
+}
+
+.upload-text {
+  font-size: 30rpx;
+  color: var(--text-secondary);
+}
+
+.preview-wrapper {
+  padding: 30rpx;
+  background: #f1f5f9;
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-canvas {
+  border-radius: 50%;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 24rpx;
+}
+
+.frame-scroll {
+  white-space: nowrap;
+  margin: 0 -32rpx;
+  padding: 0 32rpx;
+}
+
+.frame-list {
+  display: inline-flex;
+  gap: 24rpx;
+}
+
+.frame-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.frame-preview {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+  border: 4rpx solid transparent;
+}
+
+.frame-item.active .frame-preview {
+  border-color: #6366f1;
+}
+
+.frame-icon {
+  font-size: 40rpx;
+}
+
+.frame-name {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.frame-item.active .frame-name {
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.color-list {
+  display: flex;
+  gap: 20rpx;
+  flex-wrap: wrap;
+}
+
+.color-item {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  border: 4rpx solid #e2e8f0;
+}
+
+.color-item.active {
+  border-color: #6366f1;
+  transform: scale(1.1);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+}
+
+/* 底部操作栏 */
+.bottom-bar {
+  position: fixed; bottom: 0;
+  left: 0; right: 0;
+  background: #fff;
+  padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+  display: flex; align-items: center; gap: 24rpx;
+  z-index: 100;
+}
+
+.btn-secondary {
+  flex: 1; background: #f1f5f9;
+  color: #333;
+  font-size: 30rpx; border-radius: 44rpx;
+  margin: 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.btn-primary {
+  flex: 2; background: #6366f1; color: #fff;
+  font-size: 32rpx; font-weight: 600; border-radius: 44rpx;
+  margin: 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+}

@@ -1,0 +1,90 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">图片裁剪</text>
+    <text class="page-subtitle">实时预览 · 自由切换</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">✂️</text>
+      <text class="upload-text">点击选择图片</text>
+    </view>
+    
+    <view class="preview-wrapper" wx:else bindtap="onPreviewTap" catchtouchmove="noop">
+      <image class="preview-image" src="{{resultImage || imagePath}}" mode="aspectFit"></image>
+      
+      <view class="free-hint-mask" wx:if="{{selectedRatio === 'free' && !resultImage}}">
+        <text class="hint-icon">👆</text>
+        <text>点击进入自由裁剪</text>
+      </view>
+
+      <view class="loading-mask" wx:if="{{isCropping}}">
+        <view class="spinner"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">选择裁剪模式</view>
+    <view class="ratio-grid">
+      <view 
+        class="ratio-item {{selectedRatio === item.id ? 'active' : ''}}"
+        wx:for="{{ratioList}}"
+        wx:key="id"
+        bindtap="selectRatio"
+        data-id="{{item.id}}"
+      >
+        <view class="ratio-icon" style="aspect-ratio: {{item.ratio || 1}};">
+          <text wx:if="{{item.id === 'free'}}" style="font-size: 32rpx;">🖐️</text>
+          <text wx:else class="ratio-text">{{item.label}}</text>
+        </view>
+        <text class="ratio-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath && selectedRatio === 'custom'}}">
+    <view class="section-title">自定义尺寸 (像素)</view>
+    <view class="custom-size">
+      <view class="size-input-group">
+        <text class="size-label">宽度</text>
+        <input class="size-input" type="number" value="{{customWidth}}" bindblur="onCustomSizeChange" bindinput="onWidthInput" placeholder="宽"/>
+      </view>
+      <text class="size-x">×</text>
+      <view class="size-input-group">
+        <text class="size-label">高度</text>
+        <input class="size-input" type="number" value="{{customHeight}}" bindblur="onCustomSizeChange" bindinput="onHeightInput" placeholder="高"/>
+      </view>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <view class="btn-group">
+      <button class="btn-icon" bindtap="chooseImage">🔄</button>
+      <button class="btn-icon" wx:if="{{selectedRatio === 'free' && resultImage}}" bindtap="startFreeCrop">✂️</button>
+    </view>
+
+    <button 
+      class="btn-primary" 
+      wx:if="{{selectedRatio === 'free' && !resultImage}}" 
+      bindtap="startFreeCrop"
+    >
+        进入裁剪编辑器
+    </button>
+
+    <button 
+      class="btn-primary" 
+      wx:else 
+      bindtap="saveImage"
+      disabled="{{!resultImage}}"
+    >
+      保存到相册
+    </button>
+  </view>
+
+  <view style="height: 220rpx;" wx:if="{{imagePath}}"></view>
+</view>

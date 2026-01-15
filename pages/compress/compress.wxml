@@ -1,0 +1,161 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">图片压缩</text>
+    <text class="page-subtitle">智能压缩，保持画质</text>
+  </view>
+
+  <view class="card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon-emoji">📦</text>
+      <text class="upload-text">点击选择图片</text>
+      <text class="upload-hint">支持 JPG / PNG 格式</text>
+    </view>
+
+    <view class="image-preview" wx:else>
+      <image class="preview-img" src="{{imagePath}}" mode="aspectFit"></image>
+      <view class="image-info">
+        <view class="info-item">
+          <text class="info-label">原始大小</text>
+          <text class="info-value">{{originalSize}}</text>
+        </view>
+        <view class="info-item" wx:if="{{compressedSize}}">
+          <text class="info-label">压缩后</text>
+          <text class="info-value highlight">{{compressedSize}}</text>
+        </view>
+        <view class="info-item" wx:if="{{compressionRatio}}">
+          <text class="info-label">压缩率</text>
+          <text class="info-value success">{{compressionRatio}}</text>
+        </view>
+      </view>
+      <view class="change-btn" bindtap="chooseImage">
+        <text>更换图片</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">
+      <text class="section-icon">⚙️</text>
+      <text>压缩模式</text>
+    </view>
+
+    <view class="mode-options">
+      <view class="mode-item {{compressMode === 'quality' ? 'active' : ''}}" bindtap="setMode" data-mode="quality">
+        <text class="mode-icon">🎚️</text>
+        <text class="mode-name">按质量</text>
+      </view>
+      <view class="mode-item {{compressMode === 'size' ? 'active' : ''}}" bindtap="setMode" data-mode="size">
+        <text class="mode-icon">📏</text>
+        <text class="mode-name">按大小</text>
+      </view>
+    </view>
+
+    <view class="slider-section" wx:if="{{compressMode === 'quality'}}">
+      <view class="slider-header">
+        <text class="slider-label">压缩质量</text>
+        <text class="slider-value">{{quality}}%</text>
+      </view>
+      <slider 
+        class="custom-slider"
+        min="10" 
+        max="100" 
+        value="{{quality}}" 
+        activeColor="#6366f1"
+        backgroundColor="#e2e8f0"
+        block-size="24"
+        block-color="#6366f1"
+        bindchange="onQualityChange"
+      />
+      <view class="slider-tips">
+        <text class="tip-text">质量越低，文件越小</text>
+      </view>
+    </view>
+
+    <view class="size-section" wx:if="{{compressMode === 'size'}}">
+      <view class="slider-header">
+        <text class="slider-label">目标大小</text>
+        <text class="slider-value">{{targetSize}} KB</text>
+      </view>
+      <slider 
+        class="custom-slider"
+        min="50" 
+        max="{{maxTargetSize}}" 
+        value="{{targetSize}}" 
+        activeColor="#6366f1"
+        backgroundColor="#e2e8f0"
+        block-size="24"
+        block-color="#6366f1"
+        bindchange="onTargetSizeChange"
+      />
+      <view class="slider-tips">
+        <text class="tip-text">将自动调整质量以达到目标大小</text>
+      </view>
+    </view>
+
+    <view class="quick-options" wx:if="{{compressMode === 'quality'}}">
+      <view class="quick-item {{quality === 30 ? 'active' : ''}}" bindtap="setQuickQuality" data-value="30">
+        <text class="quick-label">极限压缩</text>
+        <text class="quick-desc">30%</text>
+      </view>
+      <view class="quick-item {{quality === 60 ? 'active' : ''}}" bindtap="setQuickQuality" data-value="60">
+        <text class="quick-label">均衡</text>
+        <text class="quick-desc">60%</text>
+      </view>
+      <view class="quick-item {{quality === 80 ? 'active' : ''}}" bindtap="setQuickQuality" data-value="80">
+        <text class="quick-label">高质量</text>
+        <text class="quick-desc">80%</text>
+      </view>
+    </view>
+
+    <view class="quick-options" wx:if="{{compressMode === 'size'}}">
+      <view class="quick-item {{targetSize === 100 ? 'active' : ''}}" bindtap="setQuickSize" data-value="100">
+        <text class="quick-label">100 KB</text>
+        <text class="quick-desc">微信头像</text>
+      </view>
+      <view class="quick-item {{targetSize === 200 ? 'active' : ''}}" bindtap="setQuickSize" data-value="200">
+        <text class="quick-label">200 KB</text>
+        <text class="quick-desc">社交分享</text>
+      </view>
+      <view class="quick-item {{targetSize === 500 ? 'active' : ''}}" bindtap="setQuickSize" data-value="500">
+        <text class="quick-label">500 KB</text>
+        <text class="quick-desc">网页上传</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card result-card" wx:if="{{compressedImage}}">
+    <view class="section-title">
+      <text class="section-icon">✅</text>
+      <text>压缩结果</text>
+    </view>
+    <view class="result-preview">
+      <image class="result-img" src="{{compressedImage}}" mode="aspectFit"></image>
+    </view>
+    <view class="result-stats">
+      <view class="stat-item">
+        <text class="stat-value">{{originalSize}}</text>
+        <text class="stat-label">原始大小</text>
+      </view>
+      <view class="stat-arrow">→</view>
+      <view class="stat-item">
+        <text class="stat-value highlight">{{compressedSize}}</text>
+        <text class="stat-label">压缩后</text>
+      </view>
+    </view>
+  </view>
+  
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view style="height: 220rpx;"></view>
+
+  <view class="bottom-bar">
+    <button class="btn-secondary" bindtap="compressImage" disabled="{{!imagePath || isProcessing}}">
+      {{isProcessing ? '压缩中...' : '开始压缩'}}
+    </button>
+    <button class="btn-primary" bindtap="saveImage" disabled="{{!compressedImage}}">
+      保存到相册
+    </button>
+  </view>
+</view>

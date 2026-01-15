@@ -1,0 +1,70 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">证件照排版</text>
+    <text class="page-subtitle">排成6寸照片，冲印更省钱</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">🖨️</text>
+      <text class="upload-text">选择证件照</text>
+      <text class="upload-hint">建议选择已制作好的单张证件照</text>
+    </view>
+    
+    <view class="preview-wrapper" wx:else>
+      <image class="preview-image" src="{{imagePath}}" mode="aspectFit"></image>
+      <view class="change-btn" bindtap="chooseImage">更换</view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">选择排版尺寸</view>
+    <view class="size-grid">
+      <view 
+        class="size-item {{selectedSize === item.id ? 'active' : ''}}"
+        wx:for="{{sizeList}}"
+        wx:key="id"
+        bindtap="selectSize"
+        data-id="{{item.id}}"
+      >
+        <text class="size-name">{{item.name}}</text>
+        <text class="size-desc">{{item.desc}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{resultImage}}">
+    <view class="section-title">排版预览 (6寸照片纸)</view>
+    <view class="result-wrapper">
+      <image class="result-image" src="{{resultImage}}" mode="aspectFit" bindtap="saveImage"></image>
+    </view>
+    <view class="result-tip">
+      <text class="tip-icon">💡</text>
+      <text class="tip-text">保存后，去打印店打印“6寸照片”即可</text>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <block wx:if="{{resultImage}}">
+      <button class="btn-icon" open-type="share">📤</button>
+      <button class="btn-secondary" bindtap="generateLayout">重生成</button>
+      <button class="btn-primary" bindtap="saveImage">保存相册</button>
+    </block>
+    <block wx:else>
+      <button class="btn-primary full-width" bindtap="generateLayout">生成排版</button>
+    </block>
+  </view>
+
+  <view style="height: 220rpx;" wx:if="{{imagePath}}"></view>
+
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">排版中...</text>
+    </view>
+  </view>
+</view>

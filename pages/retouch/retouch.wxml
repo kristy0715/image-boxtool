@@ -1,0 +1,100 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">一键精修</text>
+    <text class="page-subtitle">智能美颜 · 滤镜调色</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">✨</text>
+      <text class="upload-text">点击选择照片</text>
+    </view>
+    
+    <view class="preview-wrapper" wx:else>
+      <view class="compare-container" bindtouchstart="onPreviewTouchStart" bindtouchend="onPreviewTouchEnd">
+        <canvas type="2d" id="retouchCanvas" class="preview-canvas" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"></canvas>
+        
+        <view class="compare-tag {{showingOriginal ? 'show' : ''}}">原图</view>
+        <view class="compare-hint" wx:if="{{isProcessed}}">长按对比</view>
+        
+        <view class="change-btn" catchtap="chooseImage">更换</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card action-card" wx:if="{{imagePath && !isProcessed && !isProcessing}}">
+    <button class="magic-btn" bindtap="autoRetouch">
+      <text class="magic-icon">🪄</text>
+      <text>一键智能美颜</text>
+    </button>
+  </view>
+
+  <view class="card tools-card" wx:if="{{isProcessed}}">
+    <view class="tabs">
+      <view class="tab-item {{currentTab === 'face' ? 'active' : ''}}" bindtap="switchTab" data-tab="face">美型</view>
+      <view class="tab-item {{currentTab === 'skin' ? 'active' : ''}}" bindtap="switchTab" data-tab="skin">美肤</view>
+      <view class="tab-item {{currentTab === 'tone' ? 'active' : ''}}" bindtap="switchTab" data-tab="tone">调色</view>
+      <view class="tab-item {{currentTab === 'filter' ? 'active' : ''}}" bindtap="switchTab" data-tab="filter">滤镜</view>
+    </view>
+
+    <view class="params-area" wx:if="{{currentTab === 'face'}}">
+      <view class="slider-row"><text class="label">瘦脸</text><slider class="slider" min="0" max="100" value="{{slimFace}}" bindchange="onParamChange" data-param="slimFace" activeColor="#6366f1" block-size="18"/><text class="val">{{slimFace}}</text></view>
+      <view class="slider-row"><text class="label">大眼</text><slider class="slider" min="0" max="100" value="{{bigEye}}" bindchange="onParamChange" data-param="bigEye" activeColor="#6366f1" block-size="18"/><text class="val">{{bigEye}}</text></view>
+      <view class="slider-row"><text class="label">瘦鼻</text><slider class="slider" min="0" max="100" value="{{nose}}" bindchange="onParamChange" data-param="nose" activeColor="#6366f1" block-size="18"/><text class="val">{{nose}}</text></view>
+      <view class="slider-row"><text class="label">下巴</text><slider class="slider" min="-50" max="50" value="{{chin}}" bindchange="onParamChange" data-param="chin" activeColor="#6366f1" block-size="18"/><text class="val">{{chin}}</text></view>
+      <view class="slider-row"><text class="label">嘴型</text><slider class="slider" min="-50" max="50" value="{{mouth}}" bindchange="onParamChange" data-param="mouth" activeColor="#6366f1" block-size="18"/><text class="val">{{mouth}}</text></view>
+    </view>
+
+    <view class="params-area" wx:if="{{currentTab === 'skin'}}">
+      <view class="slider-row"><text class="label">磨皮</text><slider class="slider" min="0" max="100" value="{{smoothness}}" bindchange="onParamChange" data-param="smoothness" activeColor="#ec4899" block-size="18"/><text class="val">{{smoothness}}</text></view>
+      <view class="slider-row"><text class="label">美白</text><slider class="slider" min="0" max="100" value="{{whitening}}" bindchange="onParamChange" data-param="whitening" activeColor="#ec4899" block-size="18"/><text class="val">{{whitening}}</text></view>
+      <view class="slider-row"><text class="label">红润</text><slider class="slider" min="0" max="100" value="{{rosy}}" bindchange="onParamChange" data-param="rosy" activeColor="#ec4899" block-size="18"/><text class="val">{{rosy}}</text></view>
+      <view class="slider-row"><text class="label">锐化</text><slider class="slider" min="0" max="100" value="{{sharpen}}" bindchange="onParamChange" data-param="sharpen" activeColor="#ec4899" block-size="18"/><text class="val">{{sharpen}}</text></view>
+    </view>
+
+    <view class="params-area" wx:if="{{currentTab === 'tone'}}">
+      <view class="slider-row"><text class="label">亮度</text><slider class="slider" min="-50" max="50" value="{{brightness}}" bindchange="onParamChange" data-param="brightness" activeColor="#10b981" block-size="18"/><text class="val">{{brightness}}</text></view>
+      <view class="slider-row"><text class="label">对比度</text><slider class="slider" min="-50" max="50" value="{{contrast}}" bindchange="onParamChange" data-param="contrast" activeColor="#10b981" block-size="18"/><text class="val">{{contrast}}</text></view>
+      <view class="slider-row"><text class="label">饱和度</text><slider class="slider" min="-50" max="50" value="{{saturation}}" bindchange="onParamChange" data-param="saturation" activeColor="#10b981" block-size="18"/><text class="val">{{saturation}}</text></view>
+      <view class="slider-row"><text class="label">色温</text><slider class="slider" min="-50" max="50" value="{{temperature}}" bindchange="onParamChange" data-param="temperature" activeColor="#10b981" block-size="18"/><text class="val">{{temperature}}</text></view>
+    </view>
+
+    <view class="params-area" wx:if="{{currentTab === 'filter'}}">
+      <scroll-view scroll-x class="filter-scroll" enable-flex>
+        <view class="filter-list">
+          <view class="filter-item {{currentStyle === item.id ? 'active' : ''}}" wx:for="{{styleList}}" wx:key="id" bindtap="selectStyle" data-id="{{item.id}}">
+            <view class="filter-preview" style="background: {{item.color || '#eee'}}">{{item.icon}}</view>
+            <text class="filter-name">{{item.name}}</text>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="slider-row" style="margin-top: 20rpx;">
+        <text class="label">强度</text>
+        <slider class="slider" min="0" max="100" value="{{filterIntensity}}" bindchange="onParamChange" data-param="filterIntensity" activeColor="#8b5cf6" block-size="18"/>
+      </view>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 0;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-icon" open-type="share">📤</button>
+    <button class="btn-secondary" bindtap="resetAll" wx:if="{{isProcessed}}">重置</button>
+    <button class="btn-primary full-width" bindtap="saveImage">保存到相册</button>
+  </view>
+
+  <view class="loading-mask" wx:if="{{isProcessing}}">
+    <view class="loading-content">
+      <view class="spinner"></view>
+      <text>{{processingText}}</text>
+      <view class="progress-box" wx:if="{{progress > 0}}">
+         <progress percent="{{progress}}" stroke-width="6" border-radius="10" activeColor="#6366f1" backgroundColor="#e0e7ff" />
+         <text class="progress-text">{{progress}}%</text>
+      </view>
+    </view>
+  </view>
+  
+  <view style="height: 180rpx;" wx:if="{{imagePath}}"></view>
+</view>

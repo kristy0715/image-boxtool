@@ -1,0 +1,61 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">头像挂件</text>
+    <text class="page-subtitle">给头像添加节日装饰边框</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">🎀</text>
+      <text class="upload-text">点击选择头像</text>
+    </view>
+    <view class="preview-wrapper" wx:else>
+      <canvas type="2d" id="avatarCanvas" class="avatar-canvas" style="width: 300px; height: 300px;"></canvas>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">选择挂件</view>
+    <scroll-view scroll-x class="frame-scroll">
+      <view class="frame-list">
+        <view 
+          class="frame-item {{selectedFrame === item.id ? 'active' : ''}}"
+          wx:for="{{frameList}}"
+          wx:key="id"
+          bindtap="selectFrame"
+          data-id="{{item.id}}"
+        >
+          <view class="frame-preview" style="background: {{item.preview}};">
+            <text class="frame-icon">{{item.icon}}</text>
+          </view>
+          <text class="frame-name">{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath && selectedFrame !== 'none'}}">
+    <view class="section-title">边框颜色</view>
+    <view class="color-list">
+      <view 
+        class="color-item {{frameColor === item ? 'active' : ''}}"
+        wx:for="{{colorList}}"
+        wx:key="*this"
+        style="background: {{item}};"
+        bindtap="selectColor"
+        data-color="{{item}}"
+      ></view>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 0;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-secondary" bindtap="chooseImage">更换头像</button>
+    <button class="btn-primary" bindtap="saveImage">保存到相册</button>
+  </view>
+
+  <view style="height: 180rpx;" wx:if="{{imagePath}}"></view>
+</view>

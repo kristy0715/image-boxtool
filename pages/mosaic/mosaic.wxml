@@ -1,0 +1,98 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">图片马赛克</text>
+    <text class="page-subtitle">手指涂抹 · 保护隐私</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">🔲</text>
+      <text class="upload-text">点击选择图片</text>
+    </view>
+    
+    <view class="preview-wrapper" wx:else catchtouchmove="noop">
+      <view class="control-bar">
+        <view class="control-btn" bindtap="chooseImage">🔄 更换图片</view>
+        
+        <view class="undo-redo-group">
+          <view class="control-btn {{canUndo ? '' : 'disabled'}}" bindtap="undo">↩︎ 撤销</view>
+          <view class="control-btn {{canRedo ? '' : 'disabled'}}" bindtap="redo">↪︎ 重做</view>
+        </view>
+      </view>
+
+      <view class="canvas-box" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;">
+        <canvas type="2d" id="mosaicCanvas" class="main-canvas" 
+          style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+          disable-scroll="true"
+          bindtouchstart="onTouchStart"
+          bindtouchmove="onTouchMove"
+          bindtouchend="onTouchEnd"
+        ></canvas>
+      </view>
+      
+      <view class="draw-tip">
+        <text>{{currentTool === 'eraser' ? '🧹 橡皮擦模式' : '👆 直接涂抹打码'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card tools-card" wx:if="{{imagePath}}">
+    <view class="tool-tabs">
+      <view class="tab-item {{currentTool === 'mosaic' ? 'active' : ''}}" bindtap="selectTool" data-tool="mosaic">
+        <text class="tab-icon">🔲</text>马赛克
+      </view>
+      <view class="tab-item {{currentTool === 'blur' ? 'active' : ''}}" bindtap="selectTool" data-tool="blur">
+        <text class="tab-icon">💧</text>模糊
+      </view>
+      <view class="tab-item {{currentTool === 'eraser' ? 'active' : ''}}" bindtap="selectTool" data-tool="eraser">
+        <text class="tab-icon">🧹</text>橡皮擦
+      </view>
+    </view>
+
+    <view class="slider-row">
+      <text class="label">笔刷</text>
+      <slider class="slider" min="10" max="80" value="{{brushSize}}" bindchange="onBrushSizeChange" activeColor="#6366f1" block-size="18"/>
+      <text class="val">{{brushSize}}</text>
+    </view>
+
+    <view class="option-row" wx:if="{{currentTool !== 'eraser'}}">
+      <text class="label">强度</text>
+      <view class="size-options">
+        <view 
+          class="size-item {{mosaicSize === item.size ? 'active' : ''}}"
+          wx:for="{{sizeList}}"
+          wx:key="size"
+          bindtap="selectSize"
+          data-size="{{item.size}}"
+        >
+          {{item.name}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 0;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-icon" open-type="share">📤</button>
+    <button class="btn-secondary" bindtap="resetImage">重置</button>
+    <button class="btn-primary full-width" bindtap="saveImage">保存到相册</button>
+  </view>
+  
+  <view class="loading-mask" wx:if="{{isProcessing}}">
+    <view class="loading-content">
+      <view class="loading-info">
+        <view class="spinner"></view>
+        <text>{{processingText}}</text>
+      </view>
+      <view class="progress-box" wx:if="{{showProgress}}">
+        <progress percent="{{progress}}" stroke-width="6" border-radius="10" activeColor="#6366f1" backgroundColor="#e0e7ff" />
+        <text class="progress-text">{{progress}}%</text>
+      </view>
+    </view>
+  </view>
+
+  <view style="height: 180rpx;" wx:if="{{imagePath}}"></view>
+</view>

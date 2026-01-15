@@ -1,0 +1,129 @@
+<view class="container">
+  
+  <view class="hero-section" style="padding-top: {{statusBarHeight}}px;">
+    <view class="hero-bg"></view>
+    <view class="hero-content" style="margin-top: {{navBarHeight / 4}}px;">
+      <view class="title-area">
+        <image class="app-logo" src="/icon.png" mode="aspectFit"></image>
+        <view class="hero-text-group">
+          <text class="hero-title">就这么图</text>
+          <text class="hero-subtitle">全能图片工具箱</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <template name="tool-section">
+    <view class="section-header">
+      <text class="section-title">{{title}}</text>
+    </view>
+    <view class="feature-grid">
+      <view class="feature-card" bindtap="goToPage" data-page="{{item.id}}" wx:for="{{list}}" wx:key="id">
+        <view class="feature-icon-wrapper" style="background: linear-gradient(135deg, {{item.colors[0]}} 0%, {{item.colors[1]}} 100%);">
+          <text class="icon-text">{{item.icon}}</text>
+        </view>
+        <view class="feature-info">
+          <text class="feature-title">{{item.title}}</text>
+          <text class="feature-desc">{{item.desc}}</text>
+        </view>
+        <text class="feature-arrow">›</text>
+      </view>
+    </view>
+  </template>
+
+  <template is="tool-section" data="{{title: '📌 实用工具', list: toolList}}"></template>
+  <template is="tool-section" data="{{title: '📝 图文转换', list: ocrList}}"></template>
+  <template is="tool-section" data="{{title: '🎨 趣味功能', list: funList}}"></template>
+
+  <view class="footer">
+    <text class="footer-text">就这么图 · 让图片处理更简单</text>
+  </view>
+
+  <canvas type="2d" id="posterCanvas" style="position:fixed; left: -9999px; width: 1080px; height: 1920px;"></canvas>
+
+  <view class="fortune-entry" bindtap="openFortuneModal">
+    <view class="entry-bag">
+      <view class="entry-knot"></view>
+      <text class="entry-text">每日\n一签</text>
+    </view>
+    <view class="entry-shadow"></view>
+  </view>
+
+  <view class="fortune-modal {{showFortuneModal ? 'show' : ''}}" wx:if="{{showFortuneModal}}">
+    
+    <view class="modal-bg-gradient"></view>
+    
+    <image class="modal-bg-image {{todayFortune.isPremiumBg ? 'fade-in' : ''}}" 
+           src="{{todayFortune.bgUrl}}" 
+           mode="aspectFill" 
+           wx:if="{{todayFortune.isPremiumBg}}">
+    </image>
+    
+    <view class="modal-backdrop"></view>
+
+    <view class="fortune-center-container">
+      
+      <view class="ticket-card">
+        
+        <view class="ticket-header">
+          <view class="ticket-date">
+            <text class="day">{{todayFortune.day}}</text>
+            <view class="date-right">
+              <text class="month">{{todayFortune.month}}</text>
+              <text class="year">{{todayFortune.year}}</text>
+            </view>
+          </view>
+          
+          <text class="lunar-text">{{todayFortune.lunarStr}}</text>
+        </view>
+        
+        <view class="ticket-dashed-line"></view>
+
+        <view class="ticket-body">
+          <view class="ticket-type-col">
+            <text class="ticket-type-text">{{todayFortune.type}}</text>
+          </view>
+          <view class="ticket-content-col">
+            <text class="ticket-title">{{todayFortune.title}}</text>
+            <text class="ticket-desc">{{todayFortune.text}}</text>
+          </view>
+        </view>
+
+        <view class="ticket-footer">
+          <image class="qr-img-large" src="/images/qrcode.png" mode="aspectFit"></image>
+          <text class="qr-tip-center">长按保存 · 扫码解锁好运</text>
+        </view>
+      </view>
+
+      <view class="action-bar-fixed">
+        <view class="action-side-wrapper left" bindtap="handleChangeBgAd">
+          <view class="circle-btn white">
+            <text class="btn-icon">🎬</text> 
+          </view>
+          <text class="btn-label">换背景</text>
+        </view>
+
+        <view class="action-center-wrapper" bindtap="handleSaveLocal">
+          <view class="pill-btn">
+            <text class="btn-icon">⬇️</text>
+            <text class="btn-text-nowrap">保存高清图</text>
+          </view>
+        </view>
+
+        <view class="action-side-wrapper right">
+          <button class="reset-btn" open-type="share">
+            <view class="circle-btn green">
+              <text class="btn-icon">💬</text>
+            </view>
+            <text class="btn-label">转发</text>
+          </button>
+        </view>
+      </view>
+      
+      <view class="close-btn-large" bindtap="closeFortuneModal">
+        <text class="close-icon-large">×</text>
+      </view>
+
+    </view>
+  </view>
+</view>

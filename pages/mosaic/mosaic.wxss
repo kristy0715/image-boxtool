@@ -1,0 +1,263 @@
+/* pages/mosaic/mosaic.wxss */
+page {
+  background-color: #f7f8fa;
+}
+
+.container {
+  padding: 30rpx;
+}
+
+/* === 修改点：删除了原本在这里的 .page-header 等样式，使其与 filter 页面保持一致 === */
+
+/* 统一卡片 */
+.card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+}
+
+/* 预览区 - 无内边距 */
+.preview-card {
+  padding: 0;
+  overflow: hidden;
+  min-height: auto;
+}
+
+/* 上传区域样式 (像素级对齐 meme.wxss) */
+.upload-area {
+  padding: 120rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.upload-icon {
+  font-size: 100rpx;
+  margin-bottom: 20rpx;
+}
+
+.upload-text {
+  font-size: 30rpx;
+  color: #666;
+  font-weight: normal;
+}
+
+.preview-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30rpx;
+  box-sizing: border-box;
+  background: #fcfcfc;
+}
+
+.canvas-box {
+  border-radius: 12rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.1);
+  margin: 10rpx 0;
+  max-width: 100%;
+  position: relative;
+}
+
+/* 悬浮更换按钮 */
+.change-btn {
+  position: absolute;
+  bottom: 20rpx; 
+  right: 20rpx;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 8rpx 24rpx;
+  border-radius: 30rpx;
+  border: 1rpx solid rgba(255,255,255,0.3);
+  z-index: 10;
+}
+
+.main-canvas {
+  background: #fff;
+  display: block;
+}
+
+/* 顶部撤销栏 */
+.control-bar {
+  width: 100%;
+  display: flex;
+  /* 修改：改为两端对齐，左边放更换，右边放撤销重做 */
+  justify-content: space-between; 
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+/* 新增：右侧按钮组 */
+.undo-redo-group {
+  display: flex;
+  gap: 20rpx;
+}
+
+.control-btn {
+  font-size: 24rpx;
+  color: #666;
+  background: #f1f5f9;
+  padding: 8rpx 24rpx;
+  border-radius: 30rpx;
+  transition: all 0.2s;
+}
+
+.control-btn.disabled {
+  opacity: 0.4;
+  color: #ccc;
+  pointer-events: none;
+}
+
+.draw-tip {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 16rpx;
+}
+
+/* 工具卡片 */
+.tool-tabs {
+  display: flex;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  padding: 6rpx;
+  margin-bottom: 30rpx;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+  color: #64748b;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.tab-item.active {
+  background: #fff;
+  color: #6366f1;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+
+.tab-icon { font-size: 32rpx; }
+
+/* 滑块行 */
+.slider-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+.slider-row .label { width: 80rpx; font-size: 26rpx; color: #666; }
+.slider-row .val { width: 60rpx; font-size: 24rpx; color: #999;
+  text-align: right; }
+.slider { flex: 1; margin: 0 20rpx; }
+
+/* 选项行 */
+.option-row {
+  display: flex;
+  align-items: center;
+}
+.option-row .label { width: 80rpx; font-size: 26rpx; color: #666; }
+
+.size-options {
+  flex: 1;
+  display: flex;
+  gap: 16rpx;
+  margin-left: 20rpx;
+}
+
+.size-item {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  font-size: 24rpx;
+  color: #666;
+  border: 2rpx solid #f1f5f9;
+  border-radius: 12rpx;
+}
+
+.size-item.active {
+  color: #6366f1;
+  border-color: #6366f1;
+  background: #e0e7ff;
+  font-weight: 500;
+}
+
+/* 底部操作栏 */
+.bottom-bar {
+  position: fixed; bottom: 0;
+  left: 0; right: 0;
+  background: #fff;
+  padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+  display: flex; align-items: center; gap: 24rpx; z-index: 100;
+}
+
+.btn-icon {
+  width: 88rpx !important; height: 88rpx;
+  background: #f1f5f9; border-radius: 44rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40rpx; padding: 0; margin: 0;
+}
+
+.btn-secondary {
+  flex: 1; background: #f1f5f9;
+  color: #333;
+  font-size: 30rpx; border-radius: 44rpx; margin: 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.btn-primary {
+  flex: 2; background: #6366f1; color: #fff;
+  font-size: 32rpx; font-weight: 600; border-radius: 44rpx;
+  margin: 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-primary.full-width { flex: 1; }
+
+/* 加载与进度条 */
+.loading-mask {
+  position: absolute; top: 0;
+  left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.85);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50; backdrop-filter: blur(4px);
+}
+.loading-content {
+  width: 80%; display: flex; flex-direction: column; align-items: center;
+}
+.loading-info {
+  display: flex; flex-direction: column; align-items: center;
+  margin-bottom: 24rpx; font-size: 28rpx; color: #6366f1; font-weight: 500;
+}
+.spinner {
+  width: 50rpx; height: 50rpx;
+  border: 5rpx solid #e0e7ff;
+  border-top-color: #6366f1;
+  border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20rpx;
+}
+@keyframes spin { to { transform: rotate(360deg);
+} }
+
+.progress-box {
+  width: 100%; display: flex; flex-direction: column; align-items: center;
+}
+.progress-text {
+  font-size: 24rpx; color: #999;
+  margin-top: 10rpx;
+}
+progress { width: 100%; }

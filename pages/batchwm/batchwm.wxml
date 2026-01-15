@@ -1,0 +1,116 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">批量加水印</text>
+    <text class="page-subtitle">多图批量添加文字水印</text>
+  </view>
+
+  <view class="card">
+    <view class="section-header">
+      <view class="section-title">
+        <text class="title-icon">🖼️</text>
+        <text>选择图片</text>
+        <text class="count-badge">({{imageList.length}}/20)</text>
+      </view>
+    </view>
+    
+    <view class="image-list" wx:if="{{imageList.length > 0}}">
+      <view class="image-item" wx:for="{{imageList}}" wx:key="index">
+        <image class="item-image" src="{{item}}" mode="aspectFill"></image>
+        <view class="item-delete" bindtap="removeImage" data-index="{{index}}">×</view>
+      </view>
+      <view class="image-item" bindtap="addImages" wx:if="{{imageList.length < 20}}">
+        <view class="item-image" style="background: #f1f5f9; display: flex; align-items: center; justify-content: center; border: 2rpx dashed #cbd5e1;">
+          <text style="font-size: 40rpx; color: #cbd5e1;">+</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-tip" wx:else bindtap="addImages">
+      <text class="empty-icon">📂</text>
+      <text class="empty-text">点击添加图片 (最多20张)</text>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imageList.length > 0}}">
+    <view class="section-header">
+      <view class="section-title">
+        <text class="title-icon">✎</text>
+        <text>水印内容</text>
+      </view>
+    </view>
+    
+    <view class="input-group">
+        <text class="input-icon">T</text>
+        <input 
+            class="wm-input" 
+            placeholder="请输入水印文字..." 
+            placeholder-style="color:#cbd5e1;"
+            value="{{watermarkText}}" 
+            bindinput="onTextInput"
+            maxlength="20"
+        />
+        <text class="input-count">{{watermarkText.length}}/20</text>
+    </view>
+
+    <view class="setting-block">
+        <view class="setting-row">
+          <text class="setting-label">字号</text>
+          <slider class="setting-slider" min="10" max="100" value="{{fontSize}}" bindchange="onFontSizeChange" activeColor="#6366f1" block-size="18"/>
+          <text class="setting-value">{{fontSize}}</text>
+        </view>
+
+        <view class="setting-row">
+          <text class="setting-label">透明度</text>
+          <slider class="setting-slider" min="10" max="100" value="{{opacity}}" bindchange="onOpacityChange" activeColor="#6366f1" block-size="18"/>
+          <text class="setting-value">{{opacity}}%</text>
+        </view>
+
+        <view class="setting-row">
+          <text class="setting-label">颜色</text>
+          <scroll-view scroll-x class="color-scroll" enable-flex>
+            <view class="color-list">
+                <view 
+                class="color-item {{textColor === item ? 'active' : ''}}"
+                wx:for="{{colorList}}"
+                wx:key="*this"
+                style="background: {{item}};"
+                bindtap="selectColor"
+                data-color="{{item}}"
+                >
+                    <view class="check-icon" wx:if="{{textColor === item}}">✓</view>
+                </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <view class="setting-row" style="align-items: flex-start;">
+          <text class="setting-label" style="margin-top: 12rpx;">位置</text>
+          <view class="position-grid">
+            <view 
+              class="position-item {{position === item.id ? 'active' : ''}}"
+              wx:for="{{positionList}}"
+              wx:key="id"
+              bindtap="selectPosition"
+              data-id="{{item.id}}"
+            >{{item.name}}</view>
+          </view>
+        </view>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 0;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imageList.length > 0}}">
+    <button class="btn-icon" bindtap="addImages" wx:if="{{imageList.length < 20}}">➕</button>
+    <button class="btn-primary" bindtap="batchSave">批量保存 ({{imageList.length}})</button>
+  </view>
+
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">{{loadingText}}</text>
+    </view>
+  </view>
+</view>

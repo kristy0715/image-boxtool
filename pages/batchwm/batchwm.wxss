@@ -1,0 +1,335 @@
+/* pages/batchwm/batchwm.wxss */
+page {
+  background-color: #f7f8fa;
+  padding-bottom: 240rpx;
+}
+
+.container {
+  padding: 30rpx;
+  /* 防止横向溢出 */
+  overflow-x: hidden; 
+  box-sizing: border-box;
+}
+
+/* === 通用卡片 === */
+.card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+  /* 确保卡片内容不溢出 */
+  box-sizing: border-box; 
+  width: 100%;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.title-icon {
+  margin-right: 12rpx;
+  font-size: 32rpx;
+}
+
+.count-badge {
+  font-size: 24rpx;
+  color: #94a3b8;
+  font-weight: normal;
+  margin-left: 12rpx;
+}
+
+/* === 图片列表 (修复溢出问题) === */
+.image-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4列布局 */
+  gap: 16rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.image-item {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1; /* 保持正方形 */
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+  border: 1rpx solid #f1f5f9;
+  display: block;
+}
+
+/* 修改：删除按钮改为内缩，防止超出屏幕 */
+.item-delete {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 40rpx;
+  height: 40rpx;
+  background: rgba(0, 0, 0, 0.5); /* 半透明黑底，更清晰 */
+  border-radius: 50%;
+  color: #fff;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  backdrop-filter: blur(2px);
+}
+
+/* 空状态 */
+.empty-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  border: 2rpx dashed #cbd5e1;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+  opacity: 0.8;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #94a3b8;
+}
+
+/* === 输入框区域 === */
+.input-group {
+  background: #f8fafc;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  border: 2rpx solid transparent;
+  transition: all 0.3s;
+}
+
+.input-group:focus-within {
+  background: #fff;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4rpx rgba(99, 102, 241, 0.1);
+}
+
+.input-icon {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+  color: #94a3b8;
+}
+
+.wm-input {
+  flex: 1;
+  font-size: 30rpx;
+  color: #333;
+  height: 48rpx;
+}
+
+.input-count {
+  font-size: 24rpx;
+  color: #cbd5e1;
+  margin-left: 12rpx;
+}
+
+/* === 样式设置行 === */
+.setting-block {
+  margin-top: 32rpx;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 36rpx;
+}
+
+.setting-label {
+  width: 120rpx;
+  font-size: 28rpx;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.setting-slider {
+  flex: 1;
+  margin: 0 20rpx;
+}
+
+.setting-value {
+  width: 70rpx;
+  text-align: right;
+  font-size: 26rpx;
+  color: #6366f1;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+/* 颜色选择 (修复横向撑开问题) */
+.color-scroll {
+  flex: 1;
+  width: 0; /* 关键：解决 Flex 子元素导致父级撑开 */
+  white-space: nowrap;
+}
+
+.color-list {
+  display: flex;
+  gap: 20rpx;
+  padding-right: 20rpx;
+}
+
+.color-item {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.color-item.active {
+  transform: scale(1.15);
+  border-color: #6366f1;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.15);
+}
+
+.check-icon {
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: bold;
+  text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.3);
+}
+
+/* === 位置选择 (修复排版) === */
+.position-grid {
+  flex: 1;
+  display: grid;
+  /* 强制 3 列布局：5个选项会变成 3个+2个，避免最后一行只有1个 */
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 16rpx;
+}
+
+.position-item {
+  padding: 16rpx 0;
+  text-align: center;
+  background: #f1f5f9;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  color: #64748b;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+  /* 确保文字不换行 */
+  white-space: nowrap;
+}
+
+.position-item.active {
+  background: #e0e7ff;
+  color: #6366f1;
+  border-color: #6366f1;
+  font-weight: 500;
+}
+
+/* === 底部工具栏 === */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  z-index: 100;
+}
+
+.btn-icon {
+  width: 88rpx !important;
+  height: 88rpx !important;
+  background: #f1f5f9;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #333;
+}
+
+.btn-primary {
+  flex: 1;
+  height: 88rpx !important;
+  background: #6366f1;
+  color: #fff;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: normal !important;
+  box-shadow: 0 8rpx 20rpx rgba(99, 102, 241, 0.25);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* 加载动画 */
+.loading-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+}
+
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 6rpx solid #e0e7ff;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 24rpx;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #6366f1;
+  font-weight: 500;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

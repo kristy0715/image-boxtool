@@ -1,0 +1,138 @@
+<wxs module="tools">
+  var getStyle = function(w, h, x, y, b, c) {
+    return 'width:' + w + 'px;height:' + h + 'px;transform:translate(' + x + 'px,' + y + 'px);position:absolute;left:0;top:0;filter:brightness(' + b + '%) contrast(' + c + '%);';
+  }
+  module.exports = { getStyle: getStyle };
+</wxs>
+
+<view class="container">
+  <view class="mode-tabs">
+    <view class="tab-item {{mode === 'normal' ? 'active' : ''}}" bindtap="switchMode" data-mode="normal">
+      <text>📷 普通拍摄</text>
+    </view>
+    <view class="tab-item {{mode === 'auto' ? 'active' : ''}}" bindtap="switchMode" data-mode="auto">
+      <text>🤖 智能抠图</text>
+    </view>
+  </view>
+
+  <view class="page-header" wx:if="{{mode === 'normal'}}">
+    <text class="page-subtitle">当前为普通模式：请寻找与目标底色相近的背景拍摄</text>
+  </view>
+
+  <view class="card camera-card" wx:if="{{showCamera}}">
+    <view class="camera-wrapper">
+      <camera class="camera" device-position="{{cameraPosition}}" flash="off" resolution="high" binderror="onCameraError">
+        <view class="guide-overlay">
+          <view class="guide-frame">
+            <view class="guide-head"></view>
+            <view class="guide-shoulder"></view>
+          </view>
+          <text class="guide-tip">请将头部置于框内</text>
+        </view>
+      </camera>
+    </view>
+    <view class="camera-actions">
+      <view class="camera-btn-secondary" bindtap="switchCamera"><text class="btn-icon">🔄</text><text>切换</text></view>
+      <view class="camera-btn-primary" bindtap="takePhoto"><view class="shutter-btn"><view class="shutter-inner"></view></view></view>
+      <view class="camera-btn-secondary" bindtap="chooseFromAlbum"><text class="btn-icon">🖼️</text><text>相册</text></view>
+    </view>
+  </view>
+
+  <view class="card preview-card" wx:if="{{!showCamera}}">
+    <view class="upload-area" bindtap="openCamera" wx:if="{{!imagePath}}">
+      <text class="upload-icon-emoji">📷</text>
+      <text class="upload-text">点击拍摄证件照</text>
+      <text class="upload-hint">普通模式：请在纯色背景前拍摄</text>
+    </view>
+    
+    <view class="preview-wrapper" wx:else>
+      <view class="color-tip">
+        <text>💡 当前底色：{{selectedColorName}}，请在类似颜色的墙面前拍摄</text>
+      </view>
+
+      <view class="preview-box" style="background-color: {{selectedColor}};">
+        <view class="preview-container" 
+          style="width: {{previewW}}px; height: {{previewH}}px;"
+          catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd">
+          
+          <image class="preview-image" src="{{imagePath}}" 
+            style="{{tools.getStyle(imgWidth, imgHeight, imgX, imgY, brightness, contrast)}}"></image>
+          
+          <view class="crop-mask">
+            <view class="guide-border"></view>
+            <view class="guide-line-head"></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="preview-actions">
+        <view class="action-btn" bindtap="resetImage">
+          <text class="action-icon">↺</text><text class="action-text">重置位置</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <block wx:if="{{!showCamera && imagePath}}">
+    <view class="card">
+      <view class="section-title"><text class="section-icon">🎨</text><text>背景颜色 (底色)</text></view>
+      <view class="color-grid">
+        <view class="color-item {{selectedColor === item.value ? 'active' : ''}}" 
+          wx:for="{{colorList}}" wx:key="value" bindtap="selectColor" 
+          data-value="{{item.value}}" data-name="{{item.name}}"
+          style="background-color: {{item.value}};">
+          <view class="color-check" wx:if="{{selectedColor === item.value}}">✓</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="section-title"><text class="section-icon">✨</text><text>画质调节</text></view>
+      <view class="slider-group">
+        <view class="slider-row">
+          <view class="slider-header"><text class="slider-label">亮度</text><text class="slider-value">{{brightness}}%</text></view>
+          <slider min="80" max="150" value="{{brightness}}" activeColor="#438edb" block-size="20" bindchanging="onBrightnessChange"/>
+        </view>
+        <view class="slider-row">
+          <view class="slider-header"><text class="slider-label">对比度</text><text class="slider-value">{{contrast}}%</text></view>
+          <slider min="80" max="150" value="{{contrast}}" activeColor="#438edb" block-size="20" bindchanging="onContrastChange"/>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view class="card" wx:if="{{!showCamera}}">
+    <view class="section-title"><text class="section-icon">📐</text><text>选择尺寸</text></view>
+    <view class="size-grid">
+      <view class="size-item {{selectedSize === item.id ? 'active' : ''}}" 
+        wx:for="{{sizeList}}" wx:key="id" bindtap="selectSize" data-id="{{item.id}}">
+        <text class="size-name">{{item.name}}</text>
+        <text class="size-dimension">{{item.dimension}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="ad-container" wx:if="{{!showCamera}}">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view style="height: 220rpx;" wx:if="{{!showCamera}}"></view>
+
+  <view class="bottom-bar" wx:if="{{!showCamera && imagePath}}">
+    <block wx:if="{{processedImage}}">
+        <button class="btn-icon" open-type="share">📤</button>
+        <button class="btn-secondary" bindtap="processImage">重生成</button>
+        <button class="btn-primary" bindtap="saveImage">保存相册</button>
+    </block>
+    <block wx:else>
+        <button class="btn-primary full-width" bindtap="processImage">生成证件照</button>
+    </block>
+  </view>
+
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">处理中...</text>
+    </view>
+  </view>
+</view>

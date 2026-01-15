@@ -1,0 +1,181 @@
+/* pages/anime/anime.wxss */
+page {
+  background-color: #f7f8fa;
+}
+
+.container {
+  padding: 30rpx;
+}
+
+.card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+}
+
+.preview-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.upload-area {
+  padding: 120rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.upload-text {
+  font-size: 30rpx;
+  color: #666;
+}
+
+.preview-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20rpx;
+  background: #f1f5f9;
+  min-height: 400rpx;
+}
+
+.preview-canvas {
+  display: block;
+  border-radius: 16rpx;
+}
+
+.processing-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.5);
+  border-radius: 16rpx;
+}
+
+.processing-text {
+  color: #fff;
+  font-size: 28rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 24rpx;
+}
+
+.style-scroll {
+  max-height: 400rpx;
+}
+
+.style-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+}
+
+.style-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 8rpx;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.style-item.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: #6366f1;
+}
+
+.style-icon {
+  font-size: 36rpx;
+  margin-bottom: 8rpx;
+}
+
+.style-name {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.style-item.active .style-name {
+  color: #6366f1;
+}
+
+.style-desc {
+  font-size: 18rpx;
+  color: #999;
+  text-align: center;
+}
+
+.slider-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.slider-label {
+  font-size: 28rpx;
+  color: #666;
+  width: 80rpx;
+}
+
+.slider {
+  flex: 1;
+}
+
+.slider-value {
+  font-size: 28rpx;
+  color: #6366f1;
+  font-weight: 600;
+  width: 80rpx;
+  text-align: right;
+}
+
+/* 底部操作栏 */
+.bottom-bar {
+  position: fixed; bottom: 0;
+  left: 0; right: 0;
+  background: #fff;
+  padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+  display: flex; align-items: center; gap: 24rpx;
+  z-index: 100;
+}
+
+.btn-secondary {
+  flex: 1; background: #f1f5f9;
+  color: #333;
+  font-size: 30rpx; border-radius: 44rpx;
+  margin: 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.btn-primary {
+  flex: 2; background: #6366f1; color: #fff;
+  font-size: 32rpx; font-weight: 600; border-radius: 44rpx;
+  margin: 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.btn-primary[disabled] {
+  background: #cbd5e1;
+  color: #fff;
+}

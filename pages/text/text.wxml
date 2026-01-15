@@ -1,0 +1,110 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">添加文字</text>
+    <text class="page-subtitle">图片加字，个性水印</text>
+  </view>
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">📷</text>
+      <text class="upload-text">点击选择照片</text>
+    </view>
+
+    <view class="preview-wrapper" wx:else style="width:{{viewWidth}}px; height:{{viewHeight}}px;">
+      <image class="bg-image" src="{{imagePath}}" mode="scaleToFill"></image>
+
+      <view 
+        wx:if="{{stickerPath}}"
+        class="drag-element sticker-element {{activeTarget === 'sticker' ? 'active' : ''}} {{isStickerDragging ? 'dragging' : ''}}"
+        style="left:{{stickerX}}px; top:{{stickerY}}px; width:{{stickerSize}}px; height:{{stickerSize}}px; transform: translate(-50%, -50%) rotate({{stickerAngle}}deg); z-index: 50;"
+        catchtouchstart="onStickerTouchStart" 
+        catchtouchmove="onStickerTouchMove" 
+        catchtouchend="onStickerTouchEnd"
+        bindtap="activateSticker"
+      >
+        <image class="ele-img" src="{{stickerPath}}" mode="aspectFit"></image>
+        <view class="handle-box" wx:if="{{activeTarget === 'sticker'}}"></view>
+      </view>
+
+      <view 
+        class="drag-element text-element {{activeTarget === 'text' ? 'active' : ''}} {{isTextDragging ? 'dragging' : ''}}"
+        style="left:{{textX}}px; top:{{textY}}px; transform: translate(-50%, -50%) rotate({{textAngle}}deg); z-index: 60;"
+        catchtouchstart="onTextTouchStart" 
+        catchtouchmove="onTextTouchMove" 
+        catchtouchend="onTextTouchEnd"
+        bindtap="activateText"
+      >
+        <text style="font-size:{{fontSize}}px; color:{{textColor}}; font-weight:{{fontWeight}}; {{hasStroke ? 'text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;' : ''}}">{{text}}</text>
+        <view class="handle-box" wx:if="{{activeTarget === 'text'}}"></view>
+      </view>
+    </view>
+  </view>
+
+  <canvas 
+    type="2d" 
+    id="exportCanvas" 
+    style="position: fixed; left: -9999px; top: 0; width: {{rawWidth}}px; height: {{rawHeight}}px;"
+  ></canvas>
+
+  <view class="tab-header" wx:if="{{imagePath}}">
+    <view class="tab-item {{currentTab === 'text' ? 'active' : ''}}" bindtap="switchTab" data-tab="text">文字设置</view>
+    <view class="tab-item {{currentTab === 'sticker' ? 'active' : ''}}" bindtap="switchTab" data-tab="sticker">精美贴纸</view>
+  </view>
+
+  <view class="card no-top-radius" wx:if="{{imagePath && currentTab === 'text'}}">
+    <view class="input-row">
+      <input class="text-input" value="{{text}}" bindinput="onTextInput" placeholder="输入文字"/>
+    </view>
+    <view class="style-row">
+      <text class="style-label">字号</text>
+      <slider class="style-slider" min="20" max="80" value="{{fontSize}}" bindchange="onFontSizeChange" activeColor="#6366f1" block-size="20"/>
+      <text class="style-val">{{fontSize}}</text>
+    </view>
+    <view class="style-row">
+      <text class="style-label">颜色</text>
+      <scroll-view scroll-x class="color-scroll" enable-flex>
+        <view class="color-list">
+          <view class="color-item" wx:for="{{colorList}}" wx:key="color" style="background: {{item.color}};" bindtap="selectColor" data-color="{{item.color}}">
+            <view wx:if="{{textColor === item.color}}" class="check-mark">✓</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    <view class="style-row">
+      <text class="style-label">描边</text>
+      <switch checked="{{hasStroke}}" color="#6366f1" bindchange="onStrokeChange"/>
+    </view>
+  </view>
+
+  <view class="card no-top-radius" wx:if="{{imagePath && currentTab === 'sticker'}}">
+    <view class="sticker-cate-tabs">
+        <view wx:for="{{stickerTabs}}" wx:key="*this" class="cate-item {{currentStickerTab === index ? 'active' : ''}}" bindtap="switchStickerTab" data-idx="{{index}}">{{item}}</view>
+    </view>
+    
+    <scroll-view scroll-y class="sticker-grid-scroll" enable-flex>
+        <view class="sticker-grid">
+            <view class="sticker-box {{stickerPath === item ? 'active' : ''}}" wx:for="{{currentStickerList}}" wx:key="*this" bindtap="selectSticker" data-path="{{item}}">
+              <image class="sticker-list-img" src="{{item}}" mode="aspectFit"></image>
+            </view>
+        </view>
+    </scroll-view>
+
+    <view class="control-panel" wx:if="{{stickerPath}}">
+      <view class="style-row">
+        <text class="style-label">大小</text>
+        <slider class="style-slider" min="40" max="300" value="{{stickerSize}}" bindchange="onStickerSizeChange" activeColor="#6366f1" block-size="20"/>
+      </view>
+      <button class="delete-full-btn" bindtap="removeSticker">移除贴纸</button>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 0;">
+   <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-icon" bindtap="chooseImage">🔄</button>
+    <button class="btn-primary" bindtap="saveImage">保存到相册</button>
+  </view>
+  
+  <view style="height: 180rpx;" wx:if="{{imagePath}}"></view>
+</view>

@@ -1,0 +1,66 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">滤镜效果</text>
+    <text class="page-subtitle">一键美化，多种风格</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">🎭</text>
+      <text class="upload-text">点击选择图片</text>
+    </view>
+    <view class="preview-wrapper" wx:else>
+      <canvas type="2d" id="filterCanvas" class="preview-canvas" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"></canvas>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">选择滤镜</view>
+    <scroll-view scroll-x class="filter-scroll" enable-flex>
+      <view class="filter-list">
+        <view 
+          class="filter-item {{currentFilter === item.id ? 'active' : ''}}" 
+          wx:for="{{filterList}}" 
+          wx:key="id"
+          bindtap="selectFilter"
+          data-id="{{item.id}}"
+        >
+          <view class="filter-thumb-wrapper">
+            <image class="filter-thumb" src="{{item.thumb || imagePath}}" mode="aspectFill"></image>
+          </view>
+          <text class="filter-name">{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">调节参数</view>
+    <view class="slider-item">
+      <text class="slider-label">亮度</text>
+      <slider class="slider" min="-100" max="100" value="{{brightness}}" bindchanging="onBrightnessChanging" bindchange="onBrightnessChange" activeColor="#6366f1" block-size="20"/>
+      <text class="slider-value">{{brightness}}</text>
+    </view>
+    <view class="slider-item">
+      <text class="slider-label">对比度</text>
+      <slider class="slider" min="-100" max="100" value="{{contrast}}" bindchanging="onContrastChanging" bindchange="onContrastChange" activeColor="#6366f1" block-size="20"/>
+      <text class="slider-value">{{contrast}}</text>
+    </view>
+    <view class="slider-item">
+      <text class="slider-label">饱和度</text>
+      <slider class="slider" min="-100" max="100" value="{{saturation}}" bindchanging="onSaturationChanging" bindchange="onSaturationChange" activeColor="#6366f1" block-size="20"/>
+      <text class="slider-value">{{saturation}}</text>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 0;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-secondary" bindtap="resetFilter">重置</button>
+    <button class="btn-primary" bindtap="saveImage">保存到相册</button>
+  </view>
+
+  <view style="height: 180rpx;" wx:if="{{imagePath}}"></view>
+</view>

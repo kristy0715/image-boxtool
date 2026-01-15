@@ -1,0 +1,105 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">表情包制作</text>
+    <text class="page-subtitle">自由拖拽旋转 · 创意无限</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">😂</text>
+      <text class="upload-text">点击选择图片</text>
+    </view>
+
+    <view class="canvas-box" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;" wx:else>
+      <canvas type="2d" id="memeCanvas" class="main-canvas" style="width: 100%; height: 100%;"></canvas>
+      
+      <view 
+        class="touch-layer" 
+        catchtouchstart="onTouchStart"
+        catchtouchmove="onTouchMove"
+        catchtouchend="onTouchEnd"
+      >
+        <block wx:for="{{textList}}" wx:key="id">
+          <view 
+            class="text-item {{currentTextId === item.id ? 'active' : ''}}"
+            style="left: {{item.x}}px; top: {{item.top}}px; transform: translate(-50%, -50%) rotate({{item.angle}}deg); font-size: {{item.size}}px; color: {{item.color}}; text-shadow: {{item.stroke ? '0 0 4px ' + item.strokeColor : 'none'}}; z-index: {{item.zIndex}};"
+            data-id="{{item.id}}"
+            catchtouchstart="onTextTouchStart"
+          >
+            {{item.text || '点击输入文字'}}
+            
+            <view 
+              class="rotate-handle" 
+              wx:if="{{currentTextId === item.id}}"
+              catchtouchstart="onRotateStart"
+            >↻</view>
+
+            <view 
+              class="delete-handle" 
+              wx:if="{{currentTextId === item.id}}"
+              catchtap="deleteText"
+              data-id="{{item.id}}"
+            >×</view>
+          </view>
+        </block>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="tool-bar">
+      <button class="tool-btn add-btn" bindtap="addText">
+        <text class="icon">+</text> 添加文本
+      </button>
+    </view>
+
+    <view class="attr-panel" wx:if="{{currentTextId}}">
+      <view class="panel-title">文字样式调整</view>
+      
+      <view class="input-row">
+        <text class="label">内容</text>
+        <input class="text-input" value="{{currentText.text}}" bindinput="onTextInput" placeholder="请输入文字"/>
+      </view>
+
+      <view class="slider-row">
+        <text class="label">大小</text>
+        <slider class="slider" min="20" max="150" value="{{currentText.size}}" bindchanging="onSizeChange" activeColor="#6366f1" block-size="16"/>
+        <text class="val">{{currentText.size}}</text>
+      </view>
+
+      <view class="color-row">
+        <text class="label">颜色</text>
+        <view class="color-picker">
+          <view 
+            class="color-item {{currentText.color === item ? 'active' : ''}}" 
+            wx:for="{{colorList}}" 
+            wx:key="*this"
+            style="background: {{item}};"
+            bindtap="selectColor"
+            data-color="{{item}}"
+          ></view>
+        </view>
+      </view>
+
+      <view class="switch-row">
+        <text class="label">描边</text>
+        <switch checked="{{currentText.stroke}}" color="#6366f1" bindchange="onStrokeChange"/>
+      </view>
+    </view>
+
+    <view class="no-text-tip" wx:else>
+      <text>👈 点击画面上的文字进行编辑</text>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 0;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-icon" bindtap="chooseImage">🔄</button>
+    <button class="btn-primary" style="flex:1;" bindtap="saveImage">保存表情包</button>
+  </view>
+
+  <view class="safe-bottom" style="height: 180rpx;" wx:if="{{imagePath}}"></view>
+</view>

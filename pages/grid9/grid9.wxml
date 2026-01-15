@@ -1,0 +1,81 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">九宫格切图</text>
+    <text class="page-subtitle">朋友圈九宫格神器</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">⬜</text>
+      <text class="upload-text">点击选择图片</text>
+    </view>
+    <view class="preview-wrapper" wx:else>
+      <view class="grid-preview">
+        <image class="preview-image" src="{{imagePath}}" mode="aspectFill"></image>
+        <view class="grid-lines">
+          <block wx:if="{{gridType === 9}}">
+            <view class="h-line" style="top: 33.33%"></view>
+            <view class="h-line" style="top: 66.66%"></view>
+            <view class="v-line" style="left: 33.33%"></view>
+            <view class="v-line" style="left: 66.66%"></view>
+          </block>
+          <block wx:else>
+            <view class="h-line" style="top: 50%"></view>
+            <view class="v-line" style="left: 50%"></view>
+          </block>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{gridImages.length > 0}}">
+    <view class="section-title">切割预览</view>
+    <view class="grid-result {{gridType === 4 ? 'grid-4' : ''}}">
+      <image 
+        class="grid-item" 
+        wx:for="{{gridImages}}" 
+        wx:key="index"
+        src="{{item}}"
+        mode="aspectFill"
+      ></image>
+    </view>
+    <view class="grid-tip">保存后，去朋友圈按顺序选择发布即可</view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">切割方式</view>
+    <view class="cut-options">
+      <view class="cut-item {{gridType === 9 ? 'active' : ''}}" bindtap="setGridType" data-type="9">
+        <view class="cut-icon grid-9">
+          <view class="mini-cell" wx:for="{{9}}" wx:key="*this"></view>
+        </view>
+        <text class="cut-name">九宫格 (3x3)</text>
+      </view>
+      <view class="cut-item {{gridType === 4 ? 'active' : ''}}" bindtap="setGridType" data-type="4">
+        <view class="cut-icon grid-4">
+          <view class="mini-cell" wx:for="{{4}}" wx:key="*this"></view>
+        </view>
+        <text class="cut-name">四宫格 (2x2)</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-icon" bindtap="chooseImage">🔄</button>
+    <button class="btn-icon" open-type="share">📤</button>
+    <button class="btn-primary" bindtap="saveAllImages">保存所有切片</button>
+  </view>
+
+  <view style="height: 200rpx;" wx:if="{{imagePath}}"></view>
+
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">{{loadingText}}</text>
+    </view>
+  </view>
+</view>

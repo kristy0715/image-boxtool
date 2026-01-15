@@ -1,0 +1,58 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">艺术风格</text>
+    <text class="page-subtitle">12种风格任你选</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">🎨</text>
+      <text class="upload-text">点击选择照片</text>
+    </view>
+    <view class="preview-wrapper" wx:else>
+      <canvas type="2d" id="animeCanvas" class="preview-canvas" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"></canvas>
+      <view class="processing-mask" wx:if="{{isProcessing}}">
+        <text class="processing-text">处理中...</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">选择风格</view>
+    <scroll-view scroll-y class="style-scroll">
+      <view class="style-grid">
+        <view 
+          class="style-item {{currentStyle === item.id ? 'active' : ''}}"
+          wx:for="{{styleList}}"
+          wx:key="id"
+          bindtap="selectStyle"
+          data-id="{{item.id}}"
+        >
+          <view class="style-icon">{{item.icon}}</view>
+          <text class="style-name">{{item.name}}</text>
+          <text class="style-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">效果强度</view>
+    <view class="slider-item">
+      <text class="slider-label">强度</text>
+      <slider class="slider" min="10" max="100" value="{{intensity}}" bindchanging="onIntensityChange" bindchange="onIntensityChanged" activeColor="#6366f1"/>
+      <text class="slider-value">{{intensity}}%</text>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 0;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-secondary" bindtap="chooseImage">重新选择</button>
+    <button class="btn-primary" bindtap="saveImage" disabled="{{isProcessing}}">保存到相册</button>
+  </view>
+
+  <view style="height: 180rpx;" wx:if="{{imagePath}}"></view>
+</view>

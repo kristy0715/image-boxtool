@@ -1,0 +1,52 @@
+/* pages/text2img/text2img.wxss */
+.section-title { display: flex; justify-content: space-between; align-items: center; font-size: 30rpx; font-weight: 600; color: var(--text-primary); margin-bottom: 24rpx; }
+.char-count { font-size: 24rpx; color: #94a3b8; font-weight: normal; }
+.text-area { width: 100%; height: 360rpx; padding: 24rpx; background: #f8fafc; border-radius: 16rpx; font-size: 28rpx; line-height: 1.6; box-sizing: border-box; color: #334155; }
+.signature-box { display: flex; align-items: center; margin-top: 20rpx; padding-top: 20rpx; border-top: 2rpx solid #f1f5f9; }
+.input-label { font-size: 28rpx; color: var(--text-secondary); }
+.signature-input { flex: 1; height: 60rpx; font-size: 28rpx; color: var(--text-primary); }
+.setting-row { display: flex; align-items: center; margin-bottom: 32rpx; }
+.setting-row:last-child { margin-bottom: 0; }
+.setting-label { width: 140rpx; font-size: 28rpx; color: var(--text-secondary); flex-shrink: 0; }
+.color-scroll { flex: 1; white-space: nowrap; }
+.color-list { display: flex; gap: 20rpx; padding-right: 20rpx; }
+
+/* 修复了对号居中问题 */
+.color-item { 
+    width: 56rpx; 
+    height: 56rpx; 
+    border-radius: 50%; 
+    border: 2rpx solid rgba(0,0,0,0.05); 
+    box-sizing: border-box; 
+    flex-shrink: 0; 
+    display: flex; /* 新增 flex 布局 */
+    align-items: center; /* 垂直居中 */
+    justify-content: center; /* 水平居中 */
+}
+
+.color-item.active { border: 4rpx solid #6366f1; transform: scale(1.1); }
+
+/* 新增对号样式 */
+.color-check {
+    font-size: 32rpx;
+    color: #6366f1; /* 默认使用主题色，深色背景可根据需要调整 */
+    font-weight: bold;
+}
+
+.setting-slider { flex: 1; margin: 0 20rpx; }
+.setting-value { width: 60rpx; text-align: right; font-size: 26rpx; color: var(--text-light); font-family: monospace; }
+.ctrl-btns { display: flex; gap: 16rpx; flex: 1; }
+.ctrl-btn { padding: 10rpx 24rpx; background: #f1f5f9; border-radius: 12rpx; font-size: 26rpx; color: #64748b; transition: all 0.2s; min-width: 80rpx; text-align: center; }
+.ctrl-btn.active { background: #e0e7ff; color: #6366f1; font-weight: 500; }
+.preview-card { margin-bottom: 20rpx; }
+.preview-scroll { max-height: 800rpx; background: #f1f5f9; border-radius: 12rpx; overflow: hidden; box-shadow: inset 0 0 20rpx rgba(0,0,0,0.05); }
+.preview-image { width: 100%; display: block; }
+.preview-tip { text-align: center; font-size: 22rpx; color: #94a3b8; margin-top: 16rpx; }
+
+/* 底部操作栏 - 按钮修复 */
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom)); box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05); display: flex; justify-content: space-between; align-items: center; z-index: 100; gap: 20rpx; }
+.btn-group { display: flex; gap: 16rpx; }
+.btn-icon { width: 88rpx !important; height: 88rpx !important; padding: 0 !important; margin: 0 !important; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 44rpx; font-size: 40rpx; font-weight: normal; }
+.btn-primary { flex: 1; height: 88rpx !important; background: #6366f1; color: #fff; border-radius: 44rpx; font-size: 32rpx; font-weight: 600; margin: 0 !important; padding: 0 !important; display: flex !important; align-items: center; justify-content: center; line-height: normal !important; min-height: 88rpx; white-space: nowrap; }
+.btn-primary[disabled] { background: #cbd5e1; color: #fff; }
+.btn-hover { opacity: 0.9; transform: scale(0.98); }

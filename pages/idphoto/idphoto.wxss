@@ -1,0 +1,224 @@
+/* pages/idphoto/idphoto.wxss */
+
+/* === 新增：顶部模式切换 === */
+.mode-tabs {
+  display: flex; background: #fff; padding: 8rpx;
+  border-radius: 20rpx; margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.03);
+}
+.tab-item {
+  flex: 1; text-align: center; padding: 16rpx 0;
+  border-radius: 16rpx; font-size: 28rpx; color: #666; font-weight: 500; transition: all 0.2s;
+}
+.tab-item.active {
+  background: #e0e7ff; color: #6366f1; font-weight: 600;
+}
+
+/* 相机区域 */
+.camera-card { padding: 0; overflow: hidden; }
+.camera-wrapper { position: relative; width: 100%; height: 800rpx; }
+.camera { width: 100%; height: 100%; }
+
+.guide-overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.guide-frame {
+  position: relative; width: 320rpx; height: 420rpx;
+  border: 4rpx dashed rgba(255, 255, 255, 0.8); border-radius: 20rpx;
+  display: flex; flex-direction: column; align-items: center;
+}
+.guide-head {
+  width: 180rpx; height: 220rpx; margin-top: 40rpx;
+  border: 3rpx dashed rgba(255, 255, 255, 0.6);
+  border-radius: 50% 50% 45% 45%;
+  background: rgba(255, 255, 255, 0.1);
+}
+.guide-shoulder {
+  width: 260rpx; height: 100rpx; margin-top: 20rpx;
+  border: 3rpx dashed rgba(255, 255, 255, 0.6);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+.guide-tip {
+  margin-top: 30rpx; padding: 12rpx 30rpx;
+  background: rgba(0, 0, 0, 0.5); border-radius: 30rpx;
+  color: #ffffff; font-size: 26rpx;
+}
+
+.camera-actions {
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 40rpx 60rpx; background: #1a1a2e;
+}
+.camera-btn-secondary {
+  display: flex; flex-direction: column; align-items: center; color: #ffffff; font-size: 24rpx;
+}
+.camera-btn-secondary .btn-icon { font-size: 48rpx; margin-bottom: 8rpx; }
+.camera-btn-primary { display: flex; align-items: center; justify-content: center; }
+.shutter-btn {
+  width: 120rpx; height: 120rpx; border-radius: 50%;
+  border: 6rpx solid #ffffff;
+  display: flex; align-items: center; justify-content: center; background: transparent;
+}
+.shutter-inner { width: 90rpx; height: 90rpx; border-radius: 50%; background: #ffffff; }
+.shutter-btn:active .shutter-inner { background: #cccccc; transform: scale(0.95); }
+
+/* 预览区域 */
+.preview-card { padding: 0; overflow: hidden; }
+.upload-area { padding: 100rpx 40rpx; display: flex; flex-direction: column; align-items: center; }
+.upload-icon-emoji { font-size: 80rpx; margin-bottom: 24rpx; line-height: 1 !important; }
+.upload-text { font-size: 30rpx; color: var(--text-secondary); margin-bottom: 8rpx; }
+.upload-hint { font-size: 24rpx; color: var(--text-light); }
+
+.preview-wrapper { 
+  position: relative;
+  padding: 40rpx 20rpx; 
+  background: #f1f5f9; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+}
+
+/* === 新增：颜色提示条 === */
+.color-tip {
+  margin-bottom: 24rpx;
+  background: #fef3c7; color: #d97706;
+  padding: 12rpx 24rpx; border-radius: 30rpx;
+  font-size: 24rpx; display: flex; align-items: center;
+}
+
+/* === 核心修改：预览盒子 (底色容器) === */
+.preview-box {
+  padding: 24rpx; /* 这里留出的空隙显示底色 */
+  border-radius: 4rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.15);
+  transition: background-color 0.3s ease;
+}
+
+.preview-container {
+  /* 去掉这里的背景色，移到外层 preview-box */
+  position: relative;
+  overflow: hidden; 
+}
+.preview-image { border-radius: 0; }
+
+.preview-actions {
+  display: flex; justify-content: center; gap: 30rpx; padding-top: 30rpx;
+}
+.action-btn {
+  display: flex; align-items: center; padding: 16rpx 32rpx;
+  background: #ffffff; border-radius: 40rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+.action-icon { font-size: 32rpx; margin-right: 8rpx; }
+.action-text { font-size: 26rpx; color: var(--text-secondary); }
+
+.crop-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+.guide-border {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  border: 4rpx solid rgba(255,255,255,0.7);
+  box-shadow: inset 0 0 20rpx rgba(0,0,0,0.1);
+}
+.guide-line-head {
+  position: absolute; top: 15%; left: 20%; right: 20%;
+  border-top: 2rpx dashed rgba(255,255,255,0.5);
+}
+
+/* 滑块样式 */
+.slider-group { padding: 10rpx 20rpx; }
+.slider-row { margin-bottom: 30rpx; }
+.slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10rpx; padding: 0 10rpx; }
+.slider-label { font-size: 28rpx; color: #333; font-weight: 500; }
+.slider-value { font-size: 26rpx; color: #438edb; font-family: monospace; font-weight: bold; }
+slider { margin: 0; }
+
+/* 颜色选择 */
+.color-grid { display: flex; justify-content: flex-start; gap: 24rpx; margin-bottom: 16rpx; }
+.color-item {
+  width: 80rpx; height: 80rpx; border-radius: 50%; border: 4rpx solid #e2e8f0;
+  display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+.color-item.active { border-color: var(--primary-color); transform: scale(1.1); box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.15); }
+.color-check { color: #ffffff; font-size: 32rpx; font-weight: bold; text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.3); }
+/* 修正白色背景钩子颜色 */
+.color-item[style*="#ffffff"] .color-check { color: #333; text-shadow: none; }
+
+/* 通用 */
+.section-title { display: flex; align-items: center; font-size: 32rpx; font-weight: 600; color: var(--text-primary); margin-bottom: 24rpx; }
+.section-icon { margin-right: 12rpx; font-size: 36rpx; }
+
+.size-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16rpx; }
+.size-item {
+  padding: 24rpx 16rpx; background: #f8fafc;
+  border-radius: var(--radius-md);
+  text-align: center; border: 2rpx solid transparent; transition: all 0.3s ease;
+}
+.size-item.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border-color: var(--primary-color);
+}
+.size-name { display: block; font-size: 28rpx; font-weight: 600; color: var(--text-primary); margin-bottom: 8rpx; }
+.size-item.active .size-name { color: var(--primary-color); }
+.size-dimension { display: block; font-size: 22rpx; color: var(--text-light); }
+
+/* === 广告容器样式 === */
+.ad-container {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 30rpx;
+  margin-top: 20rpx;
+}
+
+/* 底部栏 */
+.bottom-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #fff;
+  padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+  display: flex; align-items: center; gap: 24rpx;
+  z-index: 100;
+}
+
+.btn-icon {
+  width: 88rpx !important; height: 88rpx !important;
+  background: #f1f5f9; border-radius: 44rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40rpx; padding: 0 !important; margin: 0 !important;
+  flex-shrink: 0;
+  line-height: 1 !important;
+}
+
+.btn-secondary {
+  flex: 1; background: #f1f5f9; color: #333;
+  font-size: 30rpx; border-radius: 44rpx;
+  margin: 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.btn-primary {
+  flex: 2; background: #6366f1; color: #fff;
+  font-size: 32rpx; font-weight: 600; border-radius: 44rpx;
+  margin: 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-primary.full-width { flex: 1; }
+
+.loading-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.loading-box {
+  background: #ffffff; padding: 48rpx 64rpx; border-radius: 24rpx;
+  display: flex; flex-direction: column; align-items: center;
+}
+.loading-spinner {
+  width: 64rpx; height: 64rpx;
+  border: 4rpx solid #e2e8f0; border-top-color: var(--primary-color);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+.loading-text { margin-top: 24rpx; font-size: 28rpx; color: var(--text-secondary); }
+@keyframes spin { to { transform: rotate(360deg); } }
