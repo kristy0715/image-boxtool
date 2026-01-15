@@ -4,9 +4,9 @@
     <text class="page-subtitle">智能压缩，保持画质</text>
   </view>
 
-  <view class="card">
+  <view class="card preview-card">
     <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
-      <text class="upload-icon-emoji">📦</text>
+      <text class="upload-icon">📦</text>
       <text class="upload-text">点击选择图片</text>
       <text class="upload-hint">支持 JPG / PNG 格式</text>
     </view>

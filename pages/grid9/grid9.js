@@ -4,8 +4,8 @@ const Security = require('../../utils/security.js');
 
 // === 广告配置 ===
 const AD_CONFIG = {
-  BANNER_ID: 'adunit-ecfcec4c6a0c871b',       // 请替换为您的 Banner 广告 ID
-  VIDEO_ID: 'adunit-da175a2014d3443b' // 请替换为您的 激励视频广告 ID
+  BANNER_ID: 'adunit-ecfcec4c6a0c871b',       // Banner 广告 ID
+  VIDEO_ID: 'adunit-da175a2014d3443b'         // 激励视频广告 ID
 };
 
 // === 策略配置 ===
@@ -18,24 +18,21 @@ Page({
     gridImages: [],
     isProcessing: false,
     loadingText: '处理中...',
-    // 原始尺寸信息
     originalInfo: null,
-    // 【新增】将配置的 ID 绑定到 data 中，供 WXML 使用
     bannerUnitId: AD_CONFIG.BANNER_ID
   },
 
-  videoAd: null, // 广告实例
+  videoAd: null, 
 
   onLoad() {
     this.initVideoAd();
   },
 
-  // 【新增】广告错误监听（方便调试）
   onAdError(err) {
     console.log('Banner 广告加载失败:', err);
   },
   
-  // === 1. 初始化激励视频广告 ===
+  // === 1. 初始化激励视频 ===
   initVideoAd() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
@@ -43,51 +40,41 @@ Page({
       this.videoAd.onError((err) => console.error('激励视频加载失败', err));
       
       this.videoAd.onClose((res) => {
-        // 用户点击了【关闭广告】按钮
         if (res && res.isEnded) {
-          // A. 正常播放结束，下发奖励（解锁当天无限次）
           this.setDailyUnlimited();
           wx.showToast({ title: '已解锁今日无限次', icon: 'success' });
-          // 继续执行刚才被中断的保存
           this.doRealSave(); 
         } else {
-          // B. 播放中途退出
           wx.showModal({
             title: '提示',
             content: '需要完整观看视频才能解锁今日无限次保存权限哦',
             confirmText: '继续观看',
-            success: (m) => {
-              if (m.confirm) this.videoAd.show();
-            }
+            success: (m) => { if (m.confirm) this.videoAd.show(); }
           });
         }
       });
     }
   },
 
-  // === 2. 核心：额度检查逻辑 ===
+  // === 2. 额度检查逻辑 ===
   checkQuotaAndSave() {
     const today = new Date().toLocaleDateString();
     const storageKey = 'grid9_usage_record';
     let record = wx.getStorageSync(storageKey) || { date: today, count: 0, isUnlimited: false };
 
-    // 如果日期跨天了，重置数据
     if (record.date !== today) {
       record = { date: today, count: 0, isUnlimited: false };
       wx.setStorageSync(storageKey, record);
     }
 
-    // 场景 A：已经解锁无限次 -> 直接保存
     if (record.isUnlimited) {
       this.doRealSave();
       return;
     }
 
-    // 场景 B：还有免费次数 -> 扣除次数并保存
     if (record.count < FREE_COUNT_DAILY) {
       record.count++;
       wx.setStorageSync(storageKey, record);
-      // 提示剩余次数（增强体验）
       const left = FREE_COUNT_DAILY - record.count;
       if (left > 0) {
         wx.showToast({ title: `今日剩余免费${left}次`, icon: 'none' });
@@ -96,11 +83,9 @@ Page({
       return;
     }
 
-    // 场景 C：次数用尽 -> 弹窗引导看广告
     this.showAdModal();
   },
 
-  // 记录无限次权益
   setDailyUnlimited() {
     const today = new Date().toLocaleDateString();
     const storageKey = 'grid9_usage_record';
@@ -108,7 +93,6 @@ Page({
     wx.setStorageSync(storageKey, record);
   },
 
-  // 弹出广告引导
   showAdModal() {
     if (this.videoAd) {
       wx.showModal({
@@ -118,20 +102,16 @@ Page({
         cancelText: '取消',
         success: (res) => {
           if (res.confirm) {
-            this.videoAd.show().catch(() => {
-              // 广告加载失败（如网络问题），兜底直接允许保存
-              this.doRealSave();
-            });
+            this.videoAd.show().catch(() => this.doRealSave());
           }
         }
       });
     } else {
-      // 没广告实例，直接保存
       this.doRealSave();
     }
   },
 
-  // === 业务逻辑部分 ===
+  // === 业务逻辑 ===
 
   chooseImage() {
     wx.chooseMedia({
@@ -145,13 +125,12 @@ Page({
           wx.hideLoading();
           if (isSafe) {
             this.setData({ imagePath: tempFilePath, gridImages: [] });
-            setTimeout(() => { this.cutImage(tempFilePath); }, 100);
+            setTimeout(() => { this.cutImage(tempFilePath); }, 200);
           }
         }).catch(err => {
             wx.hideLoading();
-            // 容错处理
             this.setData({ imagePath: tempFilePath, gridImages: [] });
-            setTimeout(() => { this.cutImage(tempFilePath); }, 100);
+            setTimeout(() => { this.cutImage(tempFilePath); }, 200);
         });
       }
     });
@@ -168,6 +147,7 @@ Page({
     }
   },
 
+  // === 核心修复：切图逻辑重构 ===
   cutImage(path) {
     this.setData({ isProcessing: true, loadingText: '准备切割...' });
 
@@ -180,12 +160,13 @@ Page({
             const startX = Math.floor((info.width - size) / 2);
             const startY = Math.floor((info.height - size) / 2);
             
+            // 限制单张切片最大像素，防止内存溢出
             let cellSize = Math.floor(size / gridCount);
-            if (cellSize > 2000) cellSize = 2000; 
+            if (cellSize > 1500) cellSize = 1500; 
 
-            // 缓存信息用于生成预览图
             this.originalInfo = { width: info.width, height: info.height, path: path };
 
+            // 创建离屏画布
             const canvas = wx.createOffscreenCanvas({ type: '2d', width: cellSize, height: cellSize });
             const ctx = canvas.getContext('2d');
             
@@ -196,35 +177,41 @@ Page({
                 img.src = path;
             });
 
-            this.setData({ loadingText: '生成切片中...' });
+            this.setData({ loadingText: '正在生成切片...' });
             
             const tempImages = [];
             const totalCells = gridCount * gridCount;
 
+            // 循环切图 (串行执行，确保不崩)
             for (let row = 0; row < gridCount; row++) {
                 for (let col = 0; col < gridCount; col++) {
                     const index = row * gridCount + col;
-                    // this.setData({ loadingText: `生成中 ${index + 1}/${totalCells}` }); // 减少setData频率
-
+                    
                     const sourceCellSize = size / gridCount;
                     const sx = startX + col * sourceCellSize;
                     const sy = startY + row * sourceCellSize;
 
+                    // 清空画布并绘制当前格子
                     ctx.clearRect(0, 0, cellSize, cellSize);
                     ctx.drawImage(img, sx, sy, sourceCellSize, sourceCellSize, 0, 0, cellSize, cellSize);
 
-                    const tempFilePath = `${wx.env.USER_DATA_PATH}/grid_${Date.now()}_${index}.png`;
-                    const base64 = canvas.toDataURL('image/png', 0.9);
-
-                    await new Promise((resolve, reject) => {
-                        wx.getFileSystemManager().writeFile({
-                            filePath: tempFilePath,
-                            data: base64.replace(/^data:image\/\w+;base64,/, ''),
-                            encoding: 'base64',
-                            success: resolve,
-                            fail: reject
+                    // 核心修改：使用 canvasToTempFilePath 直接生成文件，不再用 base64
+                    const tempFilePath = await new Promise((resolve, reject) => {
+                        wx.canvasToTempFilePath({
+                            canvas: canvas,
+                            x: 0,
+                            y: 0,
+                            width: cellSize,
+                            height: cellSize,
+                            destWidth: cellSize,
+                            destHeight: cellSize,
+                            fileType: 'jpg', // 使用 jpg 兼容性更好
+                            quality: 0.9,
+                            success: (res) => resolve(res.tempFilePath),
+                            fail: (err) => reject(err)
                         });
                     });
+                    
                     tempImages.push(tempFilePath);
                 }
             }
@@ -233,26 +220,22 @@ Page({
 
         } catch (err) {
             console.error(err);
-            wx.showToast({ title: '处理失败', icon: 'none' });
+            wx.showToast({ title: '切图失败，请重试', icon: 'none' });
             this.setData({ isProcessing: false });
         }
       },
       fail: () => {
-        wx.showToast({ title: '读取图片失败', icon: 'none' });
+        wx.showToast({ title: '图片读取失败', icon: 'none' });
         this.setData({ isProcessing: false });
       }
     });
   },
 
-  // === 3. 触发保存（入口） ===
   saveAllImages() {
     if (this.data.gridImages.length === 0) return;
-    
-    // 点击按钮时，先走额度检查
     this.checkQuotaAndSave();
   },
 
-  // === 4. 真正的保存逻辑 ===
   doRealSave() {
     wx.getSetting({
       success: (res) => {
@@ -275,7 +258,7 @@ Page({
   },
 
   startSavingProcess() {
-    this.setData({ isProcessing: true, loadingText: '保存中...' });
+    this.setData({ isProcessing: true, loadingText: '正在保存...' });
 
     let savedCount = 0;
     const total = this.data.gridImages.length;
@@ -283,21 +266,23 @@ Page({
     const saveNext = (index) => {
       if (index >= total) {
         if (savedCount > 0) {
-            // 生成预览图并跳转成功页
+            // 所有图片保存完毕，生成预览图并跳转
             this.generateGridPreview().then(previewPath => {
                 this.setData({ isProcessing: false });
                 wx.navigateTo({
                     url: `/pages/success/success?path=${encodeURIComponent(previewPath)}`
                 });
-            }).catch(() => {
+            }).catch((err) => {
+                console.error('预览生成失败', err);
                 this.setData({ isProcessing: false });
+                // 即使预览图生成失败，也跳到原图作为成功的标志
                 wx.navigateTo({
                     url: `/pages/success/success?path=${encodeURIComponent(this.data.imagePath)}`
                 });
             });
         } else {
           this.setData({ isProcessing: false });
-          wx.showToast({ title: '保存失败', icon: 'none' });
+          wx.showToast({ title: '保存全部失败', icon: 'none' });
         }
         return;
       }
@@ -308,10 +293,12 @@ Page({
         filePath: this.data.gridImages[index],
         success: () => {
           savedCount++;
-          setTimeout(() => saveNext(index + 1), 100);
+          // 增加 200ms 间隔，防止写入相册太快导致系统报错
+          setTimeout(() => saveNext(index + 1), 200);
         },
         fail: (err) => {
-          saveNext(index + 1);
+          console.error(`第 ${index+1} 张保存失败`, err);
+          saveNext(index + 1); // 失败也继续下一张
         }
       });
     };
@@ -323,7 +310,7 @@ Page({
       return new Promise((resolve, reject) => {
           this.setData({ loadingText: '生成预览...' });
           
-          if (!this.originalInfo) return reject();
+          if (!this.originalInfo) return reject('No original info');
 
           const { width, height, path } = this.originalInfo;
           const previewSize = 800;
@@ -339,6 +326,7 @@ Page({
               
               ctx.drawImage(img, sx, sy, size, size, 0, 0, previewSize, previewSize);
               
+              // 画分割线
               ctx.strokeStyle = '#ffffff';
               ctx.lineWidth = 4; 
               

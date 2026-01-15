@@ -1,13 +1,43 @@
 /* pages/compress/compress.wxss */
 
-.upload-icon-emoji {
-  font-size: 80rpx;
-  margin-bottom: 24rpx;
+/* === 预览卡片 (新增：对齐 mosaic/text 样式) === */
+.preview-card {
+  padding: 0;
+  overflow: hidden;
 }
 
-/* 图片预览 */
+/* === 上传区域 (重写：极简风格) === */
+.upload-area {
+  padding: 120rpx 40rpx; /* 大间距 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.upload-icon {
+  font-size: 100rpx; /* 大图标 */
+  margin-bottom: 20rpx;
+}
+
+.upload-text {
+  font-size: 30rpx;
+  color: #666;
+  font-weight: normal;
+  margin-bottom: 12rpx;
+}
+
+.upload-hint {
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+/* === 图片预览 (修改：补回内边距) === */
 .image-preview {
   text-align: center;
+  padding: 30rpx; /* 补回内边距 */
 }
 
 .preview-img {

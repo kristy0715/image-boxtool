@@ -10,22 +10,41 @@
 
   <view class="card editor-card">
     <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
-      <view class="upload-icon-box"><text class="upload-icon-emoji">✨</text></view>
+      <text class="upload-icon">✨</text>
       <text class="upload-text">点击上传图片</text>
       <text class="upload-hint">去除水印 / 字幕 / 杂物</text>
     </view>
 
     <view class="editor-wrapper" wx:else>
       <view class="canvas-container">
-        <canvas type="2d" id="editCanvas" class="edit-canvas"
-          style="width: {{canvasDisplayWidth}}px; height: {{canvasDisplayHeight}}px;"
-          catchtouchstart="{{mode === 'manual' ? 'onTouchStart' : ''}}"
-          catchtouchmove="{{mode === 'manual' ? 'onTouchMove' : ''}}"
-          catchtouchend="{{mode === 'manual' ? 'onTouchEnd' : ''}}"
-        ></canvas>
+        <movable-area class="move-area" style="width: {{canvasDisplayWidth}}px; height: {{canvasDisplayHeight}}px;">
+          <movable-view 
+            class="move-view" 
+            direction="all" 
+            scale="true" 
+            scale-min="1" 
+            scale-max="3" 
+            x="{{moveX}}" 
+            y="{{moveY}}" 
+            scale-value="{{moveScale}}"
+            disabled="{{!isMoveMode}}"
+            damping="40"
+            friction="2"
+            bindscale="onScaleChange"
+            style="width: {{canvasDisplayWidth}}px; height: {{canvasDisplayHeight}}px;"
+          >
+            <canvas type="2d" id="editCanvas" class="edit-canvas"
+              style="width: {{canvasDisplayWidth}}px; height: {{canvasDisplayHeight}}px;"
+              catchtouchstart="{{!isMoveMode ? 'onTouchStart' : ''}}"
+              catchtouchmove="{{!isMoveMode ? 'onTouchMove' : ''}}"
+              catchtouchend="{{!isMoveMode ? 'onTouchEnd' : ''}}"
+            ></canvas>
+          </movable-view>
+        </movable-area>
+
         <view class="loading-mask" wx:if="{{isProcessing}}">
             <view class="loading-spinner"></view>
-            <text>正在消除中...</text>
+            <text>智能消除中...</text>
         </view>
       </view>
 
@@ -34,10 +53,16 @@
             <view class="tool-group">
                 <view class="tool-btn" bindtap="undoAction"><text>↩️ 撤销</text></view>
                 <view class="tool-btn" bindtap="clearMask"><text>🗑️ 重置</text></view>
+                <view class="tool-btn {{isMoveMode ? 'active-tool' : ''}}" bindtap="toggleMoveMode">
+                  <text>{{isMoveMode ? '👌 完成' : '✋ 移动'}}</text>
+                </view>
             </view>
-            <view class="brush-indicator"><text>涂抹水印区域</text></view>
+            <view class="brush-indicator">
+                <text wx:if="{{isMoveMode}}">双指缩放 / 单指拖动</text>
+                <text wx:else>涂抹水印区域</text>
+            </view>
         </view>
-      
+       
         <view class="brush-settings">
             <text class="setting-label">笔刷</text>
             <view class="brush-sizes">
@@ -58,7 +83,7 @@
       </block>
 
       <view class="auto-tips" wx:if="{{mode === 'auto'}}">
-         <text>🚧 智能检测功能开发中，请使用手动涂抹</text>
+         <text>🚧 智能检测暂不可用，请手动涂抹</text>
       </view>
     </view>
   </view>

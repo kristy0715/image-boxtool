@@ -27,13 +27,140 @@
 .footer { padding: 40rpx 32rpx 80rpx; text-align: center; }
 .footer-text { font-size: 22rpx; color: #cbd5e1; letter-spacing: 2rpx; }
 
-/* ================= 每日一签核心样式 ================= */
-.fortune-entry { position: fixed; right: 30rpx; bottom: 15%; z-index: 900; display: flex; flex-direction: column; align-items: center; animation: floatAni 3s ease-in-out infinite; }
-.entry-bag { width: 90rpx; height: 110rpx; background: linear-gradient(160deg, #ff512f 0%, #dd2476 100%); border-radius: 20rpx 20rpx 40rpx 40rpx; box-shadow: 0 10rpx 20rpx rgba(221, 36, 118, 0.4); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 2rpx solid rgba(255, 255, 255, 0.4); }
-.entry-knot { position: absolute; top: -10rpx; width: 40rpx; height: 10rpx; background: #ffd700; border-radius: 10rpx; }
-.entry-text { font-size: 22rpx; color: #fff; font-weight: bold; line-height: 1.3; text-align: center; letter-spacing: 2rpx; }
-.entry-shadow { width: 60rpx; height: 10rpx; background: rgba(0,0,0,0.2); border-radius: 50%; margin-top: 15rpx; filter: blur(4rpx); }
-@keyframes floatAni { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10rpx); } }
+/* ================= 每日一签核心样式 (升级版：精致福袋) ================= */
+.fortune-entry {
+  position: fixed;
+  right: 30rpx;
+  bottom: 15%;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 悬浮动画 */
+  animation: floatAni 3s ease-in-out infinite;
+  /* 点击时的缩放反馈 */
+  transition: transform 0.1s;
+}
+.fortune-entry:active {
+  transform: scale(0.95);
+}
+
+/* 1. 福袋主体 */
+.entry-bag {
+  width: 100rpx;
+  height: 120rpx;
+  /* 更有质感的红金渐变 */
+  background: linear-gradient(180deg, #ff6b6b 0%, #ee5253 100%);
+  /* 形状：下宽上窄的圆润袋子 */
+  border-radius: 24rpx 24rpx 50rpx 50rpx;
+  /* 增加内发光和外阴影，提升立体感 */
+  box-shadow:
+    inset 0 4rpx 10rpx rgba(255,255,255,0.4),  /* 顶部高光 */
+    inset 0 -6rpx 10rpx rgba(0,0,0,0.1),       /* 底部暗部 */
+    0 10rpx 20rpx rgba(238, 82, 83, 0.4);      /* 外部投影 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  /* 微微的描边 */
+  border: 2rpx solid rgba(255,255,255,0.3);
+}
+
+/* 2. 袋口褶皱 (使用伪元素在顶部画一个小梯形) */
+.entry-bag::before {
+  content: '';
+  position: absolute;
+  top: -12rpx;
+  width: 70rpx;
+  height: 20rpx;
+  background: #ff6b6b;
+  border-radius: 8rpx 8rpx 0 0;
+  border: 2rpx solid rgba(255,255,255,0.3);
+  border-bottom: none;
+  z-index: 0;
+}
+
+/* 3. 金色绳结 (原来的 entry-knot) */
+.entry-knot {
+  position: absolute;
+  top: 10rpx;
+  width: 100%;
+  height: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* 绳子：横向金线 */
+.entry-knot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 84rpx;
+  height: 6rpx;
+  background: #feca57; /* 金色 */
+  border-radius: 4rpx;
+  box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.2);
+}
+
+/* 绳结：中间的圆扣 */
+.entry-knot::after {
+  content: '';
+  position: absolute;
+  top: -5rpx;
+  width: 16rpx;
+  height: 16rpx;
+  background: #ffd32a;
+  border-radius: 50%;
+  border: 2rpx solid #ff9f43; /* 深金描边 */
+  box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.2);
+}
+
+/* 4. 文字样式优化 */
+.entry-text {
+  margin-top: 16rpx; /* 避开绳子区域 */
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: 900;
+  line-height: 1.25;
+  text-align: center;
+  letter-spacing: 2rpx;
+  /* 文字阴影，增加可读性 */
+  text-shadow: 0 2rpx 2rpx rgba(162, 29, 29, 0.3);
+}
+
+/* 装饰小星星 (可选) */
+.entry-text::after {
+  content: '✦';
+  display: block;
+  font-size: 20rpx;
+  color: #feca57;
+  margin-top: 2rpx;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+/* 底部悬浮阴影 */
+.entry-shadow {
+  width: 60rpx;
+  height: 12rpx;
+  background: rgba(0,0,0,0.15);
+  border-radius: 50%;
+  margin-top: 15rpx;
+  filter: blur(4rpx);
+  animation: shadowAni 3s ease-in-out infinite;
+}
+
+/* 动画定义 */
+@keyframes floatAni {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12rpx); }
+}
+@keyframes shadowAni {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(0.85); opacity: 0.5; }
+}
 
 .fortune-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1000; visibility: hidden; opacity: 0; transition: all 0.3s ease; }
 .fortune-modal.show { visibility: visible; opacity: 1; }
