@@ -32,14 +32,12 @@ Page({
     bannerUnitId: AD_CONFIG.BANNER_ID
   },
 
-  videoAd: null, // 广告实例
+  videoAd: null, 
 
   onLoad() {
-    // 初始化视频广告
     this.initVideoAd();
   },
 
-  // === 3. 初始化激励视频 ===
   initVideoAd() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
@@ -47,14 +45,11 @@ Page({
       this.videoAd.onError((err) => console.error('激励视频加载失败', err));
       
       this.videoAd.onClose((res) => {
-        // 用户点击了【关闭广告】按钮
         if (res && res.isEnded) {
-          // A. 完整观看：解锁权益并执行保存流程
           this.setDailyUnlimited();
           wx.showToast({ title: '已解锁今日无限次', icon: 'success' });
           this.startSaveProcess(); 
         } else {
-          // B. 中途退出：提示
           wx.showModal({
             title: '提示',
             content: '需要完整观看视频才能解锁今日无限次保存权限哦',
@@ -68,29 +63,24 @@ Page({
     }
   },
 
-  // === 4. 额度检查逻辑 (核心入口) ===
   checkQuotaAndSave() {
     const today = new Date().toLocaleDateString();
-    const storageKey = 'collage_usage_record'; // 独立 Key
+    const storageKey = 'collage_usage_record'; 
     let record = wx.getStorageSync(storageKey) || { date: today, count: 0, isUnlimited: false };
 
-    // 跨天重置
     if (record.date !== today) {
       record = { date: today, count: 0, isUnlimited: false };
       wx.setStorageSync(storageKey, record);
     }
 
-    // 情况A: 已解锁 -> 直接保存
     if (record.isUnlimited) {
       this.startSaveProcess();
       return;
     }
 
-    // 情况B: 有免费次数 -> 扣除并保存
     if (record.count < FREE_COUNT_DAILY) {
       record.count++;
       wx.setStorageSync(storageKey, record);
-      
       const left = FREE_COUNT_DAILY - record.count;
       if (left > 0) {
         wx.showToast({ title: `今日剩余免费${left}次`, icon: 'none' });
@@ -99,7 +89,6 @@ Page({
       return;
     }
 
-    // 情况C: 次数用尽 -> 弹广告
     this.showAdModal();
   },
 
@@ -120,7 +109,6 @@ Page({
         success: (res) => {
           if (res.confirm) {
             this.videoAd.show().catch(() => {
-              // 广告加载失败，兜底允许保存
               this.startSaveProcess();
             });
           }
@@ -131,12 +119,10 @@ Page({
     }
   },
 
-  // 监听 Banner 错误
   onAdError(err) {
     console.log('Banner 广告加载失败:', err);
   },
 
-  // === 5. 权限检查流程 ===
   startSaveProcess() {
     wx.getSetting({
       success: (res) => {
@@ -163,7 +149,6 @@ Page({
 
   // === 业务逻辑 ===
 
-  // 1. 添加图片
   addImages() {
     const remaining = 9 - this.data.imageList.length;
     if (remaining <= 0) return wx.showToast({ title: '最多9张', icon: 'none' });
@@ -303,27 +288,64 @@ Page({
     });
   },
 
-  // === 6. 点击保存入口 ===
   saveImage() {
     if (this.data.imageList.length < 2 && this.data.layoutType !== 'grid') {
         return wx.showToast({ title: '至少需要2张图', icon: 'none' });
     }
-    // 触发额度检查
     this.checkQuotaAndSave();
   },
 
-  // === 7. 真正的高清生成与保存逻辑 ===
+  // === 7. 真正的高清生成与保存逻辑 (修复尺寸超限问题) ===
   async generateAndSave() {
     this.setData({ isProcessing: true, loadingText: '生成中...' });
 
     try {
-        const EXPORT_WIDTH = 2400; 
-        const scale = EXPORT_WIDTH / 700;
-        const exportSpacing = this.data.spacing * scale;
+        const MAX_SIDE = 4096; // 设定一个安全的最大尺寸
+        let baseSize = 2400; // 默认高清基准
 
-        const layout = this.calculateLayout(this.data.imageInfos, EXPORT_WIDTH, exportSpacing);
+        const { layoutType, imageInfos, spacing } = this.data;
 
-        const canvas = wx.createOffscreenCanvas({ type: '2d', width: layout.w, height: layout.h });
+        // 【关键修复】预计算尺寸，防止爆内存/黑屏
+        if (layoutType === 'horizontal') {
+            // 横向：宽度累加。需确保总宽度不超限
+            const sumRatio = imageInfos.reduce((acc, img) => acc + img.ratio, 0);
+            // 估算总宽度 = 高度 * 总比例
+            const estWidth = baseSize * sumRatio;
+            if (estWidth > MAX_SIDE) {
+                // 如果宽度超标，反向推算合适的高度
+                baseSize = MAX_SIDE / sumRatio; 
+            }
+            // 同时也限制高度不能超
+            baseSize = Math.min(baseSize, MAX_SIDE);
+
+        } else if (layoutType === 'vertical') {
+            // 纵向：高度累加。需确保总高度不超限
+            const sumInvRatio = imageInfos.reduce((acc, img) => acc + (1/img.ratio), 0);
+            // 估算总高度 = 宽度 * 总(1/比例)
+            const estHeight = baseSize * sumInvRatio;
+            if (estHeight > MAX_SIDE) {
+                // 如果高度超标，反向推算合适的宽度
+                baseSize = MAX_SIDE / sumInvRatio;
+            }
+            baseSize = Math.min(baseSize, MAX_SIDE);
+        } else {
+            // 网格：通常比较方正，检查一下行数
+            const cols = imageInfos.length <= 4 ? 2 : 3;
+            const rows = Math.ceil(imageInfos.length / cols);
+            const ratio = rows / cols; // 高宽比
+            if (baseSize * ratio > MAX_SIDE) {
+                baseSize = MAX_SIDE / ratio;
+            }
+        }
+        
+        baseSize = Math.floor(baseSize);
+
+        // 根据新的基准尺寸计算布局
+        const scale = baseSize / 700;
+        const exportSpacing = spacing * scale;
+        const layout = this.calculateLayout(imageInfos, baseSize, exportSpacing);
+
+        const canvas = wx.createOffscreenCanvas({ type: '2d', width: Math.ceil(layout.w), height: Math.ceil(layout.h) });
         const ctx = canvas.getContext('2d');
 
         ctx.fillStyle = this.data.bgColor;

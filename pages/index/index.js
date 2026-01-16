@@ -2,8 +2,10 @@
 const fortuneService = require('../../data/fortunes.js');
 
 let videoAd = null;
-let interstitialAd = null; // 【新增】插屏广告实例变量
-let tempPosterPath = ''; // 缓存生成的本地海报路径
+let interstitialAd = null;
+let tempPosterPath = ''; 
+let nextBgPromise = null; // 弹窗打开时的预加载任务
+let downloadingBgTask = null; // 【核心新增】点击广告时的实时下载任务
 
 const app = getApp();
 
@@ -13,7 +15,7 @@ Page({
     navBarHeight: 44,
     showFortuneModal: false,
     todayFortune: null,
-    // 工具列表数据 (保持不变)
+    // 工具列表 (保持不变)
     toolList: [{id:'idphoto',title:'证件照制作',desc:'一寸/二寸/签证照',icon:'📷',colors:['#6366f1','#8b5cf6']},{id:'idprint',title:'证件照排版',desc:'排版打印省钱',icon:'🖨️',colors:['#8b5cf6','#a78bfa']},{id:'compress',title:'图片压缩',desc:'智能压缩，保持清晰',icon:'📦',colors:['#ec4899','#f472b6']},{id:'crop',title:'图片裁剪',desc:'自由裁剪/比例裁剪',icon:'✂️',colors:['#f59e0b','#fbbf24']},{id:'collage',title:'图片拼接',desc:'多图拼接/带编号',icon:'🧩',colors:['#14b8a6','#2dd4bf']},{id:'longpic',title:'长图拼接',desc:'聊天截图拼长图',icon:'📜',colors:['#06b6d4','#22d3ee']},{id:'grid9',title:'九宫格切图',desc:'朋友圈九宫格',icon:'🍱',colors:['#64748b','#94a3b8']},{id:'batchwm',title:'批量加水印',desc:'多图批量添加水印',icon:'💧',colors:['#ef4444','#f87171']},{id:'watermark',title:'去水印',desc:'一键去除图片水印',icon:'✨',colors:['#f59e0b','#fbbf24']}],
     ocrList: [{id:'text2img',title:'长文转图片',desc:'文字生成图片',icon:'📄',colors:['#10b981','#34d399']},{id:'ocr',title:'图片转文字',desc:'提取图中文字',icon:'🔍',colors:['#3b82f6','#60a5fa']},{id:'text',title:'添加文字',desc:'图片加字/水印',icon:'✏️',colors:['#8b5cf6','#a78bfa']}],
     funList: [{id:'retouch',title:'一键精修',desc:'智能美颜/磨皮/提亮',icon:'✨',colors:['#ec4899','#f472b6']},{id:'filter',title:'滤镜效果',desc:'复古/黑白/暖色调',icon:'🎭',colors:['#f43f5e','#fb7185']},{id:'anime',title:'艺术风格',desc:'12种风格转换',icon:'🎨',colors:['#ec4899','#f472b6']},{id:'avatar',title:'头像挂件',desc:'节日边框/装饰',icon:'🎀',colors:['#f59e0b','#fbbf24']},{id:'meme',title:'表情包制作',desc:'DIY专属表情包',icon:'😂',colors:['#eab308','#facc15']},{id:'mosaic',title:'图片马赛克',desc:'隐私打码保护',icon:'🔲',colors:['#64748b','#94a3b8']}]
@@ -28,7 +30,7 @@ Page({
     } catch (e) {}
     this.initFortune();
     this.initVideoAd();
-    this.initInterstitialAd(); // 【新增】初始化插屏广告
+    this.initInterstitialAd();
   },
 
   goToPage(e) {
@@ -45,7 +47,6 @@ Page({
     data.month = months[dateObj.getMonth()]; 
     data.year = dateObj.getFullYear(); 
 
-    // 【重要】初始化状态：默认不显示 Premium 背景，使用 CSS 渐变
     data.isPremiumBg = false;
     data.bgUrl = ''; 
     
@@ -54,42 +55,57 @@ Page({
 
   openFortuneModal() {
     this.setData({ showFortuneModal: true });
-    // 打开时生成海报 (此时生成的是默认渐变背景的海报)
-    this.generatePoster().catch((err) => {
-      console.error("预加载失败:", err);
-    });
+    this.generatePoster().catch((err) => { console.error("预加载失败:", err); });
+    // 依然保留打开时的预加载，作为备选方案
+    this.preloadNextBg(); 
   },
   
   closeFortuneModal() {
     this.setData({ showFortuneModal: false });
   },
 
-  // === 激励视频广告 (换背景) ===
+  preloadNextBg() {
+    const url = fortuneService.getRandomPremiumBg();
+    nextBgPromise = this.downloadFile(url).catch(err => null);
+  },
+
+  // === 激励视频广告 ===
   initVideoAd() {
     if (wx.createRewardedVideoAd) {
       videoAd = wx.createRewardedVideoAd({ adUnitId: 'adunit-da175a2014d3443b' });
       videoAd.onError((err) => console.error('激励视频加载失败', err));
       videoAd.onClose((res) => {
         if (res && res.isEnded) {
+          // 广告结束，立即使用刚才下载的图
           this.changeToPremiumBg();
         } else {
           wx.showToast({ title: '需完整观看才能解锁', icon: 'none' });
+          // 如果中途退出，取消/忽略刚才的下载任务，避免下次混淆
+          downloadingBgTask = null;
         }
       });
     }
   },
 
-  // === 【新增】插屏广告 (保存成功后) ===
   initInterstitialAd() {
     if (wx.createInterstitialAd) {
-      // ⚠️ 请替换为你自己的插屏广告 ID
       interstitialAd = wx.createInterstitialAd({ adUnitId: 'adunit-a9556a7e617c27b7' });
       interstitialAd.onLoad(() => console.log('插屏广告加载成功'));
       interstitialAd.onError((err) => console.error('插屏广告加载失败', err));
     }
   },
 
+  // === 【关键修改】点击按钮：边下图片，边播广告 ===
   handleChangeBgAd() {
+    // 1. 立即开始下载 (利用广告时间的15-30秒)
+    const newBgUrl = fortuneService.getRandomPremiumBg();
+    console.log('开始静默下载背景:', newBgUrl);
+    downloadingBgTask = this.downloadFile(newBgUrl).catch(err => {
+      console.error('广告期间下载失败:', err);
+      return null;
+    });
+
+    // 2. 同时展示广告
     if (videoAd) {
       videoAd.show().catch(() => {
         videoAd.load().then(() => videoAd.show()).catch(err => {
@@ -97,47 +113,57 @@ Page({
         });
       });
     } else {
+      // 异常兜底
       this.changeToPremiumBg();
     }
   },
 
-  // =================================================================
-  // --- 【商业级核心优化】先下载，再渲染 ---
-  // =================================================================
+  // === 【关键修改】应用背景 ===
   async changeToPremiumBg() {
-    wx.showLoading({ title: '正在获取精美背景...', mask: true });
+    wx.showLoading({ title: '正在切换...', mask: true });
 
     try {
-      // 1. 获取网络链接
-      const newBgUrl = fortuneService.getRandomPremiumBg(); 
-      
-      // 2. 【关键】先下载到本地，避免白屏和保存失败
-      const localPath = await this.downloadFile(newBgUrl);
+      let localPath = null;
 
-      // 3. 图片就绪，瞬间更新 UI
-      // 此时 image src 指向本地文件，渲染极快
+      // 优先级 1: 使用刚才点击广告时发起的下载任务 (大概率已经下载完了)
+      if (downloadingBgTask) {
+        localPath = await downloadingBgTask;
+      }
+
+      // 优先级 2: 如果上面的失败了，尝试使用弹窗打开时的预加载任务
+      if (!localPath && nextBgPromise) {
+        console.log('使用备用预加载图');
+        localPath = await nextBgPromise;
+      }
+
+      // 优先级 3: 实在不行，现场下载一张新的
+      if (!localPath) {
+        const newBgUrl = fortuneService.getRandomPremiumBg(); 
+        localPath = await this.downloadFile(newBgUrl);
+      }
+
+      // 更新 UI
       this.setData({
         'todayFortune.bgUrl': localPath, 
         'todayFortune.isPremiumBg': true
       }, () => {
-        // 4. 后台静默重绘 Canvas (此时 Canvas 也直接读取 localPath)
-        // 注意：generatePoster 内部有 hideLoading
         this.generatePoster();
+        // 重置任务，并预加载下一张
+        downloadingBgTask = null;
+        this.preloadNextBg();
       });
 
     } catch (error) {
       console.error('背景切换异常', error);
       wx.hideLoading();
-      wx.showToast({ title: '背景加载失败', icon: 'none' });
+      wx.showToast({ title: '网络不佳，请重试', icon: 'none' });
+      downloadingBgTask = null;
     }
   },
 
-  // 下载工具函数
   downloadFile(url) {
     return new Promise((resolve, reject) => {
-      // 如果已经是本地文件，直接返回
       if (!url.startsWith('http')) return resolve(url);
-      
       wx.downloadFile({
         url: url,
         success: (res) => {
@@ -153,12 +179,11 @@ Page({
   },
 
   // =================================================================
-  // --- 绘图逻辑 (适配本地路径) ---
+  // --- 绘图逻辑 (保持不变) ---
   // =================================================================
   async generatePoster() {
     if (!this.data.showFortuneModal) return;
 
-    // 清空旧缓存
     tempPosterPath = '';
 
     const query = wx.createSelectorQuery();
@@ -171,7 +196,6 @@ Page({
     const canvas = canvasRes[0].node;
     const ctx = canvas.getContext('2d');
     
-    // 画布设置
     const WIN_W = 1080; 
     const WIN_H = 1920; 
     const SCALE = WIN_W / 750; 
@@ -182,12 +206,10 @@ Page({
 
     const fortune = this.data.todayFortune;
 
-    // 图片加载器
     const loadImage = (src) => {
       return new Promise((resolve) => {
         if (!src) return resolve(null);
         const img = canvas.createImage();
-        // 本地路径通常很快，但为了保险加个超时
         const timer = setTimeout(() => { resolve(null); }, 5000);
         img.onload = () => { clearTimeout(timer); resolve(img); };
         img.onerror = () => { clearTimeout(timer); resolve(null); };
@@ -199,7 +221,6 @@ Page({
       let bgImg = null;
       let qrImg = null;
 
-      // 判断逻辑：只要是 isPremiumBg=true，bgUrl 一定是已经下载好的本地路径
       if (fortune.isPremiumBg && fortune.bgUrl) {
         [bgImg, qrImg] = await Promise.all([
            loadImage(fortune.bgUrl),
@@ -209,12 +230,9 @@ Page({
         qrImg = await loadImage('/images/qrcode.png');
       }
 
-      // 1. 绘制背景
       if (fortune.isPremiumBg && bgImg) {
-          // 方案A：画本地高清图
           this.drawAspectFillImage(ctx, bgImg, 0, 0, WIN_W, WIN_H);
       } else { 
-          // 方案B：画渐变 (兜底或默认状态，与 CSS 保持一致)
           const grd = ctx.createLinearGradient(0, 0, WIN_W, WIN_H);
           grd.addColorStop(0, '#a8edea'); 
           grd.addColorStop(1, '#fed6e3');
@@ -222,11 +240,9 @@ Page({
           ctx.fillRect(0, 0, WIN_W, WIN_H); 
       }
       
-      // 2. 全局蒙版 (增加文字对比度)
       ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; 
       ctx.fillRect(0, 0, WIN_W, WIN_H);
 
-      // --- 卡片绘制开始 ---
       const CARD_WIDTH = R(630); 
       const PADDING = R(40);
       const CONTENT_WIDTH = CARD_WIDTH - (PADDING * 2);
@@ -260,7 +276,6 @@ Page({
       const r = R(24);
       const nr = R(18);
 
-      // 卡片白色底 (半透明)
       ctx.save();
       ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
       ctx.shadowBlur = 60; ctx.shadowOffsetY = 40;
@@ -284,11 +299,9 @@ Page({
       ctx.fill();
       ctx.restore();
 
-      // 卡片内容
       const contentLeft = cardX + PADDING;
       const headerY = cardY + R(45); 
       
-      // 日期
       ctx.fillStyle = '#222';
       ctx.font = `900 ${dayFontSize}px 'Times New Roman', serif`; 
       ctx.textAlign = 'left';
@@ -303,14 +316,12 @@ Page({
       ctx.font = `bold ${R(22)}px sans-serif`;
       ctx.fillText(String(fortune.year), dateRightX, headerY + R(48)); 
 
-      // 农历 (只显示 lunarStr，不重复显示今日宜)
       const rightX = cardX + CARD_WIDTH - PADDING;
       ctx.textAlign = 'right';
       ctx.fillStyle = '#555';
       ctx.font = `bold ${R(24)}px sans-serif`;
       ctx.fillText(fortune.lunarStr || '', rightX, headerY + R(20));
 
-      // 虚线
       ctx.strokeStyle = 'rgba(0,0,0,0.1)';
       ctx.lineWidth = 3;
       ctx.setLineDash([15, 12]);
@@ -322,7 +333,6 @@ Page({
 
       const bodyStartY = notchY + R(40);
 
-      // 红色标签
       ctx.fillStyle = '#8B0000';
       this.drawRoundedRect(ctx, contentLeft, bodyStartY, labelW, labelContentH, R(12));
       ctx.fill();
@@ -350,7 +360,6 @@ Page({
       ctx.font = `500 ${textFontSize}px sans-serif`;
       this.drawWrappedText(ctx, fortune.text || '', textX, textStartY, rightColW, textLineHeight);
 
-      // 底部
       const footerStartY = cardY + totalCardHeight - footerHeight;
       const footerLineY = footerStartY + R(40); 
 
@@ -377,7 +386,7 @@ Page({
       ctx.textAlign = 'center';
       ctx.fillText('长按保存 · 扫码解锁好运', cardX + CARD_WIDTH / 2, tipY);
 
-      wx.hideLoading(); // 绘制完成，隐藏 Loading
+      wx.hideLoading(); 
 
     } catch (e) {
       console.error('Drawing Error:', e);
@@ -385,7 +394,6 @@ Page({
     }
   },
 
-  // --- 辅助工具函数 ---
   measureLines(ctx, text, maxWidth) {
     if(!text) return 0;
     let words = text.split('');
@@ -446,12 +454,31 @@ Page({
     ctx.drawImage(img, sX, sY, sW, sH, x, y, w, h);
   },
 
+  // =================================================================
+  // --- 分享逻辑 (保留您手动修复的版本) ---
+  // =================================================================
   onShareAppMessage(res) {
-    const title = this.data.todayFortune ? `今日签文：${this.data.todayFortune.title}` : '每日一签';
-    return { title: title, path: '/pages/index/index', imageUrl: tempPosterPath || this.data.todayFortune.bgUrl };
+    if (res.from === 'button') {
+      const fortune = this.data.todayFortune;
+      return { 
+        title: fortune ? `今日签文：${fortune.title}` : '每日一签', 
+        path: '/pages/index/index', 
+        imageUrl: tempPosterPath || (fortune ? fortune.bgUrl : null) 
+      };
+    }
+    return { 
+      title: '就这么图 - 全能图片工具箱', 
+      path: '/pages/index/index',
+      imageUrl: '/assets/share-cover.png' 
+    };
   },
 
-  onShareTimeline() { return { title: '每日一签', query: 'from=timeline' }; },
+  onShareTimeline() { 
+    return { 
+      title: '全能图片工具箱：修图、拼图、切图、图文处理、证件照一键搞定！', 
+      imageUrl: '/assets/share-cover.png' 
+    }; 
+  },
 
   handleSaveLocal() {
     wx.showLoading({ title: '正在生成高清图...', mask: true });
@@ -478,7 +505,6 @@ Page({
                     success: () => {
                         wx.hideLoading();
                         wx.showToast({ title: '已保存到相册', icon: 'success' });
-                        // 【新增】保存成功后，弹出插屏广告
                         if (interstitialAd) {
                           interstitialAd.show().catch((err) => {
                             console.error('插屏广告显示失败', err);

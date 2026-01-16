@@ -54,28 +54,36 @@ Page({
     }
   },
 
-  // ... (保留原有的 onShareAppMessage, onShareTimeline, goHome, makeAnother) ...
-  // 请确保保留这些原有函数
+  // 分享给好友
   onShareAppMessage() {
     return {
-      title: '推荐给你一个超好用的证件照制作工具！',
+      title: '免费好用的全能图片工具箱！去水印、切图、证件照一键搞定',
       path: '/pages/index/index',
       imageUrl: this.data.imagePath
     };
   },
+
+  // 分享到朋友圈
   onShareTimeline() {
     return {
-      title: '手机就能拍证件照，智能换底色',
+      title: '强烈推荐这个全能图片工具箱，功能强大完全免费！',
       imageUrl: this.data.imagePath
     };
   },
+
+  // 返回首页
   goHome() {
     wx.reLaunch({ url: '/pages/index/index' });
   },
+
+  // 再做一张
   makeAnother() {
     wx.navigateBack({
       delta: 1,
-      fail: () => { wx.redirectTo({ url: '/pages/idphoto/idphoto' }); }
+      fail: () => { 
+        // 失败（例如没有上一页历史）则回首页
+        wx.reLaunch({ url: '/pages/index/index' }); 
+      }
     });
   }
 });
