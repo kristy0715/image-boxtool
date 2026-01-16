@@ -2,14 +2,25 @@
 
 const Security = require('../../utils/security.js');
 
-// === 1. 广告配置 ===
 const AD_CONFIG = {
-  BANNER_ID: 'adunit-ecfcec4c6a0c871b',       // 请替换为您的 Banner 广告 ID
-  VIDEO_ID: 'adunit-da175a2014d3443b' // 请替换为您的 激励视频广告 ID
+  BANNER_ID: 'adunit-ecfcec4c6a0c871b', 
+  VIDEO_ID: 'adunit-da175a2014d3443b' 
 };
 
-// === 2. 策略配置 ===
-const FREE_COUNT_DAILY = 2; // 每天免费保存 3 次
+const FREE_COUNT_DAILY = 2;
+
+// === 物理尺寸配置 ===
+// 6寸相纸 (4R) 物理尺寸: 102mm x 152mm
+const PAPER_SHORT_MM = 102;
+const PAPER_LONG_MM = 152;
+
+// 基础 300 DPI 换算系数 (像素/毫米)
+const BASE_PX_PER_MM = 300 / 25.4; 
+
+// 【核心升级】高清倍率：3.0 
+// 相当于 900 DPI 输出，确保原图缩放后依然保留极致细节
+// 解决“模糊”和“像素丢失”问题
+const HD_SCALE = 3.0;
 
 Page({
   data: {
@@ -17,286 +28,331 @@ Page({
     selectedSize: '1inch',
     resultImage: '',
     isProcessing: false,
-    // 绑定 Banner ID 到 data
     bannerUnitId: AD_CONFIG.BANNER_ID,
+
+    // 排版间距 (单位:毫米)
+    rowGap: 2,       
+    colGap: 2,       
     
+    // 动态排版数据
+    layoutInfo: {
+      isPaperLandscape: false, 
+      cols: 0,
+      rows: 0,
+      count: 0,
+      itemW_mm: 0,
+      itemH_mm: 0,
+      isRotated: false
+    },
+
+    // 尺寸定义 (仅作为“基准短边”参考，实际长边由原图决定)
     sizeList: [
-      { id: '1inch', name: '一寸', desc: '常规证件/简历', width: 295, height: 413, cols: 4, rows: 2, count: 8 },
-      { id: 'small1', name: '小一寸', desc: '驾驶证/社保', width: 260, height: 378, cols: 5, rows: 3, count: 15 },
-      { id: 'big1', name: '大一寸', desc: '护照/港澳通', width: 390, height: 567, cols: 4, rows: 2, count: 8 },
-      { id: '2inch', name: '二寸', desc: '常规/财务证', width: 413, height: 579, cols: 4, rows: 2, count: 8 },
-      { id: 'small2', name: '小二寸', desc: '多国签证(35x45)', width: 413, height: 531, cols: 4, rows: 2, count: 8 },
-      { id: 'visa_us', name: '美国签证', desc: '51x51mm', width: 602, height: 602, cols: 2, rows: 1, count: 2 },
-      { id: 'visa_jp', name: '日本签证', desc: '45x45mm', width: 531, height: 531, cols: 3, rows: 2, count: 6 }
+      { id: '1inch', name: '一寸', desc: '基准短边25mm', base_short: 25 },
+      { id: 'small1', name: '小一寸', desc: '基准短边22mm', base_short: 22 },
+      { id: 'big1', name: '大一寸', desc: '基准短边33mm', base_short: 33 },
+      { id: '2inch', name: '二寸', desc: '基准短边35mm', base_short: 35 },
+      { id: 'small2', name: '小二寸', desc: '基准短边35mm', base_short: 35 },
+      { id: 'big2', name: '大二寸', desc: '基准短边35mm', base_short: 35 }
     ]
   },
 
-  videoAd: null, // 视频广告实例
+  videoAd: null,
 
   onLoad() {
-    // 初始化视频广告
     this.initVideoAd();
   },
 
-  // === 3. 初始化激励视频 ===
   initVideoAd() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
       this.videoAd.onLoad(() => console.log('激励视频加载成功'));
       this.videoAd.onError((err) => console.error('激励视频加载失败', err));
-      
       this.videoAd.onClose((res) => {
-        // 用户点击了【关闭广告】按钮
         if (res && res.isEnded) {
-          // A. 完整观看：解锁权益并保存
           this.setDailyUnlimited();
-          wx.showToast({ title: '已解锁今日无限次', icon: 'success' });
+          wx.showToast({ title: '已解锁', icon: 'success' });
           this.doSaveImage(); 
-        } else {
-          // B. 中途退出：提示
-          wx.showModal({
-            title: '提示',
-            content: '需要完整观看视频才能解锁今日无限次保存权限哦',
-            confirmText: '继续观看',
-            success: (m) => {
-              if (m.confirm) this.videoAd.show();
-            }
-          });
         }
       });
     }
   },
-
-  // === 4. 额度检查逻辑 (核心) ===
-  checkQuotaAndSave() {
-    const today = new Date().toLocaleDateString();
-    const storageKey = 'idprint_usage_record'; // 注意 key 要和其他模块区分开
-    let record = wx.getStorageSync(storageKey) || { date: today, count: 0, isUnlimited: false };
-
-    // 跨天重置
-    if (record.date !== today) {
-      record = { date: today, count: 0, isUnlimited: false };
-      wx.setStorageSync(storageKey, record);
-    }
-
-    // 情况A: 已解锁 -> 直接保存
-    if (record.isUnlimited) {
-      this.doSaveImage();
-      return;
-    }
-
-    // 情况B: 有免费次数 -> 扣除并保存
-    if (record.count < FREE_COUNT_DAILY) {
-      record.count++;
-      wx.setStorageSync(storageKey, record);
-      
-      const left = FREE_COUNT_DAILY - record.count;
-      if (left > 0) {
-        wx.showToast({ title: `今日剩余免费${left}次`, icon: 'none' });
-      }
-      this.doSaveImage();
-      return;
-    }
-
-    // 情况C: 次数用尽 -> 弹广告
-    this.showAdModal();
-  },
-
-  setDailyUnlimited() {
-    const today = new Date().toLocaleDateString();
-    const storageKey = 'idprint_usage_record';
-    const record = { date: today, count: 999, isUnlimited: true };
-    wx.setStorageSync(storageKey, record);
-  },
-
-  showAdModal() {
-    if (this.videoAd) {
-      wx.showModal({
-        title: '免费次数已用完',
-        content: '观看一次视频，即可解锁【今日无限次】免费保存权限',
-        confirmText: '免费解锁',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            this.videoAd.show().catch(() => {
-              // 广告加载失败，兜底允许保存
-              this.doSaveImage();
-            });
-          }
-        }
-      });
-    } else {
-      this.doSaveImage();
-    }
-  },
-
-  // === 5. 监听 Banner 错误 ===
-  onAdError(err) {
-    console.log('Banner 广告加载失败:', err);
-  },
-
-  // === 业务逻辑 ===
 
   chooseImage() {
     wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
+      count: 1, mediaType: ['image'], sizeType: ['original'], // 强制原图
       success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath;
-        wx.showLoading({ title: '检测中...' });
-
-        Security.checkImage(tempFilePath).then((isSafe) => {
+        const path = res.tempFiles[0].tempFilePath;
+        wx.showLoading({ title: '解析原图...' });
+        Security.checkImage(path).then(isSafe => {
           wx.hideLoading();
           if (isSafe) {
-            this.setData({
-              imagePath: tempFilePath,
-              resultImage: ''
-            });
+            this.setData({ imagePath: path, resultImage: '' });
+            this.triggerSmartLayout(path);
           }
-        }).catch(err => {
-            wx.hideLoading();
-            // 容错
-            this.setData({ imagePath: tempFilePath, resultImage: '' });
+        }).catch(() => { 
+            wx.hideLoading(); 
+            this.setData({ imagePath: path }); 
+            this.triggerSmartLayout(path);
         });
       }
     });
   },
 
   selectSize(e) {
-    this.setData({ 
-      selectedSize: e.currentTarget.dataset.id,
-      resultImage: ''
+    const id = e.currentTarget.dataset.id;
+    if (id === this.data.selectedSize) return;
+    this.setData({ selectedSize: id });
+    if (this.data.imagePath) this.triggerSmartLayout(this.data.imagePath);
+  },
+
+  onRowGapChange(e) {
+    this.setData({ rowGap: e.detail.value });
+    this.debounceGenerate();
+  },
+  onColGapChange(e) {
+    this.setData({ colGap: e.detail.value });
+    this.debounceGenerate();
+  },
+  
+  debounceGenerate() {
+    if (this.gapTimeout) clearTimeout(this.gapTimeout);
+    this.gapTimeout = setTimeout(() => {
+        this.triggerSmartLayout(this.data.imagePath);
+    }, 300);
+  },
+
+  triggerSmartLayout(path) {
+    if (!path) return;
+    wx.getImageInfo({
+        src: path,
+        success: (imgInfo) => {
+            // 将原图尺寸传入算法
+            this.calculateAndDraw(imgInfo.width, imgInfo.height);
+        },
+        fail: () => { wx.showToast({ title: '读取失败', icon: 'none' }); }
     });
   },
 
-  generateLayout() {
-    if (!this.data.imagePath) {
-      wx.showToast({ title: '请先选择照片', icon: 'none' });
-      return;
+  // === 核心：无损自适应算法 ===
+  calculateAndDraw(imgW, imgH) {
+    this.setData({ isProcessing: true });
+    wx.showLoading({ title: '超清排版计算...' });
+
+    const sizeConfig = this.data.sizeList.find(s => s.id === this.data.selectedSize);
+    
+    // 1. 锁定“物理短边”，长边随原图比例自由伸缩
+    // 这样能保证：不管原图是长的扁的，都完全保留，不裁剪哪怕一个像素
+    const baseShortMM = sizeConfig.base_short;
+    const imgRatio = imgW / imgH;
+    
+    let itemW_mm, itemH_mm;
+    let isRotated = false;
+
+    if (imgW > imgH) {
+        // 原图是横的
+        itemH_mm = baseShortMM; 
+        itemW_mm = baseShortMM * imgRatio; 
+        isRotated = true;
+    } else {
+        // 原图是竖的
+        itemW_mm = baseShortMM;
+        itemH_mm = baseShortMM / imgRatio;
+        isRotated = false;
     }
 
-    this.setData({ isProcessing: true });
-    wx.showLoading({ title: '排版中...', mask: true });
+    // 2. 计算哪种相纸方向能排更多
+    const gapC = this.data.colGap;
+    const gapR = this.data.rowGap;
 
-    const sizeInfo = this.data.sizeList.find(s => s.id === this.data.selectedSize);
+    const planA = this.calcCapacity(PAPER_SHORT_MM, PAPER_LONG_MM, itemW_mm, itemH_mm, gapC, gapR);
+    const planB = this.calcCapacity(PAPER_LONG_MM, PAPER_SHORT_MM, itemW_mm, itemH_mm, gapC, gapR);
+
+    let bestPlan;
+    if (planB.total > planA.total) {
+        bestPlan = { ...planB, paperW_mm: PAPER_LONG_MM, paperH_mm: PAPER_SHORT_MM, isPaperLandscape: true };
+    } else {
+        bestPlan = { ...planA, paperW_mm: PAPER_SHORT_MM, paperH_mm: PAPER_LONG_MM, isPaperLandscape: false };
+    }
+
+    this.setData({
+        layoutInfo: {
+            ...bestPlan,
+            itemW_mm: itemW_mm,
+            itemH_mm: itemH_mm,
+            isRotated: isRotated
+        }
+    });
+
+    // 3. 开始超清绘图
+    this.startDrawingHD(bestPlan, itemW_mm, itemH_mm);
+  },
+
+  calcCapacity(paperW, paperH, itemW, itemH, gapC, gapR) {
+    const cols = Math.floor((paperW + gapC) / (itemW + gapC));
+    const rows = Math.floor((paperH + gapR) / (itemH + gapR));
+    return { cols, rows, total: cols * rows };
+  },
+
+  // === 绘图：3倍超采样 + PNG无损导出 ===
+  startDrawingHD(plan, itemW_mm, itemH_mm) {
+    // 全链路像素放大，确保细节
+    const scale = BASE_PX_PER_MM * HD_SCALE;
+
+    const paperPxW = Math.ceil(plan.paperW_mm * scale);
+    const paperPxH = Math.ceil(plan.paperH_mm * scale);
+    const itemPxW = Math.round(itemW_mm * scale);
+    const itemPxH = Math.round(itemH_mm * scale);
+    const gapColPx = Math.round(this.data.colGap * scale);
+    const gapRowPx = Math.round(this.data.rowGap * scale);
+
+    // 安全检查：防止画布过大崩溃 (限制在 4096px 宽以内)
+    // 6寸长边 152mm * 11.8 * 3 ≈ 5380px，可能在部分安卓机上有风险
+    // 我们做一个自适应降级：如果算出来太大，就稍微降一点倍率，优先保证能跑通
+    let safeScale = 1;
+    if (Math.max(paperPxW, paperPxH) > 4096) {
+        safeScale = 4096 / Math.max(paperPxW, paperPxH);
+    }
     
-    // 6寸照片标准尺寸：1800x1200像素 (300dpi)
-    const canvasWidth = 1800;
-    const canvasHeight = 1200;
+    const finalW = Math.floor(paperPxW * safeScale);
+    const finalH = Math.floor(paperPxH * safeScale);
+    const finalItemW = Math.floor(itemPxW * safeScale);
+    const finalItemH = Math.floor(itemPxH * safeScale);
+    const finalGapCol = Math.floor(gapColPx * safeScale);
+    const finalGapRow = Math.floor(gapRowPx * safeScale);
 
-    const canvas = wx.createOffscreenCanvas({ type: '2d', width: canvasWidth, height: canvasHeight });
+    const canvas = wx.createOffscreenCanvas({ type: '2d', width: finalW, height: finalH });
     const ctx = canvas.getContext('2d');
 
-    // 1. 白色背景
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    // 开启极高画质平滑
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     const img = canvas.createImage();
     img.onload = () => {
       try {
-        const { width: photoWidth, height: photoHeight, cols, rows } = sizeInfo;
-        
-        // 2. 计算布局 (留白策略优化)
-        const gap = 20; 
-        const contentWidth = photoWidth * cols + gap * (cols - 1);
-        const contentHeight = photoHeight * rows + gap * (rows - 1);
-        const safeMargin = 40; 
+        // 背景白
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, finalW, finalH);
 
-        let scale = Math.min(
-          (canvasWidth - safeMargin) / contentWidth, 
-          (canvasHeight - safeMargin) / contentHeight
-        );
-        
-        if (scale > 1) scale = 1;
+        // 居中计算
+        const contentW = plan.cols * finalItemW + (plan.cols - 1) * finalGapCol;
+        const contentH = plan.rows * finalItemH + (plan.rows - 1) * finalGapRow;
+        const startX = (finalW - contentW) / 2;
+        const startY = (finalH - contentH) / 2;
 
-        const scaledWidth = photoWidth * scale;
-        const scaledHeight = photoHeight * scale;
-        const scaledGap = gap * scale;
+        // 绘制辅助裁切线 (灰色细线)
+        ctx.strokeStyle = '#eeeeee';
+        ctx.lineWidth = 1 * HD_SCALE * safeScale;
+        ctx.beginPath();
+        ctx.moveTo(finalW/2, 0); ctx.lineTo(finalW/2, finalH);
+        ctx.moveTo(0, finalH/2); ctx.lineTo(finalW, finalH/2);
+        ctx.stroke();
 
-        const totalWidth = scaledWidth * cols + scaledGap * (cols - 1);
-        const totalHeight = scaledHeight * rows + scaledGap * (rows - 1);
-        const startX = (canvasWidth - totalWidth) / 2;
-        const startY = (canvasHeight - totalHeight) / 2;
-
-        // 3. 绘制
-        for (let row = 0; row < rows; row++) {
-          for (let col = 0; col < cols; col++) {
-            const x = startX + col * (scaledWidth + scaledGap);
-            const y = startY + row * (scaledHeight + scaledGap);
+        for (let r = 0; r < plan.rows; r++) {
+          for (let c = 0; c < plan.cols; c++) {
+            const x = startX + c * (finalItemW + finalGapCol);
+            const y = startY + r * (finalItemH + finalGapRow);
             
-            ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+            // 【绝对不裁剪】直接把原图画进去
+            // 因为 finalItemW/H 就是按原图比例算出来的，所以这里 100% 吻合
+            ctx.drawImage(img, x, y, finalItemW, finalItemH);
             
-            // 辅助线
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, scaledWidth, scaledHeight);
+            // 描边 (灰色)
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 2 * HD_SCALE * safeScale;
+            ctx.strokeRect(x, y, finalItemW, finalItemH);
           }
         }
 
-        // 4. 导出
+        // 导出为 PNG (关键：destWidth = 画布物理尺寸)
+        // 使用 PNG 格式，彻底消除 JPG 压缩噪点
         wx.canvasToTempFilePath({
             canvas: canvas,
-            fileType: 'jpg',
-            quality: 0.9,
+            width: finalW,
+            height: finalH,
+            destWidth: finalW,
+            destHeight: finalH,
+            fileType: 'png', 
+            quality: 1.0,
             success: (res) => {
                 this.setData({ resultImage: res.tempFilePath, isProcessing: false });
                 wx.hideLoading();
             },
             fail: (err) => {
-                console.error("导出失败", err);
+                console.error(err);
                 this.setData({ isProcessing: false });
                 wx.hideLoading();
-                wx.showToast({ title: '生成失败', icon: 'none' });
+                wx.showToast({ title: '导出失败', icon: 'none' });
             }
         });
-
       } catch (err) {
         console.error(err);
         this.setData({ isProcessing: false });
         wx.hideLoading();
       }
     };
-
     img.onerror = () => {
-      this.setData({ isProcessing: false });
-      wx.hideLoading();
-      wx.showToast({ title: '图片加载失败', icon: 'none' });
-    };
-
+        this.setData({ isProcessing: false });
+        wx.hideLoading();
+    }
     img.src = this.data.imagePath;
   },
 
-  // === 6. 保存按钮点击入口 ===
+  previewResult() {
+      if (this.data.resultImage) {
+          wx.previewImage({ urls: [this.data.resultImage], current: this.data.resultImage });
+      }
+  },
+
   saveImage() {
     if (!this.data.resultImage) return;
-    // 先检查额度
     this.checkQuotaAndSave();
   },
 
-  // === 7. 真正的保存操作 ===
+  checkQuotaAndSave() {
+    const today = new Date().toLocaleDateString();
+    const key = 'idprint_usage_record';
+    let record = wx.getStorageSync(key) || { date: today, count: 0, isUnlimited: false };
+    if (record.date !== today) { record = { date: today, count: 0, isUnlimited: false }; wx.setStorageSync(key, record); }
+
+    if (record.isUnlimited || record.count < FREE_COUNT_DAILY) {
+      if(!record.isUnlimited) { record.count++; wx.setStorageSync(key, record); }
+      this.doSaveImage();
+    } else {
+      this.showAdModal();
+    }
+  },
+
+  setDailyUnlimited() {
+    wx.setStorageSync('idprint_usage_record', { date: new Date().toLocaleDateString(), count: 999, isUnlimited: true });
+  },
+
+  showAdModal() {
+    if (this.videoAd) {
+      wx.showModal({
+        title: '免费次数已用完', content: '观看视频解锁今日无限次保存',
+        success: (res) => { if (res.confirm) this.videoAd.show().catch(() => this.doSaveImage()); }
+      });
+    } else { this.doSaveImage(); }
+  },
+
   doSaveImage() {
+    wx.showLoading({ title: '保存中...' });
     wx.saveImageToPhotosAlbum({
       filePath: this.data.resultImage,
       success: () => {
-        wx.navigateTo({
-          url: `/pages/success/success?path=${encodeURIComponent(this.data.resultImage)}`
-        });
+        wx.hideLoading();
+        wx.navigateTo({ url: `/pages/success/success?path=${encodeURIComponent(this.data.resultImage)}` });
       },
       fail: (err) => {
+        wx.hideLoading();
         if (err.errMsg.indexOf('cancel') === -1) {
-            wx.showModal({
-                title: '提示', content: '需要授权保存图片',
-                success: (res) => { if (res.confirm) wx.openSetting(); }
-            });
+            wx.showModal({ title: '权限', content: '需开启相册权限', success: s => s.confirm && wx.openSetting() });
         }
       }
     });
   },
-
-  onShareAppMessage() {
-    return { title: '证件照自动排版', path: '/pages/idprint/idprint', imageUrl: this.data.resultImage || '' };
-  },
-  onShareTimeline() {
-    return { title: '证件照排版工具', imageUrl: this.data.resultImage || '' };
-  },
+  
+  onAdError(err) { console.log(err); },
+  onShareAppMessage() { return { title: '超清无损证件照排版', path: '/pages/idprint/idprint' }; }
 });

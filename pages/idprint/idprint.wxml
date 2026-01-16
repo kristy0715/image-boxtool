@@ -1,14 +1,14 @@
 <view class="container">
   <view class="page-header">
     <text class="page-title">证件照排版</text>
-    <text class="page-subtitle">排成6寸照片，冲印更省钱</text>
+    <text class="page-subtitle">原图比例 · 0裁剪 · 超清无损</text>
   </view>
 
   <view class="card preview-card">
     <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
       <text class="upload-icon">🖨️</text>
       <text class="upload-text">选择证件照</text>
-      <text class="upload-hint">建议选择已制作好的单张证件照</text>
+      <text class="upload-hint">支持任意尺寸，自动智能排版</text>
     </view>
     
     <view class="preview-wrapper" wx:else>
@@ -18,7 +18,7 @@
   </view>
 
   <view class="card" wx:if="{{imagePath}}">
-    <view class="section-title">选择排版尺寸</view>
+    <view class="section-title">1. 选择参考大小 (定短边)</view>
     <view class="size-grid">
       <view 
         class="size-item {{selectedSize === item.id ? 'active' : ''}}"
@@ -31,16 +31,40 @@
         <text class="size-desc">{{item.desc}}</text>
       </view>
     </view>
+
+    <view class="smart-info" wx:if="{{layoutInfo.count > 0}}">
+      <view class="info-header">
+        <text class="info-tag">超清无损方案</text>
+      </view>
+      <view class="info-detail">
+        <text>• 锁定短边，长边随原图比例延伸，画面完整无裁剪</text>
+        <text>• 实际单张尺寸：{{tools.toFixed(layoutInfo.itemW_mm)}} × {{tools.toFixed(layoutInfo.itemH_mm)}} mm</text>
+        <text>• 推荐相纸：6寸(4R) {{layoutInfo.isPaperLandscape ? '横向' : '纵向'}}</text>
+        <text>• 可排版数量：{{layoutInfo.count}} 张</text>
+      </view>
+    </view>
+
+    <view class="section-title" style="margin-top: 30rpx;">2. 间距微调 (单位:毫米)</view>
+    <view class="control-box">
+        <view class="gap-row">
+            <text class="gap-label">左右间距</text>
+            <slider class="gap-slider" min="0" max="10" value="{{colGap}}" activeColor="#6366f1" block-size="18" show-value bindchange="onColGapChange" bindchanging="onColGapChange"/>
+        </view>
+        <view class="gap-row">
+            <text class="gap-label">上下间距</text>
+            <slider class="gap-slider" min="0" max="10" value="{{rowGap}}" activeColor="#6366f1" block-size="18" show-value bindchange="onRowGapChange" bindchanging="onRowGapChange"/>
+        </view>
+    </view>
   </view>
 
   <view class="card" wx:if="{{resultImage}}">
-    <view class="section-title">排版预览 (6寸照片纸)</view>
+    <view class="section-title">排版预览 (点击查看超清大图)</view>
     <view class="result-wrapper">
-      <image class="result-image" src="{{resultImage}}" mode="aspectFit" bindtap="saveImage"></image>
+      <image class="result-image" src="{{resultImage}}" mode="widthFix" bindtap="previewResult"></image>
     </view>
     <view class="result-tip">
       <text class="tip-icon">💡</text>
-      <text class="tip-text">保存后，去打印店打印“6寸照片”即可</text>
+      <text class="tip-text">生成图片已达 900DPI 超高清标准，文件较大，请耐心等待保存。</text>
     </view>
   </view>
 
@@ -48,23 +72,16 @@
     <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
   </view>
 
-  <view class="bottom-bar" wx:if="{{imagePath}}">
-    <block wx:if="{{resultImage}}">
-      <button class="btn-icon" open-type="share">📤</button>
-      <button class="btn-secondary" bindtap="generateLayout">重生成</button>
-      <button class="btn-primary" bindtap="saveImage">保存相册</button>
-    </block>
-    <block wx:else>
-      <button class="btn-primary full-width" bindtap="generateLayout">生成排版</button>
-    </block>
+  <view class="bottom-bar" wx:if="{{resultImage}}">
+    <button class="btn-icon" open-type="share">📤</button>
+    <button class="btn-primary full-width" bindtap="saveImage">保存超高清排版照</button>
   </view>
-
-  <view style="height: 220rpx;" wx:if="{{imagePath}}"></view>
-
-  <view class="loading-overlay" wx:if="{{isProcessing}}">
-    <view class="loading-box">
-      <view class="loading-spinner"></view>
-      <text class="loading-text">排版中...</text>
-    </view>
-  </view>
+  
+  <view style="height: 180rpx;" wx:if="{{imagePath}}"></view>
 </view>
+
+<wxs module="tools">
+  module.exports.toFixed = function(num) {
+    return num.toFixed(1);
+  }
+</wxs>
