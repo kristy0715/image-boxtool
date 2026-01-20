@@ -10,17 +10,14 @@ const FREE_COUNT_DAILY = 2;
 Page({
   data: {
     imagePath: '',
-    
     gridType: 9, 
     maskType: 'none', 
     cols: 3, rows: 3,
     tipText: '标准九宫格 (3x3)',
-
     cropW: 0,  cropH: 0,
     imgW: 0,   imgH: 0,
     x: 0, y: 0, scale: 1,
     initialX: 0, initialY: 0,
-
     isProcessing: false,
     loadingText: '处理中...',
     bannerUnitId: AD_CONFIG.BANNER_ID
@@ -92,26 +89,18 @@ Page({
     const type = parseInt(e.currentTarget.dataset.type);
     if (this.data.gridType === type) return;
 
-    let c, r, txt, w_px, h_px;
+    let c, r, txt;
     const baseSize = 600 * this._pixelRatio;
 
-    if (type === 3) {
-        c = 1; r = 3; txt = '竖长图 (全宽)';
-        if (this._imgInfo) {
-            const imgRatio = this._imgInfo.width / this._imgInfo.height;
-            h_px = baseSize; w_px = baseSize * imgRatio;
-        } else {
-            w_px = 200 * this._pixelRatio; h_px = baseSize;
-        }
-    } else {
-        switch(type) {
-            case 9: c=3; r=3; txt='标准九宫格 (3x3)'; w_px=baseSize; h_px=baseSize; break;
-            case 4: c=2; r=2; txt='四宫格 (2x2)'; w_px=baseSize; h_px=baseSize; break;
-            case 6: c=3; r=2; txt='六宫格 (适合横版)'; w_px=baseSize; h_px=400 * this._pixelRatio; break; 
-        }
+    // 强制使用正方形画布，防止变形
+    switch(type) {
+        case 9: c=3; r=3; txt='标准九宫格 (3x3)'; break;
+        case 4: c=2; r=2; txt='四宫格 (2x2)'; break;
+        case 6: c=3; r=2; txt='六宫格 (3x2)'; break; 
+        default: c=3; r=3; txt='标准九宫格 (3x3)'; 
     }
     
-    this.resetLayout(type, c, r, txt, w_px, h_px);
+    this.resetLayout(type, c, r, txt, baseSize, baseSize);
   },
 
   setMaskType(e) {
@@ -211,24 +200,12 @@ Page({
         const imgRect = res[1];
         const { cols, rows } = this.data;
 
-        let baseW = 1800;
-        baseW = Math.ceil(baseW / cols) * cols;
-
-        let canvasW, canvasH;
-        const boxRatio = boxRect.width / boxRect.height;
+        // 高清导出 2400px
+        let baseSize = 2400; 
         
-        if (boxRatio >= 1) { 
-            canvasW = baseW; 
-            let tempH = baseW / boxRatio;
-            canvasH = Math.ceil(tempH / rows) * rows;
-        } else { 
-            let baseH = 1800;
-            baseH = Math.ceil(baseH / rows) * rows;
-            canvasH = baseH;
-            let tempW = baseH * boxRatio;
-            canvasW = Math.ceil(tempW / cols) * cols;
-        }
-
+        // 强制使用正方形画布
+        let canvasW = baseSize;
+        let canvasH = baseSize;
         const mapScale = canvasW / boxRect.width;
 
         try {
@@ -238,22 +215,62 @@ Page({
 
             img.onload = async () => {
                 try {
+                    // 1. 底层：白色背景
                     ctx.clearRect(0, 0, canvasW, canvasH);
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, canvasW, canvasH);
 
-                    ctx.save();
-                    if (this.data.maskType !== 'none') {
-                        this.drawMaskPath(ctx, canvasW, canvasH, this.data.maskType);
-                        ctx.clip(); 
-                    }
-                    
+                    // 绘制图片
                     const drawX = (imgRect.left - boxRect.left) * mapScale;
                     const drawY = (imgRect.top - boxRect.top) * mapScale;
                     const drawW = imgRect.width * mapScale;
                     const drawH = imgRect.height * mapScale;
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, drawX, drawY, drawW, drawH);
                     
+                    // 2. 绘制马赛克遮罩 (挖洞法)
+                    if (this.data.maskType !== 'none') {
+                        const maskCanvas = wx.createOffscreenCanvas({ type: '2d', width: canvasW, height: canvasH });
+                        const mCtx = maskCanvas.getContext('2d');
+
+                        // A. 铺满马赛克
+                        const patternCanvas = wx.createOffscreenCanvas({ type: '2d', width: 60, height: 60 });
+                        const pCtx = patternCanvas.getContext('2d');
+                        pCtx.fillStyle = '#eeeeee'; 
+                        pCtx.fillRect(0, 0, 60, 60);
+                        pCtx.fillStyle = '#cccccc'; 
+                        pCtx.fillRect(0, 0, 30, 30);
+                        pCtx.fillRect(30, 30, 30, 30);
+                        const pattern = mCtx.createPattern(patternCanvas, 'repeat');
+                        mCtx.fillStyle = pattern;
+                        mCtx.fillRect(0, 0, canvasW, canvasH);
+
+                        // B. 擦除中间的形状
+                        mCtx.globalCompositeOperation = 'destination-out';
+                        mCtx.fillStyle = '#000000'; 
+                        this.drawMaskPath(mCtx, canvasW, canvasH, this.data.maskType);
+                        // 小熊/花朵是多路径，drawMaskPath 里会负责 fill()
+
+                        // C. 叠加遮罩
+                        ctx.drawImage(maskCanvas, 0, 0, canvasW, canvasH);
+                    }
+                    
+                    // === 3. 绘制白色网格线 (仅预览图) ===
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+                    ctx.lineWidth = 12;
+                    // 画九宫格线
+                    const stepW = canvasW / 3;
+                    const stepH = canvasH / 3;
+                    for(let i=1; i<3; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, i * stepH); ctx.lineTo(canvasW, i * stepH);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(i * stepW, 0); ctx.lineTo(i * stepW, canvasH);
+                        ctx.stroke();
+                    }
                     ctx.restore();
 
                     const previewPath = await new Promise(resolve => {
@@ -264,8 +281,8 @@ Page({
                         });
                     });
 
+                    // 循环保存小图
                     const total = cols * rows;
-                    
                     const saveLoop = async (index) => {
                         if (index >= total) {
                             this.setData({ isProcessing: false });
@@ -275,17 +292,15 @@ Page({
                         
                         const r = Math.floor(index / cols);
                         const c = index % cols;
+                        // 注意：画布永远是 3x3 的大小
+                        const cellW = canvasW / 3;
+                        const cellH = canvasH / 3;
                         
-                        const x1 = Math.floor(c * canvasW / cols);
-                        const x2 = Math.floor((c + 1) * canvasW / cols);
-                        const w = x2 - x1;
-
-                        const y1 = Math.floor(r * canvasH / rows);
-                        const y2 = Math.floor((r + 1) * canvasH / rows);
-                        const h = y2 - y1;
+                        const x1 = Math.floor(c * cellW);
+                        const y1 = Math.floor(r * cellH);
                         
-                        const cellData = ctx.getImageData(x1, y1, w, h);
-                        const cellCan = wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+                        const cellData = ctx.getImageData(x1, y1, cellW, cellH);
+                        const cellCan = wx.createOffscreenCanvas({ type: '2d', width: cellW, height: cellH });
                         const cCtx = cellCan.getContext('2d');
                         cCtx.putImageData(cellData, 0, 0);
                         
@@ -293,27 +308,17 @@ Page({
                         
                         const tempFilePath = await new Promise(resolve => {
                             wx.canvasToTempFilePath({
-                                canvas: cellCan, fileType: 'jpg', quality: 0.9,
+                                canvas: cellCan, fileType: 'jpg', quality: 1.0, 
                                 success: res => resolve(res.tempFilePath)
                             });
                         });
                         
                         wx.saveImageToPhotosAlbum({
                             filePath: tempFilePath,
-                            success: () => {
-                                setTimeout(() => saveLoop(index + 1), 200);
-                            },
-                            fail: (err) => {
-                                if (err.errMsg && err.errMsg.includes('cancel')) {
-                                    this.setData({ isProcessing: false });
-                                    wx.showToast({ title: '已取消', icon: 'none' });
-                                } else {
-                                    saveLoop(index + 1);
-                                }
-                            }
+                            success: () => { setTimeout(() => saveLoop(index + 1), 200); },
+                            fail: () => { saveLoop(index + 1); }
                         });
                     };
-                    
                     saveLoop(0);
 
                 } catch (e) {
@@ -321,10 +326,6 @@ Page({
                     this.setData({ isProcessing: false });
                     wx.showToast({ title: '处理出错', icon: 'none' });
                 }
-            };
-            img.onerror = () => {
-                this.setData({ isProcessing: false });
-                wx.showToast({ title: '图片加载失败', icon: 'none' });
             };
             img.src = this.data.imagePath;
         } catch (err) {
@@ -337,31 +338,41 @@ Page({
 
   drawMaskPath(ctx, w, h, type) {
       ctx.beginPath();
-      const cx = w / 2;
-      const cy = h / 2;
       const size = Math.min(w, h);
+      // 内缩 0.5% 防切
+      const scale = (size / 100) * 0.995; 
       
+      const startX = (w - size) / 2;
+      const startY = (h - size) / 2;
+
+      const t = (x, y) => ({
+          x: startX + (x + 0.25) * scale, 
+          y: startY + (y + 0.25) * scale
+      });
+
       if (type === 'circle') {
-          ctx.arc(cx, cy, size * 0.49, 0, 2 * Math.PI);
+          // 圆形: 49.5半径
+          const center = t(50, 50);
+          ctx.arc(center.x, center.y, 49.5 * scale, 0, 2 * Math.PI);
+          ctx.fill();
+      
       } else if (type === 'heart') {
-          const r = size / 4.2; 
-          const offsetY = r * 0.3; 
-          ctx.moveTo(cx, cy - r + offsetY);
-          ctx.bezierCurveTo(cx - r, cy - r * 2.8 + offsetY, cx - r * 3.5, cy - r * 0.5 + offsetY, cx, cy + r * 1.8 + offsetY);
-          ctx.moveTo(cx, cy - r + offsetY);
-          ctx.bezierCurveTo(cx + r, cy - r * 2.8 + offsetY, cx + r * 3.5, cy - r * 0.5 + offsetY, cx, cy + r * 1.8 + offsetY);
-          ctx.beginPath();
-          ctx.moveTo(cx, cy - r * 0.8 + offsetY);
-          ctx.bezierCurveTo(cx - r, cy - r * 2.8 + offsetY, cx - r * 3.8, cy - r * 0.3 + offsetY, cx, cy + r * 1.8 + offsetY);
-          ctx.bezierCurveTo(cx + r * 3.8, cy - r * 0.3 + offsetY, cx + r, cy - r * 2.8 + offsetY, cx, cy - r * 0.8 + offsetY);
+          // 心形：更瘦高
+          const pTop = t(50, 25); 
+          const pBot = t(50, 95); 
+          ctx.moveTo(pTop.x, pTop.y);
+          ctx.bezierCurveTo(t(10, -5).x, t(10, -5).y, t(5, 20).x, t(5, 20).y, t(5, 45).x, t(5, 45).y);
+          ctx.bezierCurveTo(t(5, 65).x, t(5, 65).y, t(25, 80).x, t(25, 80).y, pBot.x, pBot.y);
+          ctx.bezierCurveTo(t(75, 80).x, t(75, 80).y, t(95, 65).x, t(95, 65).y, t(95, 45).x, t(95, 45).y);
+          ctx.bezierCurveTo(t(95, 20).x, t(95, 20).y, t(90, -5).x, t(90, -5).y, pTop.x, pTop.y);
+          ctx.fill();
+
       } else if (type === 'star') {
           // 五角星
-          const R = size * 0.48;
-          const r = R * 0.4;
-          const rot = Math.PI / 2 * 3;
-          const step = Math.PI / 5;
-          let x = cx + Math.cos(rot) * R;
-          let y = cy + Math.sin(rot) * R;
+          const cx = startX + 50 * scale; const cy = startY + 50 * scale;
+          const R = 49 * scale; const r = R * 0.4;
+          const rot = Math.PI / 2 * 3; const step = Math.PI / 5;
+          let x = cx + Math.cos(rot) * R; let y = cy + Math.sin(rot) * R;
           ctx.moveTo(x, y);
           for (let i = 1; i < 11; i++) {
               const currentR = i % 2 === 0 ? R : r;
@@ -369,46 +380,80 @@ Page({
               y = cy + Math.sin(rot + i * step) * currentR;
               ctx.lineTo(x, y);
           }
+          ctx.fill();
+
       } else if (type === 'bear') {
-          // === 猫咪 (修正版：更小巧，防止切耳) ===
-          // 整体缩小比例，从 0.36 -> 0.33
-          const faceR = size * 0.33; 
-          // 整体向下移，防止耳朵顶到边界
-          const faceCy = cy + size * 0.05;
+          // 小熊：分三个圆绘制，自动融合，无镂空
+          const faceC = t(50, 55); const faceR = 40 * scale; 
+          const leftEarC = t(20, 22); const rightEarC = t(80, 22); const earR = 15 * scale; 
           
-          const earOffset = faceR * 0.8;
-          const earTopY = faceCy - faceR * 0.9 - earOffset * 0.8; // 耳尖Y坐标
-          
-          // 左耳 (更圆润的三角形)
-          ctx.moveTo(cx - earOffset * 0.8, faceCy - faceR * 0.6);
-          ctx.quadraticCurveTo(cx - earOffset * 1.2, earTopY, cx - earOffset * 0.2, faceCy - faceR * 0.9);
-          
-          // 右耳
-          ctx.moveTo(cx + earOffset * 0.8, faceCy - faceR * 0.6);
-          ctx.quadraticCurveTo(cx + earOffset * 1.2, earTopY, cx + earOffset * 0.2, faceCy - faceR * 0.9);
-          
-          // 脸
-          ctx.moveTo(cx + faceR, faceCy);
-          ctx.arc(cx, faceCy, faceR, 0, 2 * Math.PI);
+          ctx.beginPath();
+          ctx.arc(leftEarC.x, leftEarC.y, earR, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(rightEarC.x, rightEarC.y, earR, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(faceC.x, faceC.y, faceR, 0, 2 * Math.PI);
+          ctx.fill();
+
+      } else if (type === 'maple') {
+          // 枫叶
+          ctx.moveTo(t(50, 2).x, t(50, 2).y);
+          ctx.lineTo(t(60, 22).x, t(60, 22).y); ctx.lineTo(t(85, 18).x, t(85, 18).y);
+          ctx.lineTo(t(72, 42).x, t(72, 42).y); ctx.lineTo(t(100, 45).x, t(100, 45).y);
+          ctx.lineTo(t(78, 62).x, t(78, 62).y); ctx.lineTo(t(88, 85).x, t(88, 85).y);
+          ctx.lineTo(t(58, 80).x, t(58, 80).y); ctx.lineTo(t(52, 98).x, t(52, 98).y);
+          ctx.lineTo(t(48, 98).x, t(48, 98).y); ctx.lineTo(t(42, 80).x, t(42, 80).y);
+          ctx.lineTo(t(12, 85).x, t(12, 85).y); ctx.lineTo(t(22, 62).x, t(22, 62).y);
+          ctx.lineTo(t(0, 45).x, t(0, 45).y); ctx.lineTo(t(28, 42).x, t(28, 42).y);
+          ctx.lineTo(t(15, 18).x, t(15, 18).y); ctx.lineTo(t(40, 22).x, t(40, 22).y);
+          ctx.lineTo(t(50, 2).x, t(50, 2).y);
+          ctx.fill();
+
       } else if (type === 'flower') {
-          // === 花朵 (修正版：大幅缩小，防止爆框) ===
-          // 缩小花瓣半径
-          const petalR = size * 0.18; 
-          const centerR = size * 0.15;
-          const spreadR = petalR * 1.2; // 花瓣离中心的距离
-          
+          // 花朵：5瓣+1心
+          const cx = startX + 50 * scale; const cy = startY + 50 * scale;
+          const petalR = 24 * scale; const spreadR = 24 * scale; 
           for(let i=0; i<5; i++) {
+              ctx.beginPath();
               const angle = (Math.PI * 2 * i) / 5 - Math.PI/2;
-              const px = cx + Math.cos(angle) * spreadR;
-              const py = cy + Math.sin(angle) * spreadR;
-              ctx.moveTo(px + petalR, py);
+              const px = cx + Math.cos(angle) * spreadR; const py = cy + Math.sin(angle) * spreadR;
               ctx.arc(px, py, petalR, 0, 2 * Math.PI);
+              ctx.fill();
           }
-          ctx.moveTo(cx + centerR, cy);
-          ctx.arc(cx, cy, centerR, 0, 2 * Math.PI);
+          ctx.beginPath();
+          ctx.arc(cx, cy, 20*scale, 0, 2 * Math.PI); // 花心加大
+          ctx.fill();
+
+      } else if (type === 'cat') {
+          // 猫咪：大圆脸+三角耳 (Hello Kitty style)
+          // 耳朵要立在头上
+          
+          // 耳朵：左
+          ctx.beginPath();
+          ctx.moveTo(t(15, 10).x, t(15, 10).y);
+          ctx.lineTo(t(35, 40).x, t(35, 40).y);
+          ctx.lineTo(t(5, 45).x, t(5, 45).y);
+          ctx.fill();
+          
+          // 耳朵：右
+          ctx.beginPath();
+          ctx.moveTo(t(85, 10).x, t(85, 10).y);
+          ctx.lineTo(t(65, 40).x, t(65, 40).y);
+          ctx.lineTo(t(95, 45).x, t(95, 45).y);
+          ctx.fill();
+          
+          // 脸：椭圆
+          ctx.beginPath();
+          const faceCx = t(50, 55).x;
+          const faceCy = t(50, 55).y;
+          // 椭圆绘制：scale(1, 0.85)
+          ctx.ellipse(faceCx, faceCy, 45*scale, 38*scale, 0, 0, 2*Math.PI);
+          ctx.fill();
       }
-      ctx.closePath();
   },
   
-  onShareAppMessage() { return { title: '朋友圈九宫格切图还可以带形状', path: '/pages/grid9/grid9' }; }
+  onShareAppMessage() { return { title: '朋友圈九宫格切图神器', path: '/pages/grid9/grid9', imageUrl: '/assets/share-cover.png' }; },
+  onShareTimeline() { return { title: '朋友圈九宫格切图神器', imageUrl: '/assets/share-cover.png' }; }
 });

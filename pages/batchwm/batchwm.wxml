@@ -7,7 +7,7 @@
   <view class="card">
     <view class="section-header">
       <view class="section-title">
-        <text class="title-icon">🖼️</text>
+        <text class="title-icon">💧</text>
         <text>选择图片</text>
         <text class="count-badge">({{imageList.length}}/20)</text>
       </view>

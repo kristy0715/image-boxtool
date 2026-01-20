@@ -475,7 +475,7 @@ Page({
 
   onShareTimeline() { 
     return { 
-      title: '全能图片工具箱：修图、拼图、切图、图文处理、证件照一键搞定！', 
+      title: '全能图片工具箱：美颜滤镜、修图、拼图、切图、图文处理、证件照一键搞定！', 
       imageUrl: '/assets/share-cover.png' 
     }; 
   },

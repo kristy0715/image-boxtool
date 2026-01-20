@@ -6,7 +6,7 @@
 
   <view class="card preview-card">
     <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
-      <text class="upload-icon">📷</text>
+      <text class="upload-icon">✏️</text>
       <text class="upload-text">点击选择照片</text>
     </view>
 

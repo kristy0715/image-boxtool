@@ -14,7 +14,7 @@
       <view class="crop-container" style="width:{{cropW}}px; height:{{cropH}}px;">
         <view class="bg-layer"></view>
 
-        <movable-area class="crop-area mask-{{maskType}}" scale-area style="width:{{cropW}}px; height:{{cropH}}px;">
+        <movable-area class="crop-area" scale-area style="width:{{cropW}}px; height:{{cropH}}px;">
           <movable-view 
             class="crop-img" 
             direction="all" 
@@ -27,6 +27,8 @@
             <image src="{{imagePath}}" mode="scaleToFill" style="width:100%; height:100%; display:block;"></image>
           </movable-view>
         </movable-area>
+
+        <view class="mask-overlay mask-{{maskType}}"></view>
 
         <view class="grid-lines">
             <view class="line-container-h">
@@ -59,7 +61,13 @@
             <view class="s-icon s-star"></view><text>五角星</text>
         </view>
         <view class="shape-item {{maskType==='bear'?'active':''}}" bindtap="setMaskType" data-type="bear">
-            <view class="s-icon s-bear"></view><text>猫咪</text>
+            <view class="s-icon s-bear"></view><text>小熊</text>
+        </view>
+        <view class="shape-item {{maskType==='cat'?'active':''}}" bindtap="setMaskType" data-type="cat">
+            <view class="s-icon s-cat"></view><text>猫咪</text>
+        </view>
+        <view class="shape-item {{maskType==='maple'?'active':''}}" bindtap="setMaskType" data-type="maple">
+            <view class="s-icon s-maple"></view><text>枫叶</text>
         </view>
         <view class="shape-item {{maskType==='flower'?'active':''}}" bindtap="setMaskType" data-type="flower">
             <view class="s-icon s-flower"></view><text>花朵</text>
@@ -79,10 +87,6 @@
         <view class="cut-item {{gridType === 6 ? 'active' : ''}}" bindtap="setGridType" data-type="6">
             <view class="cut-icon grid-6"><view class="mini-cell" wx:for="{{6}}" wx:key="*this"></view></view>
             <text class="cut-name">六宫格</text>
-        </view>
-        <view class="cut-item {{gridType === 3 ? 'active' : ''}}" bindtap="setGridType" data-type="3">
-            <view class="cut-icon grid-3"><view class="mini-cell" wx:for="{{3}}" wx:key="*this"></view></view>
-            <text class="cut-name">竖长图</text>
         </view>
     </view>
   </view>

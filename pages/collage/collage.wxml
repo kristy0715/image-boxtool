@@ -6,7 +6,7 @@
 
   <view class="card preview-card" wx:if="{{imageList.length === 0}}">
     <view class="upload-area" bindtap="addImages">
-      <text class="upload-icon">🖼️</text>
+      <text class="upload-icon">🧩</text>
       <text class="upload-text">点击添加图片</text>
     </view>
   </view>

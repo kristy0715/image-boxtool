@@ -11,7 +11,7 @@
     </view>
     
     <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
-      <text class="upload-icon">📷</text>
+      <text class="upload-icon">🔍</text>
       <text class="upload-text">点击上传图片</text>
     </view>
 
