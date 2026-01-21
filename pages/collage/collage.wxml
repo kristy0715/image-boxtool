@@ -24,7 +24,7 @@
             <image 
               class="collage-item"
               src="{{item.path}}" 
-              mode="aspectFill"
+              mode="{{layoutType === 'grid' ? 'scaleToFill' : 'aspectFill'}}"
               style="left: {{item.x}}rpx; top: {{item.y}}rpx; width: {{item.w}}rpx; height: {{item.h}}rpx;"
             ></image>
             <view class="item-number" wx:if="{{showNumber}}" style="left: {{item.x + 10}}rpx; top: {{item.y + 10}}rpx;">

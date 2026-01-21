@@ -26,19 +26,18 @@
 
 .crop-img { position: relative; }
 
-/* === 蒙版层 (马赛克) === */
+/* 蒙版层 (预览带马赛克) */
 .mask-overlay {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   pointer-events: none;
   z-index: 5;
-  
-  /* 灰白马赛克 */
   background-color: #eee;
   background-image: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc), 
                     linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
   background-size: 20px 20px;
   background-position: 0 0, 10px 10px;
-
+  
+  /* 关键：强制拉伸 */
   -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
@@ -46,76 +45,74 @@
 
 .mask-none { display: none; }
 
-/* 核心修复：使用 SVG <mask> 标签技术 
-   Base64 编码内容为：
-   <svg ...>
-     <mask id="m">
-       <rect width="100" height="100" fill="white"/>
-       <path d="..." fill="black"/> (或者多个 <circle fill="black"/>)
-     </mask>
-     <rect width="100" height="100" fill="white" mask="url(#m)"/>
-   </svg>
-   效果：形状区域(黑色)在蒙版中变透明 -> 透出图片；其余区域(白色)不透明 -> 显示马赛克。
-   叠加问题：多个黑色形状叠加依然是黑色 -> 解决镂空。
+/* SVG Mask 修复方案：
+   1. 使用 preserveAspectRatio='xMidYMid meet' 保持图形比例。
+   2. 增加一个超大白色 <rect> 背景 (width=300 height=300)，确保在长方形容器中填满两侧。
 */
 
 /* 圆形 */
 .mask-circle {
-  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0nNTAnIGN5PSI1MCIgcj0iNDkuNSIgZmlsbD0iYmxhY2siLz48L21hc2s+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJyBtYXNrPSd1cmwoI20pJy8+PC9zdmc+");
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0nNTAnIGN5PSI1MCIgcj0iNDkuNSIgZmlsbD0iYmxhY2siLz48L21hc2s+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJyBtYXNrPSd1cmwoI20pJy8+PC9zdmc+");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0nNTAnIGN5PSI1MCIgcj0iNDkuNSIgZmlsbD0iYmxhY2siLz48L21hc2s+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJyBtYXNrPSd1cmwoI20pJy8+PC9zdmc+");
 }
 
-/* 心形 (瘦高) */
+/* 心形 (修正：顶部饱满V型，下部直线收缩) */
 .mask-heart {
-  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PHBhdGggZD0iTTUwIDI1IEMxMCAtNSA1IDEwIDUgNDAgQzUgNjUgMjUgODAgNTAgOTUgQzc1IDgwIDk1IDY1IDk1IDQwIEM5NSAxMCA4NSAtNSA1MCAyNSBaIiBmaWxsPSJibGFjayIvPjwvbWFzaz48cmVjdCB3aWR0aD0nMTAwJyBoZWlnaHQ9JzEwMCcgZmlsbD0nd2hpdGUnIG1hc2s9J3VybCgjbSknLz48L3N2Zz4=");
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PHBhdGggZD0iTTUwIDMwIEMzMCAwIDAgMTUgMCA0MCBDMCA2MCAyMCA4NSA1MCA5NSBDODAgODUgMTAwIDYwIDEwMCA0MCBDMTAwIDE1IDcwIDAgNTAgMzAgWiIgZmlsbD0iYmxhY2siLz48L21hc2s+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJyBtYXNrPSd1cmwoI20pJy8+PC9zdmc+");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PHBhdGggZD0iTTUwIDMwIEMzMCAwIDAgMTUgMCA0MCBDMCA2MCAyMCA4NSA1MCA5NSBDODAgODUgMTAwIDYwIDEwMCA0MCBDMTAwIDE1IDcwIDAgNTAgMzAgWiIgZmlsbD0iYmxhY2siLz48L21hc2s+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJyBtYXNrPSd1cmwoI20pJy8+PC9zdmc+");
 }
 
 /* 五角星 */
 .mask-star {
-  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PHBvbHlnb24gcG9pbnRzPSI1MCwwIDYzLDM4IDEwMCwzOCA3MCw2MCA4MiwxMDAgNTAsNzUgMTgsMTAwIDMwLDYwIDAsMzggMzcsMzgiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PHBvbHlnb24gcG9pbnRzPSI1MCwwIDYzLDM4IDEwMCwzOCA3MCw2MCA4MiwxMDAgNTAsNzUgMTgsMTAwIDMwLDYwIDAsMzggMzcsMzgiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nMzAwJyB4PSctMTAwJyB5PSctMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PHBvbHlnb24gcG9pbnRzPSI1MCwwIDYzLDM4IDEwMCwzOCA3MCw2MCA4MiwxMDAgNTAsNzUgMTgsMTAwIDMwLDYwIDAsMzggMzcsMzgiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nMzAwJyB4PSctMTAwJyB5PSctMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
 }
 
-/* 小熊 (分块绘制，叠加黑即黑) */
+/* 小熊 */
 .mask-bear {
-  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMiIgcj0iMTUiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iODAiIGN5PSIyMiIgcj0iMTUiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1NSIgcj0iNDIiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMiIgcj0iMTUiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iODAiIGN5PSIyMiIgcj0iMTUiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1NSIgcj0iNDIiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nMzAwJyB4PSctMTAwJyB5PSctMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMiIgcj0iMTUiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iODAiIGN5PSIyMiIgcj0iMTUiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1NSIgcj0iNDIiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nMzAwJyB4PSctMTAwJyB5PSctMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
 }
 
-/* 猫咪 (Hello Kitty 风格) */
+/* 猫咪 */
 .mask-cat {
-  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PHBvbHlnb24gcG9pbnRzPSIxNSwxMCAzNSw0MCA1LDQ1IiBmaWxsPSJibGFjayIvPjxwb2x5Z29uIHBvaW50cz0iODUsMTAgNjUsNDAgOTUsNDUiIGZpbGw9ImJsYWNrIi8+PGVsbGlwc2UgY3g9IjUwIiBjeT0iNTUiIHJ4PSI0NSIgcnk9IjM4IiBmaWxsPSJibGFjayIvPjwvbWFzaz48cmVjdCB3aWR0aD0nMTAwJyBoZWlnaHQ9JzEwMCcgZmlsbD0nd2hpdGUnIG1hc2s9J3VybCgjbSknLz48L3N2Zz4=");
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PHBvbHlnb24gcG9pbnRzPSIxNSwxMCAzNSw0MCA1LDQ1IiBmaWxsPSJibGFjayIvPjxwb2x5Z29uIHBvaW50cz0iODUsMTAgNjUsNDAgOTUsNDUiIGZpbGw9ImJsYWNrIi8+PGVsbGlwc2UgY3g9IjUwIiBjeT0iNTUiIHJ4PSI0NSIgcnk9IjM4IiBmaWxsPSJibGFjayIvPjwvbWFzaz48cmVjdCB3aWR0aD0nMzAwJyBoZWlnaHQ9JzMwMCcgeD0nLTEwMCcgeT0nLTEwMCcgZmlsbD0nd2hpdGUnIG1hc2s9J3VybCgjbSknLz48L3N2Zz4=");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PHBvbHlnb24gcG9pbnRzPSIxNSwxMCAzNSw0MCA1LDQ1IiBmaWxsPSJibGFjayIvPjxwb2x5Z29uIHBvaW50cz0iODUsMTAgNjUsNDAgOTUsNDUiIGZpbGw9ImJsYWNrIi8+PGVsbGlwc2UgY3g9IjUwIiBjeT0iNTUiIHJ4PSI0NSIgcnk9IjM4IiBmaWxsPSJibGFjayIvPjwvbWFzaz48cmVjdCB3aWR0aD0nMzAwJyBoZWlnaHQ9JzMwMCcgeD0nLTEwMCcgeT0nLTEwMCcgZmlsbD0nd2hpdGUnIG1hc2s9J3VybCgjbSknLz48L3N2Zz4=");
 }
 
 /* 枫叶 */
 .mask-maple {
-  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PHBhdGggZD0iTTUwIDIgTDYwIDIyIEw4NSAxOCBMNzIgNDIgTDEwMCA0NSBMNzggNjIgTDg4IDg1IEw1OCA4MCBMNTIgOTggTDQ4IDk4IEw0MiA4MCBMMTIgODUgTDIyIDYyIEwwIDQ1IEwyOCA0MiBMMTUgMTggTDQwIDIyIEw1MCAyIFoiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PHBhdGggZD0iTTUwIDIgTDYwIDIyIEw4NSAxOCBMNzIgNDIgTDEwMCA0NSBMNzggNjIgTDg4IDg1IEw1OCA4MCBMNTIgOTggTDQ4IDk4IEw0MiA4MCBMMTIgODUgTDIyIDYyIEwwIDQ1IEwyOCA0MiBMMTUgMTggTDQwIDIyIEw1MCAyIFoiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nMzAwJyB4PSctMTAwJyB5PSctMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PHBhdGggZD0iTTUwIDIgTDYwIDIyIEw4NSAxOCBMNzIgNDIgTDEwMCA0NSBMNzggNjIgTDg4IDg1IEw1OCA4MCBMNTIgOTggTDQ4IDk4IEw0MiA4MCBMMTIgODUgTDIyIDYyIEwwIDQ1IEwyOCA0MiBMMTUgMTggTDQwIDIyIEw1MCAyIFoiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nMzAwJyB4PSctMTAwJyB5PSctMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
 }
 
 /* 花朵 */
 .mask-flower {
-  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0iNTAiIGN5PSIyNSIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNzQiIGN5PSI0MiIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNjUiIGN5PSI3MCIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iMzUiIGN5PSI3MCIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iMjYiIGN5PSI0MiIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iMjAiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0iNTAiIGN5PSIyNSIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNzQiIGN5PSI0MiIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNjUiIGN5PSI3MCIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iMzUiIGN5PSI3MCIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iMjYiIGN5PSI0MiIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iMjAiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nMzAwJyB4PSctMTAwJyB5PSctMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgbWVldCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3QgeD0nLTEwMCcgeT0nLTEwMCcgd2lkdGg9JzMwMCcgaGVpZ2h0PSczMDAnIGZpbGw9J3doaXRlJy8+PGNpcmNsZSBjeD0iNTAiIGN5PSIyNSIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNzQiIGN5PSI0MiIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNjUiIGN5PSI3MCIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iMzUiIGN5PSI3MCIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iMjYiIGN5PSI0MiIgcj0iMjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iMjAiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nMzAwJyB4PSctMTAwJyB5PSctMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
 }
 
-/* 网格线增强 */
 .grid-lines {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   pointer-events: none;
   border: 6rpx solid rgba(255,255,255,0.9);
-  box-shadow: 0 0 8rpx rgba(0,0,0,0.6); 
+  box-shadow: 0 0 6rpx rgba(0,0,0,0.5); 
   box-sizing: border-box; z-index: 10;
 }
 .line-container-h { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-evenly; }
 .line-container-v { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: row; justify-content: space-evenly; }
-.grid-line-h { width: 100%; height: 6rpx; background: rgba(255, 255, 255, 0.95); box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-.grid-line-v { height: 100%; width: 6rpx; background: rgba(255, 255, 255, 0.95); box-shadow: 1px 0 3px rgba(0,0,0,0.5); }
+.grid-line-h { width: 100%; height: 6rpx; background: rgba(255, 255, 255, 0.95); box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+.grid-line-v { height: 100%; width: 6rpx; background: rgba(255, 255, 255, 0.95); box-shadow: 1px 0 3px rgba(0,0,0,0.4); }
 
 .crop-tip { color: #94a3b8; font-size: 24rpx; margin-top: 20rpx; }
 .reset-btn { position: absolute; bottom: 20rpx; right: 20rpx; background: rgba(0,0,0,0.6); color: #fff; font-size: 24rpx; padding: 10rpx 20rpx; border-radius: 30rpx; z-index: 50; border: 1px solid rgba(255,255,255,0.3); }
 
-/* Shape Scroll - 横向排版 */
+/* Shape Scroll */
 .shape-scroll { width: 100%; white-space: nowrap; padding: 10rpx 0; display: block; overflow-x: auto; }
 .shape-item { display: inline-flex; flex-direction: column; align-items: center; padding: 16rpx; background: #f8fafc; border-radius: 12rpx; border: 2rpx solid transparent; transition: all 0.2s; font-size: 24rpx; color: #666; margin-right: 20rpx; min-width: 100rpx; vertical-align: top; }
 .shape-item.active { background: #eef2ff; border-color: #6366f1; color: #6366f1; font-weight: bold; }
 
-/* 底部图标 */
+/* 图标样式 */
 .s-icon { width: 44rpx; height: 44rpx; margin-bottom: 10rpx; background-position: center; background-repeat: no-repeat; background-size: contain; }
 .s-square { border: 4rpx solid #cbd5e1; box-sizing: border-box; border-radius: 6rpx; }
 .shape-item.active .s-square { border-color: #6366f1; }

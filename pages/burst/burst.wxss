@@ -1,0 +1,60 @@
+/* pages/burst/burst.wxss */
+.container { padding: 0; background: #f5f5f7; min-height: 100vh; }
+.page-header { padding: 40rpx; background: #1a1a2e; border-bottom-left-radius: 40rpx; border-bottom-right-radius: 40rpx; margin-bottom: 20rpx; }
+.page-title { color: #fff; font-size: 40rpx; font-weight: 800; display: block; margin-bottom: 8rpx; }
+.page-subtitle { color: rgba(255,255,255,0.7); font-size: 24rpx; }
+
+.card { background: #fff; border-radius: 24rpx; margin: 0 30rpx 30rpx; padding: 30rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
+.preview-card { padding: 0; overflow: hidden; }
+
+.upload-area { padding: 100rpx 40rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; }
+.upload-icon { font-size: 80rpx; margin-bottom: 20rpx; line-height: 1; }
+.upload-text { font-size: 30rpx; color: #666; }
+
+.preview-wrapper { padding: 40rpx 0; background: #1e293b; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.crop-container { position: relative; overflow: hidden; box-shadow: 0 0 0 4rpx rgba(255, 255, 255, 0.3); background: #000; }
+.bg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; }
+.crop-img { position: relative; }
+
+/* 预览时的马赛克遮罩 */
+.mask-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;
+  background-color: #eee;
+  background-image: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc), 
+                    linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
+  background-size: 20px 20px;
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+}
+
+/* SVG Mask Definitions */
+.mask-burst-circle {
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSIzNSIgeT0iMiIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSI2OSIgeT0iMiIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSIyIiB5PSIzNSIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSIzNSIgeT0iMzUiIHdpZHRoPSIyOSIgaGVpZ2h0PSIyOSIgcng9IjQiIGZpbGw9ImJsYWNrIi8+PHJlY3QgeD0iNjkiIHk9IjM1IiB3aWR0aD0iMjkiIGhlaWdodD0iMjkiIHJ4PSI0IiBmaWxsPSJibGFjayIvPjxyZWN0IHg9IjIiIHk9IjY5IiB3aWR0aD0iMjkiIGhlaWdodD0iMjkiIHJ4PSI0IiBmaWxsPSJibGFjayIvPjxyZWN0IHg9IjM1IiB5PSI2OSIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSI2OSIgeT0iNjkiIHdpZHRoPSIyOSIgaGVpZ2h0PSIyOSIgcng9IjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDIiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMTAwIDEwMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bWFzayBpZD0nbSc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9J3doaXRlJy8+PHJlY3QgeD0iMiIgeT0iMiIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSIzNSIgeT0iMiIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSI2OSIgeT0iMiIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSIyIiB5PSIzNSIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSIzNSIgeT0iMzUiIHdpZHRoPSIyOSIgaGVpZ2h0PSIyOSIgcng9IjQiIGZpbGw9ImJsYWNrIi8+PHJlY3QgeD0iNjkiIHk9IjM1IiB3aWR0aD0iMjkiIGhlaWdodD0iMjkiIHJ4PSI0IiBmaWxsPSJibGFjayIvPjxyZWN0IHg9IjIiIHk9IjY5IiB3aWR0aD0iMjkiIGhlaWdodD0iMjkiIHJ4PSI0IiBmaWxsPSJibGFjayIvPjxyZWN0IHg9IjM1IiB5PSI2OSIgd2lkdGg9IjI5IiBoZWlnaHQ9IjI5IiByeD0iNCIgZmlsbD0iYmxhY2siLz48cmVjdCB4PSI2OSIgeT0iNjkiIHdpZHRoPSIyOSIgaGVpZ2h0PSIyOSIgcng9IjQiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDIiIGZpbGw9ImJsYWNrIi8+PC9tYXNrPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyBmaWxsPSd3aGl0ZScgbWFzaz0ndXJsKCNtKScvPjwvc3ZnPg==");
+}
+
+/* 其他形状预览复用Circle, 真实效果JS控制 */
+.mask-burst-heart, .mask-burst-star { -webkit-mask-image: inherit; mask-image: inherit; }
+
+.reset-btn { position: absolute; bottom: 20rpx; right: 20rpx; background: rgba(0,0,0,0.6); color: #fff; font-size: 24rpx; padding: 10rpx 20rpx; border-radius: 30rpx; z-index: 50; border: 1px solid rgba(255,255,255,0.3); }
+.crop-tip { color: #94a3b8; font-size: 24rpx; margin-top: 20rpx; }
+
+.shape-scroll { width: 100%; white-space: nowrap; padding: 10rpx 0; display: block; overflow-x: auto; }
+.shape-item { display: inline-flex; flex-direction: column; align-items: center; padding: 16rpx; background: #f8fafc; border-radius: 12rpx; border: 2rpx solid transparent; transition: all 0.2s; font-size: 24rpx; color: #666; margin-right: 20rpx; min-width: 100rpx; vertical-align: top; }
+.shape-item.active { background: #eef2ff; border-color: #6366f1; color: #6366f1; font-weight: bold; }
+
+.s-icon { width: 44rpx; height: 44rpx; margin-bottom: 10rpx; background-position: center; background-repeat: no-repeat; background-size: contain; }
+.s-circle { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23cbd5e1'/%3E%3C/svg%3E"); }
+.shape-item.active .s-circle { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='40' fill='%236366f1'/%3E%3C/svg%3E"); }
+.s-heart { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 25 C15 -5 5 10 5 40 C5 65 25 80 50 95 C75 80 95 65 95 40 C95 10 85 -5 50 25 Z' fill='%23cbd5e1'/%3E%3C/svg%3E"); }
+.shape-item.active .s-heart { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 25 C15 -5 5 10 5 40 C5 65 25 80 50 95 C75 80 95 65 95 40 C95 10 85 -5 50 25 Z' fill='%236366f1'/%3E%3C/svg%3E"); }
+.s-star { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='50,0 63,38 100,38 70,60 82,100 50,75 18,100 30,60 0,38 37,38' fill='%23cbd5e1'/%3E%3C/svg%3E"); }
+.shape-item.active .s-star { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='50,0 63,38 100,38 70,60 82,100 50,75 18,100 30,60 0,38 37,38' fill='%236366f1'/%3E%3C/svg%3E"); }
+
+.btn-primary { background: #6366f1; color: #fff; height: 88rpx; border-radius: 44rpx; display: flex; align-items: center; justify-content: center; font-size: 32rpx; font-weight: 600; }
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom)); box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05); display: flex; align-items: center; gap: 24rpx; z-index: 100; }
+.btn-icon { width: 88rpx !important; height: 88rpx !important; background: #f1f5f9; border-radius: 44rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; padding: 0 !important; margin: 0 !important; flex-shrink: 0; line-height: 1 !important; }
+.loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.loading-box { background: #ffffff; padding: 48rpx 64rpx; border-radius: 24rpx; display: flex; flex-direction: column; align-items: center; }
+.loading-spinner { width: 64rpx; height: 64rpx; border: 4rpx solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.loading-text { margin-top: 24rpx; font-size: 28rpx; color: #666; }
+@keyframes spin { to { transform: rotate(360deg); } }

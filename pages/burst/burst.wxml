@@ -1,0 +1,66 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">冲出九宫格</text>
+    <text class="page-subtitle">视觉破格特效 · 朋友圈C位神器</text>
+  </view>
+
+  <view class="card preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">💥</text>
+      <text class="upload-text">点击选择照片</text>
+    </view>
+    
+    <view class="preview-wrapper" wx:else>
+      <view class="crop-container" style="width:{{cropW}}px; height:{{cropH}}px;">
+        <view class="bg-layer"></view>
+        <movable-area class="crop-area" scale-area style="width:{{cropW}}px; height:{{cropH}}px;">
+          <movable-view 
+            class="crop-img" direction="all" out-of-bounds="{{true}}"
+            damping="50" friction="2" scale="{{true}}"
+            scale-min="0.5" scale-max="5.0" scale-value="{{scale}}"
+            x="{{x}}" y="{{y}}"
+            style="width:{{imgW}}px; height:{{imgH}}px;"
+          >
+            <image src="{{imagePath}}" mode="scaleToFill" style="width:100%; height:100%; display:block;"></image>
+          </movable-view>
+        </movable-area>
+        
+        <view class="mask-overlay mask-{{maskType}}"></view>
+        <view class="reset-btn" catchtap="resetView">↺ 还原</view>
+      </view>
+      <view class="crop-tip">💡 {{tipText}}</view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{imagePath}}">
+    <view class="section-title">选择破格形状</view>
+    <scroll-view class="shape-scroll" scroll-x="true">
+        <view class="shape-item {{maskType==='burst-circle'?'active':''}}" bindtap="setMaskType" data-type="burst-circle" data-text="圆形破格">
+            <view class="s-icon s-circle"></view><text>圆形</text>
+        </view>
+        <view class="shape-item {{maskType==='burst-heart'?'active':''}}" bindtap="setMaskType" data-type="burst-heart" data-text="爱心破格">
+            <view class="s-icon s-heart"></view><text>爱心</text>
+        </view>
+        <view class="shape-item {{maskType==='burst-star'?'active':''}}" bindtap="setMaskType" data-type="burst-star" data-text="星芒破格">
+            <view class="s-icon s-star"></view><text>星芒</text>
+        </view>
+    </scroll-view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <button class="btn-icon" bindtap="chooseImage">🔄</button>
+    <button class="btn-icon" open-type="share">📤</button>
+    <button class="btn-primary" bindtap="saveToAlbum">一键保存9张图</button>
+  </view>
+
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">{{loadingText}}</text>
+    </view>
+  </view>
+</view>

@@ -3,12 +3,12 @@ const Security = require('../../utils/security.js');
 
 // === 1. 广告配置 ===
 const AD_CONFIG = {
-  BANNER_ID: 'adunit-ecfcec4c6a0c871b',       // 请替换为您的 Banner 广告 ID
-  VIDEO_ID: 'adunit-da175a2014d3443b' // 请替换为您的 激励视频广告 ID
+  BANNER_ID: 'adunit-ecfcec4c6a0c871b',
+  VIDEO_ID: 'adunit-da175a2014d3443b'
 };
 
 // === 2. 策略配置 ===
-const FREE_COUNT_DAILY = 2; // 每天免费保存 3 次
+const FREE_COUNT_DAILY = 2; 
 
 Page({
   data: {
@@ -21,14 +21,14 @@ Page({
     bgColors: ['#ffffff', '#000000', '#f5f5f5', '#ffe4e6', '#dbeafe', '#dcfce7', '#fef3c7'],
     showNumber: false,
     
-    previewWidth: 700,
-    previewHeight: 700,
+    // === 修正：将宽度收缩到 670，预留足够安全边距防止截断 ===
+    previewWidth: 670,
+    previewHeight: 670,
     previewItems: [], 
     
     isProcessing: false,
     loadingText: '处理中...',
     
-    // 绑定 Banner ID
     bannerUnitId: AD_CONFIG.BANNER_ID
   },
 
@@ -146,8 +146,6 @@ Page({
       }
     });
   },
-
-  // === 业务逻辑 ===
 
   addImages() {
     const remaining = 9 - this.data.imageList.length;
@@ -280,7 +278,8 @@ Page({
   },
 
   updatePreview() {
-    const layout = this.calculateLayout(this.data.imageInfos, 700, this.data.spacing);
+    // === 修正：基准宽度改为 670 ===
+    const layout = this.calculateLayout(this.data.imageInfos, 670, this.data.spacing);
     this.setData({
         previewWidth: layout.w,
         previewHeight: layout.h,
@@ -295,44 +294,34 @@ Page({
     this.checkQuotaAndSave();
   },
 
-  // === 7. 真正的高清生成与保存逻辑 (修复尺寸超限问题) ===
   async generateAndSave() {
     this.setData({ isProcessing: true, loadingText: '生成中...' });
 
     try {
-        const MAX_SIDE = 4096; // 设定一个安全的最大尺寸
-        let baseSize = 2400; // 默认高清基准
+        const MAX_SIDE = 4096; 
+        let baseSize = 2400; 
 
         const { layoutType, imageInfos, spacing } = this.data;
 
-        // 【关键修复】预计算尺寸，防止爆内存/黑屏
         if (layoutType === 'horizontal') {
-            // 横向：宽度累加。需确保总宽度不超限
             const sumRatio = imageInfos.reduce((acc, img) => acc + img.ratio, 0);
-            // 估算总宽度 = 高度 * 总比例
             const estWidth = baseSize * sumRatio;
             if (estWidth > MAX_SIDE) {
-                // 如果宽度超标，反向推算合适的高度
                 baseSize = MAX_SIDE / sumRatio; 
             }
-            // 同时也限制高度不能超
             baseSize = Math.min(baseSize, MAX_SIDE);
 
         } else if (layoutType === 'vertical') {
-            // 纵向：高度累加。需确保总高度不超限
             const sumInvRatio = imageInfos.reduce((acc, img) => acc + (1/img.ratio), 0);
-            // 估算总高度 = 宽度 * 总(1/比例)
             const estHeight = baseSize * sumInvRatio;
             if (estHeight > MAX_SIDE) {
-                // 如果高度超标，反向推算合适的宽度
                 baseSize = MAX_SIDE / sumInvRatio;
             }
             baseSize = Math.min(baseSize, MAX_SIDE);
         } else {
-            // 网格：通常比较方正，检查一下行数
             const cols = imageInfos.length <= 4 ? 2 : 3;
             const rows = Math.ceil(imageInfos.length / cols);
-            const ratio = rows / cols; // 高宽比
+            const ratio = rows / cols; 
             if (baseSize * ratio > MAX_SIDE) {
                 baseSize = MAX_SIDE / ratio;
             }
@@ -340,8 +329,8 @@ Page({
         
         baseSize = Math.floor(baseSize);
 
-        // 根据新的基准尺寸计算布局
-        const scale = baseSize / 700;
+        // === 修正：计算导出比例时使用 670 ===
+        const scale = baseSize / 670; 
         const exportSpacing = spacing * scale;
         const layout = this.calculateLayout(imageInfos, baseSize, exportSpacing);
 

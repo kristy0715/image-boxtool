@@ -1,26 +1,29 @@
 /* pages/collage/collage.wxss */
 
-/* 1. 预览区域 (灰色背景容器) */
+/* 1. 预览区域 */
 .preview-area {
   background: #eef2f6;
-  border-radius: 24rpx;
-  overflow: hidden;
+  /* 移除 border-radius 和 overflow:hidden，让其铺满宽度 */
+  /* border-radius: 24rpx; */
+  /* overflow: hidden; */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 500rpx;
-  padding: 30rpx;
+  /* 移除左右 padding，防止挤压内容 */
+  padding: 40rpx 0; 
   margin-bottom: 24rpx;
+  min-height: 600rpx; /* 增加最小高度 */
 }
 
-/* 初始上传区域 (复用 grid9 样式) */
+/* 初始上传区域 */
 .preview-card {
   padding: 0;
   overflow: hidden;
   background: #fff;
   border-radius: 24rpx;
   box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
+  margin: 30rpx; /* 只有初始状态需要 margin */
 }
 
 .upload-area {
@@ -44,19 +47,20 @@
 /* 滚动预览容器 */
 .preview-scroll {
   width: 100%;
-  max-height: 800rpx;
+  /* 移除高度限制，让内容自然撑开 */
+  /* min-height: 500rpx; */
   display: flex;
-  /* 【关键修复】移除 center，防止大图左上角被裁剪 */
-  /* justify-content: center; */ 
-  align-items: flex-start; /* 默认对齐 */
+  /* 强制水平居中 */
+  justify-content: center;
+  align-items: flex-start; 
 }
 
 .collage-board {
   position: relative;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.1); 
+  box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.15); /* 加深阴影，更有立体感 */
   transition: all 0.2s ease;
-  /* 【关键修复】利用 margin: auto 在 flex 容器中实现智能居中 */
-  margin: auto; 
+  /* 关键：自动居中 */
+  margin: 0 auto; 
   flex-shrink: 0;
 }
 
@@ -67,18 +71,18 @@
 
 .item-number {
   position: absolute;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.6);
   color: #fff;
   width: 40rpx; height: 40rpx;
   border-radius: 50%;
   font-size: 24rpx;
   display: flex; align-items: center; justify-content: center;
   font-weight: bold;
-  z-index: 10; /* 确保编号在最上层 */
+  z-index: 10;
 }
 
 .preview-tip {
-  font-size: 24rpx; color: #94a3b8; margin-top: 20rpx;
+  font-size: 24rpx; color: #94a3b8; margin-top: 30rpx;
 }
 
 /* 2. 管理栏 */
@@ -86,7 +90,7 @@
   background: #fff;
   border-radius: 24rpx;
   padding: 24rpx;
-  margin-bottom: 24rpx;
+  margin: 0 24rpx 24rpx; /* 左右留边 */
 }
 .section-title { font-size: 28rpx; font-weight: 600; color: #333; margin-bottom: 20rpx; }
 
@@ -96,7 +100,8 @@
 .manage-item {
   position: relative;
   width: 120rpx; height: 120rpx;
-  border-radius: 12rpx; overflow: hidden;
+  border-radius: 12rpx;
+  overflow: hidden;
   flex-shrink: 0;
 }
 .manage-item image { width: 100%; height: 100%; }
@@ -116,13 +121,15 @@
 }
 .add-btn::before {
   content: ''; position: absolute;
-  top: 50%; left: 50%; width: 30%; height: 4rpx;
+  top: 50%; left: 50%;
+  width: 30%; height: 4rpx;
   background-color: #cbd5e1;
   transform: translate(-50%, -50%); border-radius: 4rpx;
 }
 .add-btn::after {
   content: ''; position: absolute;
-  top: 50%; left: 50%; height: 30%; width: 4rpx;
+  top: 50%;
+  left: 50%; height: 30%; width: 4rpx;
   background-color: #cbd5e1;
   transform: translate(-50%, -50%); border-radius: 4rpx;
 }
@@ -132,7 +139,7 @@
   background: #fff;
   border-radius: 24rpx;
   padding: 30rpx;
-  margin-bottom: 30rpx;
+  margin: 0 30rpx 30rpx; /* 左右留边 */
 }
 
 .setting-group { margin-bottom: 40rpx; }
@@ -146,12 +153,14 @@
   margin-top: 20rpx;
 }
 .layout-tab {
-  flex: 1; text-align: center;
+  flex: 1;
+  text-align: center;
   padding: 16rpx 0; font-size: 28rpx; color: #64748b;
   border-radius: 12rpx; transition: all 0.2s;
 }
 .layout-tab.active {
-  background: #fff; color: #6366f1; font-weight: 600;
+  background: #fff;
+  color: #6366f1; font-weight: 600;
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
 }
 
@@ -160,7 +169,8 @@
   width: 60rpx; height: 60rpx; border-radius: 50%;
   border: 2rpx solid #e2e8f0;
   flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center;
+  justify-content: center;
 }
 .color-item.active { border-color: #6366f1; transform: scale(1.1); box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.1); }
 .check { color: #999; font-size: 24rpx; font-weight: bold; }
@@ -182,26 +192,30 @@
 .btn-icon {
   width: 88rpx !important; height: 88rpx !important;
   background: #f1f5f9; border-radius: 44rpx;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center;
+  justify-content: center;
   font-size: 40rpx; padding: 0 !important; margin: 0 !important;
   flex-shrink: 0;
   line-height: 1 !important; 
 }
 
 .btn-primary {
-  flex: 1; height: 88rpx; 
+  flex: 1;
+  height: 88rpx; 
   background: #6366f1; color: #fff;
   border-radius: 44rpx; 
   font-size: 32rpx; font-weight: 600;
   margin: 0;
-  display: flex !important; align-items: center; justify-content: center;
+  display: flex !important; align-items: center;
+  justify-content: center;
   padding: 0;
 }
 .btn-primary[disabled] { background: #e2e8f0; color: #94a3b8; }
 
 /* Loading */
 .loading-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  position: fixed; top: 0;
+  left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.6);
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
