@@ -1,14 +1,21 @@
 <view class="container">
   <view class="mode-tabs">
     <view class="tab-item {{mode === 'manual' ? 'active' : ''}}" bindtap="switchMode" data-mode="manual">
-      <text>👆 手动涂抹</text>
+      <text>{{leftTabTitle}}</text>
     </view>
     <view class="tab-item {{mode === 'auto' ? 'active' : ''}}" bindtap="switchMode" data-mode="auto">
-      <text>🤖 智能检测</text>
+      <text>{{rightTabTitle}}</text>
     </view>
   </view>
 
   <view class="card editor-card">
+    <view class="feature-tip" wx:if="{{mode === 'manual'}}">
+      <text>⚠️ 普通消除仅限简单纯色背景</text>
+    </view>
+    <view class="feature-tip" wx:if="{{mode === 'auto'}}">
+      <text>🚀 AI强力消除支持复杂背景</text>
+    </view>
+
     <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
       <text class="upload-icon">✨</text>
       <text class="upload-text">点击上传图片</text>
@@ -44,46 +51,40 @@
 
         <view class="loading-mask" wx:if="{{isProcessing}}">
             <view class="loading-spinner"></view>
-            <text>智能消除中...</text>
+            <text>{{mode === 'auto' ? 'AI去水印中...' : '普通去水印中...'}}</text>
         </view>
       </view>
 
-      <block wx:if="{{mode === 'manual'}}">
-        <view class="toolbar">
-            <view class="tool-group">
-                <view class="tool-btn" bindtap="undoAction"><text>↩️ 撤销</text></view>
-                <view class="tool-btn" bindtap="clearMask"><text>🗑️ 重置</text></view>
-                <view class="tool-btn {{isMoveMode ? 'active-tool' : ''}}" bindtap="toggleMoveMode">
-                  <text>{{isMoveMode ? '👌 完成' : '✋ 移动'}}</text>
-                </view>
+      <view class="toolbar">
+          <view class="tool-group">
+              <view class="tool-btn" bindtap="undoAction"><text>↩️ 撤销</text></view>
+              <view class="tool-btn" bindtap="clearMask"><text>🗑️ 重置</text></view>
+              <view class="tool-btn {{isMoveMode ? 'active-tool' : ''}}" bindtap="toggleMoveMode">
+                <text>{{isMoveMode ? '👌 完成' : '✋ 移动'}}</text>
+              </view>
+          </view>
+          <view class="brush-indicator">
+              <text wx:if="{{isMoveMode}}">双指缩放 / 单指拖动</text>
+              <text wx:else>涂抹水印区域</text>
+          </view>
+      </view>
+      
+      <view class="brush-settings">
+          <text class="setting-label">笔刷</text>
+          <view class="brush-sizes">
+            <view class="brush-size {{brushSize === 10 ? 'active' : ''}}" bindtap="setBrushSize" data-size="10">
+              <view class="brush-dot" style="width: 12rpx; height: 12rpx;"></view>
             </view>
-            <view class="brush-indicator">
-                <text wx:if="{{isMoveMode}}">双指缩放 / 单指拖动</text>
-                <text wx:else>涂抹水印区域</text>
+            <view class="brush-size {{brushSize === 20 ? 'active' : ''}}" bindtap="setBrushSize" data-size="20">
+              <view class="brush-dot" style="width: 20rpx; height: 20rpx;"></view>
             </view>
-        </view>
-       
-        <view class="brush-settings">
-            <text class="setting-label">笔刷</text>
-            <view class="brush-sizes">
-              <view class="brush-size {{brushSize === 10 ? 'active' : ''}}" bindtap="setBrushSize" data-size="10">
-                <view class="brush-dot" style="width: 12rpx; height: 12rpx;"></view>
-              </view>
-              <view class="brush-size {{brushSize === 20 ? 'active' : ''}}" bindtap="setBrushSize" data-size="20">
-                <view class="brush-dot" style="width: 20rpx; height: 20rpx;"></view>
-              </view>
-              <view class="brush-size {{brushSize === 35 ? 'active' : ''}}" bindtap="setBrushSize" data-size="35">
-                <view class="brush-dot" style="width: 32rpx; height: 32rpx;"></view>
-              </view>
-              <view class="brush-size {{brushSize === 50 ? 'active' : ''}}" bindtap="setBrushSize" data-size="50">
-                <view class="brush-dot" style="width: 44rpx; height: 44rpx;"></view>
-              </view>
+            <view class="brush-size {{brushSize === 35 ? 'active' : ''}}" bindtap="setBrushSize" data-size="35">
+              <view class="brush-dot" style="width: 32rpx; height: 32rpx;"></view>
             </view>
-        </view>
-      </block>
-
-      <view class="auto-tips" wx:if="{{mode === 'auto'}}">
-         <text>🚧 智能检测暂不可用，请手动涂抹</text>
+            <view class="brush-size {{brushSize === 50 ? 'active' : ''}}" bindtap="setBrushSize" data-size="50">
+              <view class="brush-dot" style="width: 44rpx; height: 44rpx;"></view>
+            </view>
+          </view>
       </view>
     </view>
   </view>

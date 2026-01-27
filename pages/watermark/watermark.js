@@ -1,46 +1,28 @@
 // pages/watermark/watermark.js
-
 const Security = require('../../utils/security.js');
 
-// === 1. 最小堆 (MinHeap) ===
-class MinHeap {
-  constructor() { this.heap = []; }
-  push(node) { this.heap.push(node); this.bubbleUp(this.heap.length - 1); }
-  pop() {
-    if (this.heap.length === 0) return null;
-    const top = this.heap[0];
-    const bottom = this.heap.pop();
-    if (this.heap.length > 0) { this.heap[0] = bottom; this.sinkDown(0); }
-    return top;
-  }
-  bubbleUp(index) {
-    while (index > 0) {
-      const parentIndex = Math.floor((index - 1) / 2);
-      if (this.heap[index].dist >= this.heap[parentIndex].dist) break;
-      [this.heap[index], this.heap[parentIndex]] = [this.heap[parentIndex], this.heap[index]];
-      index = parentIndex;
-    }
-  }
-  sinkDown(index) {
-    const length = this.heap.length;
-    while (true) {
-      let left = 2 * index + 1; let right = 2 * index + 2; let swap = null;
-      if (left < length && this.heap[left].dist < this.heap[index].dist) swap = left;
-      if (right < length && this.heap[right].dist < (swap === null ? this.heap[index].dist : this.heap[left].dist)) swap = right;
-      if (swap === null) break;
-      [this.heap[index], this.heap[swap]] = [this.heap[swap], this.heap[index]];
-      index = swap;
-    }
-  }
-  size() { return this.heap.length; }
-}
+// ============================================================
+// 🔥 配置区域 (已移除敏感 Key)
+// ============================================================
+const SERVER_CONFIG = {
+  // 🔥🔥🔥 请替换为您在 Laf 创建的云函数地址 🔥🔥🔥
+  // 例如: https://xxxxxx.laf.run/remove-watermark
+  LAF_URL: 'https://kvpoib63ld.sealosbja.site/remove-watermark' 
+};
 
-// === 2. 配置项 ===
 const AD_CONFIG = {
   BANNER_ID: 'adunit-ecfcec4c6a0c871b',
   VIDEO_ID: 'adunit-da175a2014d3443b'
 };
-const FREE_COUNT_DAILY = 2;
+
+const DAILY_FREE_SAVE_LIMIT = 2; 
+const DAILY_FREE_AI_LIMIT = 1;   
+const AD_REWARD_AI_COUNT = 3;    
+
+// 最小堆 (本地算法专用)
+class MinHeap {
+  constructor(){this.heap=[]}push(t){this.heap.push(t),this.bubbleUp(this.heap.length-1)}pop(){if(0===this.heap.length)return null;const t=this.heap[0],e=this.heap.pop();return this.heap.length>0&&(this.heap[0]=e,this.sinkDown(0)),t}bubbleUp(t){for(;t>0;){const e=Math.floor((t-1)/2);if(this.heap[t].dist>=this.heap[e].dist)break;[this.heap[t],this.heap[e]]=[this.heap[e],this.heap[t]],t=e}}sinkDown(t){const e=this.heap.length;for(;;){let s=2*t+1,h=2*t+2,i=null;if(s<e&&this.heap[s].dist<this.heap[t].dist&&(i=s),h<e&&this.heap[h].dist<(null===i?this.heap[t].dist:this.heap[s].dist)&&(i=h),null===i)break;[this.heap[t],this.heap[i]]=[this.heap[i],this.heap[t]],t=i}}size(){return this.heap.length}
+}
 
 Page({
   data: {
@@ -55,288 +37,256 @@ Page({
     imageHeight: 0,
     isComparing: false,
     bannerUnitId: AD_CONFIG.BANNER_ID,
-    
-    // 移动/缩放相关状态
     isMoveMode: false,
-    moveX: 0,
-    moveY: 0,
-    moveScale: 1
+    moveX: 0, moveY: 0, moveScale: 1,
+    leftTabTitle: '普通去水印', 
+    rightTabTitle: 'AI去水印',  
+    pendingAdType: '' 
   },
 
   canvas: null, ctx: null,
   maskCanvas: null, maskCtx: null,
   originalImage: null,
   dpr: 1,
-  canvasRect: { left: 0, top: 0 },
-  isDrawing: false, lastX: 0, lastY: 0,
-  history: [],
   videoAd: null,
+  history: [], 
+  canvasRect: { left: 0, top: 0 },
 
   onLoad() {
     this.dpr = wx.getSystemInfoSync().pixelRatio;
+    this.history = []; 
+    this.canvasRect = { left: 0, top: 0 };
     this.initVideoAd();
   },
 
+  onShow() {
+    this.updateAiTabTitle();
+  },
+
+  // === 广告与额度 ===
   initVideoAd() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
       this.videoAd.onError((err) => console.error('广告加载失败', err));
       this.videoAd.onClose((res) => {
         if (res && res.isEnded) {
-          this.setDailyUnlimited();
-          wx.showToast({ title: '已解锁无限次', icon: 'success' });
-          this.realSaveProcess(); 
+          if (this.data.pendingAdType === 'ai') {
+            this.addAiBalance(AD_REWARD_AI_COUNT);
+            wx.showToast({ title: `到账 ${AD_REWARD_AI_COUNT} 次`, icon: 'success' });
+            setTimeout(() => this.startProcess(), 500);
+          } else if (this.data.pendingAdType === 'save') {
+            this.setDailyUnlimitedSave();
+            wx.showToast({ title: '保存已解锁', icon: 'success' });
+            setTimeout(() => this.realSaveProcess(), 500);
+          }
         } else {
-          wx.showModal({ title: '提示', content: '完整观看才能解锁哦', confirmText: '继续观看', success: (m) => { if (m.confirm) this.videoAd.show(); } });
+          wx.showModal({ title: '提示', content: '完整观看才能获取奖励哦', confirmText: '继续观看', success: (m) => { if (m.confirm) this.videoAd.show(); } });
         }
       });
     }
   },
 
-  checkQuotaAndSave() {
+  getAiStock() {
     const today = new Date().toLocaleDateString();
-    const key = 'watermark_usage_record';
+    let dailyRecord = wx.getStorageSync('watermark_ai_daily_v12') || { date: today, used: 0 };
+    if (dailyRecord.date !== today) { dailyRecord = { date: today, used: 0 }; wx.setStorageSync('watermark_ai_daily_v12', dailyRecord); }
+    let balance = wx.getStorageSync('watermark_ai_balance_v12') || 0;
+    const freeLeft = Math.max(0, DAILY_FREE_AI_LIMIT - dailyRecord.used);
+    return { total: freeLeft + balance, freeLeft, balance, dailyRecord };
+  },
+
+  consumeAiStock() {
+    const stock = this.getAiStock();
+    if (stock.freeLeft > 0) {
+      stock.dailyRecord.used++;
+      wx.setStorageSync('watermark_ai_daily_v12', stock.dailyRecord);
+    } else if (stock.balance > 0) {
+      wx.setStorageSync('watermark_ai_balance_v12', stock.balance - 1);
+    }
+    this.updateAiTabTitle();
+  },
+
+  addAiBalance(count) {
+    let balance = wx.getStorageSync('watermark_ai_balance_v12') || 0;
+    wx.setStorageSync('watermark_ai_balance_v12', balance + count);
+    this.updateAiTabTitle();
+  },
+
+  updateAiTabTitle() {
+    const stock = this.getAiStock();
+    this.setData({ rightTabTitle: `AI去水印(余${stock.total})` });
+  },
+
+  checkSaveQuota() {
+    const today = new Date().toLocaleDateString();
+    const key = 'watermark_save_record_v12';
     let record = wx.getStorageSync(key) || { date: today, count: 0, isUnlimited: false };
-
     if (record.date !== today) { record = { date: today, count: 0, isUnlimited: false }; wx.setStorageSync(key, record); }
-    if (record.isUnlimited) { this.realSaveProcess(); return; }
-
-    if (record.count < FREE_COUNT_DAILY) {
-      record.count++;
-      wx.setStorageSync(key, record);
-      const left = FREE_COUNT_DAILY - record.count;
-      if (left > 0) wx.showToast({ title: `今日剩${left}次`, icon: 'none' });
-      this.realSaveProcess();
-    } else {
-      this.showAdModal();
-    }
+    return record;
   },
 
-  setDailyUnlimited() {
-    wx.setStorageSync('watermark_usage_record', { date: new Date().toLocaleDateString(), count: 999, isUnlimited: true });
+  useSaveQuota() {
+    const record = this.checkSaveQuota();
+    if (!record.isUnlimited) { record.count++; wx.setStorageSync('watermark_save_record_v12', record); }
   },
 
-  showAdModal() {
-    if (this.videoAd) {
-      wx.showModal({
-        title: '次数耗尽', content: '观看视频解锁今日无限次保存', confirmText: '去解锁',
-        success: (res) => { if (res.confirm) this.videoAd.show().catch(() => this.realSaveProcess()); }
-      });
-    } else { this.realSaveProcess(); }
+  setDailyUnlimitedSave() {
+    const today = new Date().toLocaleDateString();
+    wx.setStorageSync('watermark_save_record_v12', { date: today, count: 999, isUnlimited: true });
   },
 
-  chooseImage() {
-    wx.chooseMedia({
-      count: 1, mediaType: ['image'], sourceType: ['album', 'camera'],
-      success: (res) => {
-        const path = res.tempFiles[0].tempFilePath;
-        wx.showLoading({ title: '检测中...' });
-        Security.checkImage(path).then((isSafe) => {
-            wx.hideLoading();
-            if (isSafe) this.loadImage(path);
-        }).catch(() => { wx.hideLoading(); this.loadImage(path); });
-      }
-    });
-  },
-
-  loadImage(path) {
-    wx.showLoading({ title: '加载中...' });
-    wx.getImageInfo({
-      src: path,
-      success: (info) => {
-        const sys = wx.getSystemInfoSync();
-        const p = 40, mW = sys.windowWidth - p, mH = sys.windowHeight * 0.55;
-        let dW, dH;
-        const r = info.width / info.height;
-        if (r > mW / mH) { dW = mW; dH = mW / r; } else { dH = mH; dW = mH * r; }
-
-        // 1. 先重置位置数据
-        this.setData({
-          imagePath: path, 
-          canvasDisplayWidth: dW, 
-          canvasDisplayHeight: dH,
-          imageWidth: info.width, 
-          imageHeight: info.height, 
-          resultImage: '', 
-          history: [],
-          isMoveMode: false,
-          moveX: 0, moveY: 0, moveScale: 1 // 重置位置
-        });
-
-        // 2. 延迟初始化 Canvas，确保视图更新完毕
-        setTimeout(() => { this.initCanvas(path); wx.hideLoading(); }, 300);
-      },
-      fail: () => { wx.hideLoading(); wx.showToast({ title: '图片加载失败', icon: 'none' }); }
-    });
-  },
-
-  initCanvas(path) {
-    const q = wx.createSelectorQuery();
-    q.select('#editCanvas').fields({ node: true, size: true, rect: true }).exec((res) => {
-        if (!res[0] || !res[0].node) return;
-        const node = res[0].node;
-        this.canvasRect = { left: res[0].left, top: res[0].top };
-        this.canvas = node;
-        this.ctx = node.getContext('2d');
-        const w = Math.round(this.data.canvasDisplayWidth * this.dpr);
-        const h = Math.round(this.data.canvasDisplayHeight * this.dpr);
-        this.canvas.width = w; this.canvas.height = h;
-        this.ctx.scale(this.dpr, this.dpr);
-
-        this.maskCanvas = wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
-        this.maskCtx = this.maskCanvas.getContext('2d');
-
-        this.originalImage = node.createImage();
-        this.originalImage.onload = () => { this.drawCanvas(); };
-        this.originalImage.src = path;
-    });
-  },
-
-  drawCanvas() {
-    if (!this.ctx || !this.originalImage) return;
-    const w = this.canvas.width / this.dpr, h = this.canvas.height / this.dpr;
-    this.ctx.clearRect(0, 0, w, h);
-    this.ctx.drawImage(this.originalImage, 0, 0, w, h);
-    if (this.data.mode === 'manual') {
-      this.ctx.save(); this.ctx.globalAlpha = 0.5;
-      this.ctx.drawImage(this.maskCanvas, 0, 0, this.maskCanvas.width, this.maskCanvas.height, 0, 0, w, h);
-      this.ctx.restore();
-    }
-  },
-
-  // === 移动/涂抹模式切换 ===
-  toggleMoveMode() {
-    const nextMode = !this.data.isMoveMode;
-    this.setData({ isMoveMode: nextMode });
-    wx.showToast({ 
-      title: nextMode ? '双指缩放/拖动' : '单指涂抹', 
-      icon: 'none' 
-    });
-  },
-  
-  // 【关键修复】只记录缩放比例，不setData位置，防止抖动！
-  onScaleChange(e) {
-    this.data.moveScale = e.detail.scale; // 直接修改数据对象，不setData，减少渲染开销
-  },
-  
-  onTouchStart(e) {
-    if (this.data.isMoveMode || this.data.mode !== 'manual' || !this.ctx) return;
-    
-    this.isDrawing = true;
-    
-    // 【关键修复】坐标除以缩放比例
-    const scale = this.data.moveScale || 1;
-    this.lastX = e.touches[0].x / scale;
-    this.lastY = e.touches[0].y / scale;
-    
-    this.saveHistory();
-    this.drawMaskLine(this.lastX, this.lastY, this.lastX, this.lastY);
-  },
-  
-  onTouchMove(e) {
-    if (this.data.isMoveMode || !this.isDrawing || this.data.mode !== 'manual') return;
-    
-    // 【关键修复】坐标除以缩放比例
-    const scale = this.data.moveScale || 1;
-    const x = e.touches[0].x / scale;
-    const y = e.touches[0].y / scale;
-    
-    this.drawMaskLine(this.lastX, this.lastY, x, y);
-    this.lastX = x; this.lastY = y;
-  },
-
-  onTouchEnd() { this.isDrawing = false; },
-
-  drawMaskLine(x1, y1, x2, y2) {
-    if (!this.maskCtx) return;
-    this.maskCtx.beginPath();
-    this.maskCtx.lineCap = 'round'; this.maskCtx.lineJoin = 'round';
-    // 笔刷随图片放大而放大
-    this.maskCtx.lineWidth = this.data.brushSize * this.dpr;
-    this.maskCtx.strokeStyle = 'rgba(255, 0, 0, 1)';
-    this.maskCtx.moveTo(x1 * this.dpr, y1 * this.dpr);
-    this.maskCtx.lineTo(x2 * this.dpr, y2 * this.dpr);
-    this.maskCtx.stroke();
-    this.drawCanvas();
-  },
-
-  switchMode(e) {
-    const targetMode = e.currentTarget.dataset.mode;
-    if (targetMode === 'auto') {
-      wx.showToast({ title: '功能维护中，请使用手动涂抹', icon: 'none' });
-      return;
-    }
-    this.setData({ mode: targetMode });
-    if (this.data.mode === 'manual') setTimeout(() => this.drawCanvas(), 50);
-  },
-  
-  setBrushSize(e) { this.setData({ brushSize: parseInt(e.currentTarget.dataset.size) }); },
-  
-  saveHistory() {
-    if (!this.maskCtx) return;
-    if (this.history.length > 5) this.history.shift();
-    this.history.push(this.maskCtx.getImageData(0, 0, this.maskCanvas.width, this.maskCanvas.height));
-  },
-  undoAction() {
-    if (!this.history.length) return wx.showToast({ title: '已是最初状态', icon: 'none' });
-    this.maskCtx.putImageData(this.history.pop(), 0, 0);
-    this.drawCanvas();
-  },
-  clearMask() {
-    if (!this.maskCtx) return;
-    this.saveHistory();
-    this.maskCtx.clearRect(0, 0, this.maskCanvas.width, this.maskCanvas.height);
-    this.drawCanvas();
-  },
-
+  // === 核心调度 ===
   startProcess() {
     if (!this.data.imagePath) return;
+    if (this.data.isProcessing) return;
+
     if (this.data.mode === 'manual') {
       this.processTelea();
     } else {
-      wx.showToast({ title: '请切换回手动模式', icon: 'none' });
-      this.setData({ mode: 'manual' });
+      const stock = this.getAiStock();
+      if (stock.total > 0) {
+        this.consumeAiStock();
+        this.startShiliuAIProcess();
+      } else {
+        this.setData({ pendingAdType: 'ai' });
+        this.showAdModal('ai');
+      }
     }
   },
 
+  // === AI 算法 (已对接 Laf 云函数) ===
+  async startShiliuAIProcess() {
+    this.setData({ isProcessing: true });
+    wx.showLoading({ title: 'AI去水印中...', mask: true });
+
+    try {
+      // 检查 Laf URL 是否配置
+      if (!SERVER_CONFIG.LAF_URL || SERVER_CONFIG.LAF_URL.includes('请在这里填入')) {
+        throw new Error('请先配置 Laf 云函数 URL');
+      }
+
+      // 1. 限制尺寸 (防崩溃)
+      const { width, height } = this.getOptimalSize(this.data.imageWidth, this.data.imageHeight);
+      
+      // 2. 获取原图
+      const imgBase64 = await this.getResizedImageBase64(width, height);
+      
+      // 3. 🔥 获取“漂白”后的蒙版
+      const maskBase64 = await this.getMaskBase64PureWhite(width, height);
+
+      // 4. 🔥 请求 Laf 云函数 (不再直接请求 Shiliu)
+      wx.request({
+        url: SERVER_CONFIG.LAF_URL, // 您的 Laf 地址
+        method: 'POST',
+        data: { 
+          image_base64: imgBase64, 
+          mask_base64: maskBase64, 
+          mode: 'new' 
+        },
+        success: (res) => {
+          // 注意：Laf 返回的 res.data 才是云函数的返回值，所以可能需要多解一层
+          // 假设云函数直接返回了 AI 的 JSON
+          const aiData = res.data; 
+
+          if (aiData && aiData.code === 0 && aiData.result_base64) {
+            // 清洗 Base64
+            let rawBase64 = aiData.result_base64;
+            if (rawBase64.startsWith('data:image')) {
+                rawBase64 = rawBase64.split('base64,')[1];
+            }
+            rawBase64 = rawBase64.replace(/[\r\n\s]/g, "");
+
+            this.base64ToTempFile(rawBase64)
+              .then(filePath => this.handleSuccess(filePath))
+              .catch(err => {
+                this.handleError(new Error('图片保存失败'));
+              });
+          } else {
+            const msg = (aiData && aiData.msg) ? aiData.msg : 'Server Error';
+            this.handleError(new Error(msg));
+          }
+        },
+        fail: (err) => { 
+          this.handleError(new Error('网络请求失败')); 
+        }
+      });
+    } catch (err) {
+      this.handleError(err);
+    }
+  },
+
+  // 🔥 蒙版生成器：颜色漂白 + 边缘膨胀
+  getMaskBase64PureWhite(targetW, targetH) {
+    return new Promise((resolve, reject) => {
+      const w = targetW; const h = targetH;
+      const tempCanvas = wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+      const ctx = tempCanvas.getContext('2d');
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(this.maskCanvas, 0, 0, w, h);
+
+      const offset = 2; 
+      ctx.drawImage(this.maskCanvas, -offset, 0, w, h);
+      ctx.drawImage(this.maskCanvas, offset, 0, w, h);
+      ctx.drawImage(this.maskCanvas, 0, -offset, w, h);
+      ctx.drawImage(this.maskCanvas, 0, offset, w, h);
+
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, w, h);
+
+      wx.canvasToTempFilePath({
+        canvas: tempCanvas, fileType: 'jpg', quality: 1.0,
+        success: (res) => {
+          const fs = wx.getFileSystemManager();
+          fs.readFile({ filePath: res.tempFilePath, encoding: 'base64', success: (r) => resolve(r.data), fail: reject });
+        },
+        fail: reject
+      });
+    });
+  },
+
+  // === 本地算法 (Telea) ===
   processTelea() {
     this.setData({ isProcessing: true });
-    wx.showLoading({ title: '智能消除中...' });
+    wx.showLoading({ title: '普通去水印中...' });
 
     setTimeout(() => {
       try {
-        const offCanvas = wx.createOffscreenCanvas({ type: '2d', width: this.data.imageWidth, height: this.data.imageHeight });
-        const ctx = offCanvas.getContext('2d');
-        const img = offCanvas.createImage();
+        const { width, height } = this.getOptimalSize(this.data.imageWidth, this.data.imageHeight);
+        
+        const imgCanvas = wx.createOffscreenCanvas({ type: '2d', width: width, height: height });
+        const imgCtx = imgCanvas.getContext('2d');
+        const img = imgCanvas.createImage();
 
         img.onload = () => {
-          ctx.drawImage(img, 0, 0, this.data.imageWidth, this.data.imageHeight);
-          const imgData = ctx.getImageData(0, 0, this.data.imageWidth, this.data.imageHeight);
+          imgCtx.drawImage(img, 0, 0, width, height);
+          const imgData = imgCtx.getImageData(0, 0, width, height);
           
-          const maskW = this.maskCanvas.width;
-          const maskH = this.maskCanvas.height;
-          const maskDataRaw = this.maskCtx.getImageData(0, 0, maskW, maskH).data;
+          const maskCanvas = wx.createOffscreenCanvas({ type: '2d', width: width, height: height });
+          const maskCtx = maskCanvas.getContext('2d');
+          maskCtx.drawImage(this.maskCanvas, 0, 0, width, height); 
+          const maskData = maskCtx.getImageData(0, 0, width, height).data;
           
-          const width = this.data.imageWidth;
-          const height = this.data.imageHeight;
-          const isMask = new Uint8Array(width * height);
           const distMap = new Float32Array(width * height);
           const flagMap = new Uint8Array(width * height);
-          
-          const scaleX = maskW / width;
-          const scaleY = maskH / height;
-          let maskCount = 0;
           const INF = 1e6;
+          let maskCount = 0;
           for (let i = 0; i < width * height; i++) { distMap[i] = INF; flagMap[i] = 0; }
 
           for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-              const mx = Math.floor(x * scaleX);
-              const my = Math.floor(y * scaleY);
-              const mi = (my * maskW + mx) * 4;
+              const i = (y * width + x) * 4;
               const idx = y * width + x;
-              if (maskDataRaw[mi] > 20) { isMask[idx] = 1; flagMap[idx] = 2; maskCount++; } 
-              else { distMap[idx] = 0; flagMap[idx] = 0; }
+              if (maskData[i+3] > 0) { 
+                flagMap[idx] = 2; maskCount++; 
+              } else { 
+                distMap[idx] = 0; flagMap[idx] = 0; 
+              }
             }
           }
 
@@ -345,72 +295,59 @@ Page({
             return wx.showToast({ title: '请先涂抹', icon: 'none' });
           }
 
-          const heap = new MinHeap();
-          const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-          for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-              const idx = y * width + x;
-              if (flagMap[idx] === 2) { 
-                let isBoundary = false;
-                for (let n of neighbors) {
-                   const nx = x + n[0], ny = y + n[1];
-                   if (nx>=0 && nx<width && ny>=0 && ny<height) {
-                     if (flagMap[ny*width + nx] === 0) isBoundary = true;
-                   }
-                }
-                if (isBoundary) { flagMap[idx] = 1; distMap[idx] = 0; heap.push({ x, y, dist: 0 }); }
-              }
-            }
-          }
-
-          const pixels = imgData.data;
-          while (heap.size() > 0) {
-            const p = heap.pop();
-            const x = p.x, y = p.y;
-            const idx = y * width + x;
-            if (flagMap[idx] === 0) continue; 
-            
-            this.inpaintPointTelea(x, y, width, height, pixels, distMap, flagMap);
-            flagMap[idx] = 0;
-
-            for (let n of neighbors) {
-              const nx = x + n[0], ny = y + n[1];
-              if (nx>=0 && nx<width && ny>=0 && ny<height) {
-                const nIdx = ny * width + nx;
-                if (flagMap[nIdx] !== 0) {
-                  const dist = Math.min(
-                     this.getDist(nx-1, ny, width, height, distMap),
-                     this.getDist(nx+1, ny, width, height, distMap),
-                     this.getDist(nx, ny-1, width, height, distMap),
-                     this.getDist(nx, ny+1, width, height, distMap)
-                  ) + 1.0;
-                  if (dist < distMap[nIdx]) { distMap[nIdx] = dist; flagMap[nIdx] = 1; heap.push({ x: nx, y: ny, dist: dist }); }
-                }
-              }
-            }
-          }
-
-          ctx.putImageData(imgData, 0, 0);
+          this.performTeleaCalculation(width, height, flagMap, distMap, imgData.data);
+          imgCtx.putImageData(imgData, 0, 0);
+          
           wx.canvasToTempFilePath({
-            canvas: offCanvas, fileType: 'jpg', quality: 0.95,
-            success: (res) => {
-                this.setData({ resultImage: res.tempFilePath, isProcessing: false });
-                wx.hideLoading();
-                wx.pageScrollTo({ selector: '.result-card', duration: 300 });
-                wx.showToast({ title: '消除完成', icon: 'success' });
-            },
+            canvas: imgCanvas, fileType: 'jpg', quality: 0.95,
+            success: (res) => { this.handleSuccess(res.tempFilePath); },
             fail: () => { this.setData({ isProcessing: false }); wx.hideLoading(); }
           });
         };
         img.src = this.data.imagePath;
-
-      } catch (err) {
-        console.error(err);
-        this.setData({ isProcessing: false });
-        wx.hideLoading();
-        wx.showToast({ title: '处理异常', icon: 'none' });
-      }
+      } catch (err) { this.handleError(err); }
     }, 100);
+  },
+
+  performTeleaCalculation(width, height, flagMap, distMap, pixels) {
+      const heap = new MinHeap();
+      const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          if (flagMap[idx] === 2) { 
+            let isBoundary = false;
+            for (let n of neighbors) {
+               const nx = x + n[0], ny = y + n[1];
+               if (nx>=0 && nx<width && ny>=0 && ny<height) { if (flagMap[ny*width + nx] === 0) isBoundary = true; }
+            }
+            if (isBoundary) { flagMap[idx] = 1; distMap[idx] = 0; heap.push({ x, y, dist: 0 }); }
+          }
+        }
+      }
+      while (heap.size() > 0) {
+        const p = heap.pop();
+        const x = p.x, y = p.y;
+        const idx = y * width + x;
+        if (flagMap[idx] === 0) continue; 
+        this.inpaintPointTelea(x, y, width, height, pixels, distMap, flagMap);
+        flagMap[idx] = 0;
+        for (let n of neighbors) {
+          const nx = x + n[0], ny = y + n[1];
+          if (nx>=0 && nx<width && ny>=0 && ny<height) {
+            const nIdx = ny * width + nx;
+            if (flagMap[nIdx] !== 0) {
+              const dist = Math.min(
+                 this.getDist(nx-1, ny, width, height, distMap),
+                 this.getDist(nx+1, ny, width, height, distMap),
+                 this.getDist(nx, ny-1, width, height, distMap),
+                 this.getDist(nx, ny+1, width, height, distMap)
+              ) + 1.0;
+              if (dist < distMap[nIdx]) { distMap[nIdx] = dist; flagMap[nIdx] = 1; heap.push({ x: nx, y: ny, dist: dist }); }
+            }
+          }
+        }
+      }
   },
 
   getDist(x, y, w, h, distMap) {
@@ -455,18 +392,229 @@ Page({
     }
   },
 
-  saveImage() { if (this.data.resultImage) this.checkQuotaAndSave(); },
-  realSaveProcess() {
-    wx.saveImageToPhotosAlbum({
-      filePath: this.data.resultImage,
-      success: () => { wx.navigateTo({ url: `/pages/success/success?path=${encodeURIComponent(this.data.resultImage)}` }); },
-      fail: (err) => {
-        if (err.errMsg.includes('auth')) wx.showModal({ title: '权限', content: '需保存权限', success: (s) => { if(s.confirm) wx.openSetting(); }});
-        else wx.showToast({ title: '保存失败', icon: 'none' });
+  // === 通用 ===
+  chooseImage() {
+    wx.chooseMedia({
+      count: 1, mediaType: ['image'], sourceType: ['album', 'camera'],
+      success: (res) => {
+        const path = res.tempFiles[0].tempFilePath;
+        wx.showLoading({ title: '加载中...' });
+        Security.checkImage(path).then((isSafe) => { wx.hideLoading(); if (isSafe) this.loadImage(path); }).catch(() => { wx.hideLoading(); this.loadImage(path); });
       }
     });
   },
 
+  loadImage(path) {
+    wx.showLoading({ title: '加载中...' });
+    this.history = []; 
+    this.setData({ moveScale: 1, moveX: 0, moveY: 0, isMoveMode: false, resultImage: '' });
+
+    wx.getImageInfo({
+      src: path,
+      success: (info) => {
+        const sys = wx.getSystemInfoSync();
+        const p = 60, mW = sys.windowWidth - p, mH = sys.windowHeight * 0.55;
+        let dW, dH;
+        const r = info.width / info.height;
+        if (r > mW / mH) { dW = mW; dH = mW / r; } else { dH = mH; dW = mH * r; }
+
+        this.setData({
+          imagePath: path, canvasDisplayWidth: dW, canvasDisplayHeight: dH,
+          imageWidth: info.width, imageHeight: info.height
+        });
+
+        setTimeout(() => { this.initCanvas(path); wx.hideLoading(); }, 300);
+      },
+      fail: () => { wx.hideLoading(); wx.showToast({ title: '加载失败', icon: 'none' }); }
+    });
+  },
+
+  initCanvas(path) {
+    const q = wx.createSelectorQuery();
+    q.select('#editCanvas').fields({ node: true, size: true, rect: true }).exec((res) => {
+        if (!res[0] || !res[0].node) return;
+        const node = res[0].node;
+        if (res[0].rect) this.canvasRect = res[0].rect;
+        
+        this.canvas = node;
+        this.ctx = node.getContext('2d');
+        const w = Math.round(this.data.canvasDisplayWidth * this.dpr);
+        const h = Math.round(this.data.canvasDisplayHeight * this.dpr);
+        this.canvas.width = w; this.canvas.height = h;
+        this.ctx.scale(this.dpr, this.dpr);
+
+        this.maskCanvas = wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+        this.maskCtx = this.maskCanvas.getContext('2d');
+
+        this.originalImage = node.createImage();
+        this.originalImage.onload = () => { this.drawCanvas(); };
+        this.originalImage.src = path;
+    });
+  },
+
+  drawCanvas() {
+    if (!this.ctx || !this.originalImage) return;
+    const w = this.canvas.width / this.dpr, h = this.canvas.height / this.dpr;
+    this.ctx.clearRect(0, 0, w, h);
+    this.ctx.drawImage(this.originalImage, 0, 0, w, h);
+    this.ctx.save(); 
+    this.ctx.globalAlpha = 0.6; 
+    this.ctx.drawImage(this.maskCanvas, 0, 0, this.maskCanvas.width, this.maskCanvas.height, 0, 0, w, h);
+    this.ctx.restore();
+  },
+
+  toggleMoveMode() { this.setData({ isMoveMode: !this.data.isMoveMode }); },
+  onScaleChange(e) { this.data.moveScale = e.detail.scale; },
+  
+  onTouchStart(e) {
+    if (this.data.isMoveMode || !this.ctx) return;
+    this.isDrawing = true;
+    const scale = this.data.moveScale || 1;
+    this.lastX = e.touches[0].x / scale;
+    this.lastY = e.touches[0].y / scale;
+    this.saveHistory();
+    this.drawMaskLine(this.lastX, this.lastY, this.lastX, this.lastY);
+  },
+  
+  onTouchMove(e) {
+    if (this.data.isMoveMode || !this.isDrawing) return;
+    const scale = this.data.moveScale || 1;
+    const x = e.touches[0].x / scale;
+    const y = e.touches[0].y / scale;
+    this.drawMaskLine(this.lastX, this.lastY, x, y);
+    this.lastX = x; this.lastY = y;
+  },
+  onTouchEnd() { this.isDrawing = false; },
+
+  drawMaskLine(x1, y1, x2, y2) {
+    if (!this.maskCtx) return;
+    this.maskCtx.beginPath();
+    this.maskCtx.lineCap = 'round'; this.maskCtx.lineJoin = 'round';
+    this.maskCtx.lineWidth = this.data.brushSize * this.dpr;
+    this.maskCtx.strokeStyle = '#6366f1'; 
+    this.maskCtx.moveTo(x1 * this.dpr, y1 * this.dpr);
+    this.maskCtx.lineTo(x2 * this.dpr, y2 * this.dpr);
+    this.maskCtx.stroke();
+    this.drawCanvas(); 
+  },
+
+  switchMode(e) {
+    const targetMode = e.currentTarget.dataset.mode;
+    if (this.data.mode === targetMode) return;
+    
+    // 切换时清空
+    this.setData({ mode: targetMode, resultImage: '' });
+    this.clearMask(); 
+    this.setData({ moveX: 0, moveY: 0, moveScale: 1, isMoveMode: false });
+    
+    if (this.data.mode === 'manual') setTimeout(() => this.drawCanvas(), 50);
+  },
+  setBrushSize(e) { this.setData({ brushSize: parseInt(e.currentTarget.dataset.size) }); },
+  
+  saveHistory() {
+    if (!this.maskCtx) return;
+    if (!this.history) this.history = [];
+    if (this.history.length > 5) this.history.shift();
+    this.history.push(this.maskCtx.getImageData(0, 0, this.maskCanvas.width, this.maskCanvas.height));
+  },
+  undoAction() {
+    if (!this.history || !this.history.length) return wx.showToast({ title: '已是最初状态', icon: 'none' });
+    this.maskCtx.putImageData(this.history.pop(), 0, 0);
+    this.drawCanvas();
+  },
+  clearMask() {
+    if (!this.maskCtx) return;
+    this.saveHistory();
+    this.maskCtx.clearRect(0, 0, this.maskCanvas.width, this.maskCanvas.height);
+    this.drawCanvas();
+    this.setData({ moveX: 0, moveY: 0, moveScale: 1 });
+  },
+
+  handleSuccess(filePath) {
+    this.setData({ resultImage: filePath, isProcessing: false });
+    this.setData({ moveScale: 1, moveX: 0, moveY: 0, isMoveMode: false });
+    this.clearMask(); 
+    wx.hideLoading();
+    wx.pageScrollTo({ selector: '.result-card', duration: 300 });
+    wx.showToast({ title: '处理成功', icon: 'success' });
+  },
+
+  handleError(err) {
+    console.error(err);
+    this.setData({ isProcessing: false });
+    wx.hideLoading();
+    wx.showModal({ title: '失败', content: err.message || '处理出错', showCancel: false });
+  },
+
+  getOptimalSize(w, h) {
+    const MAX_SIDE = 1500; 
+    let ratio = 1;
+    if (w > MAX_SIDE || h > MAX_SIDE) ratio = Math.min(MAX_SIDE / w, MAX_SIDE / h);
+    return { width: Math.round(w * ratio), height: Math.round(h * ratio) };
+  },
+
+  getResizedImageBase64(targetW, targetH) {
+    return new Promise((resolve, reject) => {
+      const tempCanvas = wx.createOffscreenCanvas({ type: '2d', width: targetW, height: targetH });
+      const ctx = tempCanvas.getContext('2d');
+      const img = tempCanvas.createImage();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        wx.canvasToTempFilePath({
+          canvas: tempCanvas, fileType: 'jpg', quality: 0.9,
+          success: (res) => {
+            const fs = wx.getFileSystemManager();
+            fs.readFile({ filePath: res.tempFilePath, encoding: 'base64', success: (r) => resolve(r.data), fail: reject });
+          },
+          fail: reject
+        });
+      };
+      img.src = this.data.imagePath;
+    });
+  },
+
+  getLocalImageBase64(path) {
+    return new Promise((resolve, reject) => {
+      const fs = wx.getFileSystemManager();
+      fs.readFile({ filePath: path, encoding: 'base64', success: (res) => resolve(res.data), fail: reject });
+    });
+  },
+  base64ToTempFile(base64Data) {
+    return new Promise((resolve, reject) => {
+      const fs = wx.getFileSystemManager();
+      const fileName = `${wx.env.USER_DATA_PATH}/ai_result_${Date.now()}.jpg`;
+      const buffer = wx.base64ToArrayBuffer(base64Data);
+      fs.writeFile({ filePath: fileName, data: buffer, encoding: 'binary', success: () => resolve(fileName), fail: reject });
+    });
+  },
+  saveImage() {
+    if (!this.data.resultImage) return;
+    const record = this.checkSaveQuota();
+    if (record.isUnlimited) { this.realSaveProcess(); return; }
+    if (record.count < DAILY_FREE_SAVE_LIMIT) {
+      this.useSaveQuota();
+      this.realSaveProcess();
+      const left = DAILY_FREE_SAVE_LIMIT - (record.count + 1);
+      if (left >= 0) wx.showToast({ title: `今日剩余免费 ${left} 次`, icon: 'none' });
+      return;
+    }
+    this.setData({ pendingAdType: 'save' });
+    this.showAdModal('save');
+  },
+  showAdModal(type) {
+    let title = type === 'ai' ? 'AI 次数不足' : '保存次数不足';
+    let content = type === 'ai' ? `看视频获 ${AD_REWARD_AI_COUNT} 次机会` : '看视频解锁无限保存';
+    if (this.videoAd) {
+      wx.showModal({ title, content, confirmText: '去观看', success: (res) => { if (res.confirm) this.videoAd.show().catch(() => { if(type==='save') this.realSaveProcess(); }); } });
+    } else { if(type==='save') this.realSaveProcess(); }
+  },
+  realSaveProcess() {
+    wx.saveImageToPhotosAlbum({
+      filePath: this.data.resultImage,
+      success: () => { wx.navigateTo({ url: `/pages/success/success?path=${encodeURIComponent(this.data.resultImage)}` }); },
+      fail: (err) => { if (err.errMsg.includes('auth')) wx.openSetting(); else wx.showToast({ title: '保存失败', icon: 'none' }); }
+    });
+  },
   startCompare() { this.setData({ isComparing: true }); },
   endCompare() { this.setData({ isComparing: false }); },
   onShareAppMessage() { return { title: '免费去水印', path: '/pages/watermark/watermark' }; }
