@@ -57,7 +57,7 @@ Page({
   // 分享给好友
   onShareAppMessage() {
     return {
-      title: '免费好用的全能图片工具箱！去水印、切图、证件照一键搞定',
+      title: '免费好用的全能图片工具箱！证件照、去水印、九宫格切图、一键搞定',
       path: '/pages/index/index',
       imageUrl: this.data.imagePath
     };

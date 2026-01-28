@@ -1,319 +1,403 @@
 // pages/idphoto/idphoto.js
-
 const Security = require('../../utils/security.js');
 
-// === 1. 广告与策略配置 (对齐马赛克模块) ===
-const AD_CONFIG = {
-  BANNER_ID: 'adunit-ecfcec4c6a0c871b',       // Banner 广告 ID
-  VIDEO_ID: 'adunit-da175a2014d3443b'         // 激励视频广告 ID
+// 🔴 配置区域
+const SERVER_CONFIG = {
+  LAF_MATTING_URL: 'https://kvpoib63ld.sealosbja.site/idphoto-matting' 
 };
 
-const FREE_COUNT_DAILY = 2; // 每天免费保存 2 次
+const AD_CONFIG = {
+  BANNER_ID: 'adunit-ecfcec4c6a0c871b',
+  VIDEO_ID: 'adunit-da175a2014d3443b'
+};
+
+// 🔵 额度配置
+const DAILY_FREE_AI_LIMIT = 1; // AI 每日免费次数
+const AD_REWARD_COUNT = 3;     // 看广告奖励次数
+const DAILY_FREE_SAVE_LIMIT = 2; // 保存每日免费次数
 
 Page({
   data: {
-    mode: 'normal', // normal | auto
+    mode: 'normal', 
     showCamera: false,
     cameraPosition: 'front', 
-    imagePath: '',
-    processedImage: '',
+    
+    // 图片数据
+    rawImagePath: '',        
+    transparentImagePath: '', 
+    processedImage: '',      
+    
     selectedSize: '1inch',
     selectedColor: '#ffffff',
     selectedColorName: '白色',
     isProcessing: false,
     
-    // 广告数据
+    // 广告与额度
     bannerUnitId: AD_CONFIG.BANNER_ID,
+    aiQuota: 0,      // AI 剩余次数
+    saveQuota: 0,    // 保存剩余次数
+    pendingAdType: '', 
+    
+    // 🔥 新增：保存目标 ('save': 去成功页, 'layout': 去排版页)
+    saveTarget: 'save', 
 
-    // 滤镜参数
+    // 美化参数
     brightness: 100, 
     contrast: 100,
 
+    // 尺寸列表
     sizeList: [
       { id: '1inch', name: '一寸', dimension: '295x413px', width: 295, height: 413 },
+      { id: '2inch', name: '二寸', dimension: '413x579px', width: 413, height: 579 },
       { id: 'small1', name: '小一寸', dimension: '260x378px', width: 260, height: 378 }, 
       { id: 'big1', name: '大一寸', dimension: '390x567px', width: 390, height: 567 }, 
-      { id: '2inch', name: '二寸', dimension: '413x579px', width: 413, height: 579 },
-      { id: 'small2', name: '小二寸', dimension: '390x567px', width: 390, height: 567 }, 
-      { id: 'visa_us', name: '美国签证', dimension: '600x600px', width: 600, height: 600 },
+      { id: 'small2', name: '小二寸', dimension: '413x531px', width: 413, height: 531 },
+      { id: 'cet', name: '英语四六级', dimension: '144x192px', width: 144, height: 192 },
+      { id: 'ncre', name: '计算机等级', dimension: '144x192px', width: 144, height: 192 },
+      { id: 'teacher', name: '教师资格', dimension: '295x413px', width: 295, height: 413 },
       { id: 'visa_jp', name: '日本签证', dimension: '531x531px', width: 531, height: 531 }  
     ],
     colorList: [
       { name: '白色', value: '#ffffff' },
       { name: '蓝色', value: '#438edb' },
       { name: '红色', value: '#d93a49' },
-      { name: '灰色', value: '#cccccc' }
+      { name: '灰色', value: '#cccccc' },
+      { name: '青色', value: '#00c5cd' }
     ],
 
-    previewW: 0, 
-    previewH: 0, 
-    imgWidth: 0,
-    imgHeight: 0,
-    imgX: 0,
-    imgY: 0,
-    lastX: 0,
-    lastY: 0,
-    initialDistance: 0
+    previewW: 0, previewH: 0, 
+    imgWidth: 0, imgHeight: 0, imgX: 0, imgY: 0,
+    isMoveMode: true, lastX: 0, lastY: 0, initialDistance: 0
   },
 
-  videoAd: null, // 广告实例
+  videoAd: null,
+  cameraContext: null,
 
   onLoad() {
     this.cameraContext = wx.createCameraContext();
-    setTimeout(() => this.updatePreviewSize(), 200);
     this.initVideoAd();
+    this.checkDailyQuota(); 
+    setTimeout(() => this.updatePreviewSize(), 300);
   },
 
-  // === 2. 初始化激励视频广告 (策略核心) ===
+  // === 1. 额度管理 ===
+  checkDailyQuota() {
+    const today = new Date().toLocaleDateString();
+    let aiRecord = wx.getStorageSync('quota_ai_v1') || { date: today, count: DAILY_FREE_AI_LIMIT };
+    if (aiRecord.date !== today) { aiRecord = { date: today, count: DAILY_FREE_AI_LIMIT }; }
+    
+    let saveRecord = wx.getStorageSync('quota_save_v1') || { date: today, count: DAILY_FREE_SAVE_LIMIT };
+    if (saveRecord.date !== today) { saveRecord = { date: today, count: DAILY_FREE_SAVE_LIMIT }; }
+
+    this.setData({ aiQuota: aiRecord.count, saveQuota: saveRecord.count });
+    wx.setStorageSync('quota_ai_v1', aiRecord);
+    wx.setStorageSync('quota_save_v1', saveRecord);
+  },
+
+  updateQuota(type, change) {
+    const key = type === 'ai' ? 'quota_ai_v1' : 'quota_save_v1';
+    let record = wx.getStorageSync(key);
+    record.count += change;
+    wx.setStorageSync(key, record);
+    if (type === 'ai') this.setData({ aiQuota: record.count });
+    else this.setData({ saveQuota: record.count });
+  },
+
+  // === 2. 广告系统 ===
   initVideoAd() {
     if (wx.createRewardedVideoAd) {
-      this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
-      this.videoAd.onError((err) => console.error('激励视频加载失败', err));
-      
-      this.videoAd.onClose((res) => {
-        if (res && res.isEnded) {
-          // 完整观看：解锁无限次并执行保存
-          this.setDailyUnlimited();
-          wx.showToast({ title: '已解锁今日无限次', icon: 'success' });
-          this.realSaveProcess(); 
-        } else {
-          // 中途退出
-          wx.showModal({
-            title: '提示',
-            content: '需要完整观看视频才能解锁今日无限次保存权限哦',
-            confirmText: '继续观看',
-            success: (m) => {
-              if (m.confirm) this.videoAd.show();
+      try {
+        this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
+        this.videoAd.onError((err) => console.log('广告加载忽略:', err));
+        this.videoAd.onClose((res) => {
+          if (res && res.isEnded) {
+            if (this.data.pendingAdType === 'ai') {
+              this.updateQuota('ai', AD_REWARD_COUNT);
+              wx.showToast({ title: `获得 ${AD_REWARD_COUNT} 次AI机会`, icon: 'none' });
+              if (this.data.rawImagePath) this.processAiMatting();
+            } else {
+              this.updateQuota('save', 999); 
+              wx.showToast({ title: '解锁成功', icon: 'success' });
+              // 广告解锁后，继续之前的保存流程
+              this.realSaveProcess();
             }
-          });
-        }
-      });
+          } else {
+            wx.showModal({ title: '提示', content: '完整观看才能获取奖励哦', showCancel: false });
+          }
+        });
+      } catch (e) {}
     }
   },
 
-  // === 3. 额度检查逻辑 (核心) ===
-  checkQuotaAndSave() {
-    const today = new Date().toLocaleDateString();
-    const storageKey = 'idphoto_usage_record'; // 使用独立的 key
-    let record = wx.getStorageSync(storageKey) || { date: today, count: 0, isUnlimited: false };
-
-    // 跨天重置
-    if (record.date !== today) {
-      record = { date: today, count: 0, isUnlimited: false };
-      wx.setStorageSync(storageKey, record);
-    }
-
-    // 1. 如果已解锁无限次，直接保存
-    if (record.isUnlimited) {
-      this.realSaveProcess();
-      return;
-    }
-
-    // 2. 如果还有免费次数
-    if (record.count < FREE_COUNT_DAILY) {
-      record.count++;
-      wx.setStorageSync(storageKey, record);
-      
-      const left = FREE_COUNT_DAILY - record.count;
-      if (left > 0) {
-        wx.showToast({ title: `今日剩余免费${left}次`, icon: 'none' });
-      }
-      this.realSaveProcess();
-      return;
-    }
-
-    // 3. 次数用完，弹出广告引导
-    this.showAdModal();
-  },
-
-  // 设置为今日无限次
-  setDailyUnlimited() {
-    const today = new Date().toLocaleDateString();
-    const storageKey = 'idphoto_usage_record';
-    const record = { date: today, count: 999, isUnlimited: true };
-    wx.setStorageSync(storageKey, record);
-  },
-
-  // 显示解锁弹窗
-  showAdModal() {
+  showAdModal(type) {
+    this.setData({ pendingAdType: type });
+    const title = type === 'ai' ? 'AI 次数耗尽' : '保存次数耗尽';
+    const content = type === 'ai' ? `观看视频免费获取 ${AD_REWARD_COUNT} 次 AI 拍摄机会` : '观看视频解锁高清保存';
+    
     if (this.videoAd) {
       wx.showModal({
-        title: '免费次数已用完',
-        content: '观看一次视频，即可解锁【今日无限次】免费保存权限',
-        confirmText: '免费解锁',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            this.videoAd.show().catch(() => {
-              // 广告加载失败兜底
-              this.realSaveProcess();
-            });
-          }
-        }
+        title, content, confirmText: '去获取',
+        success: (res) => { if (res.confirm) this.videoAd.show().catch(() => {}); }
       });
     } else {
-      // 无广告实例兜底
-      this.realSaveProcess();
+      if (type === 'ai') this.processAiMatting(true); 
+      else this.realSaveProcess();
     }
   },
 
-  onAdError(err) {
-    console.log('Banner 广告加载失败:', err);
+  // === 3. 交互逻辑 ===
+  switchMode(e) {
+    const targetMode = e.currentTarget.dataset.mode;
+    if (this.data.mode === targetMode) return;
+    this.setData({ 
+      mode: targetMode,
+      rawImagePath: '',
+      transparentImagePath: '',
+      processedImage: '',
+      showCamera: false,
+      imgWidth: 0, imgHeight: 0 
+    });
   },
 
-  // === 业务逻辑部分 ===
-  switchMode(e) {
-    const mode = e.currentTarget.dataset.mode;
-    if (mode === 'auto') {
-      wx.showToast({ title: 'AI模型训练中...', icon: 'none' });
+  // === 4. 按钮点击事件 ===
+  
+  // 点击“保存去排版”
+  onLayoutBtnClick() {
+    if (!this.data.rawImagePath) {
+      wx.showToast({ title: '请先制作照片', icon: 'none' });
       return;
     }
-    this.setData({ mode });
+    // 标记目标为排版
+    this.setData({ saveTarget: 'layout' });
+    this.checkQuotaAndSave();
+  },
+
+  // 点击“保存高清照”
+  onSaveBtnClick() {
+    if (!this.data.rawImagePath) return;
+    // 标记目标为普通保存
+    this.setData({ saveTarget: 'save' });
+    this.checkQuotaAndSave();
+  },
+
+  // 通用检查额度并保存逻辑
+  checkQuotaAndSave() {
+    if (this.data.saveQuota > 0) {
+      this.generateFinalImage();
+    } else {
+      this.showAdModal('save');
+    }
+  },
+
+  // === 5. 图片处理 ===
+  async processAiMatting(skipCheck = false) {
+    if (this.data.transparentImagePath) { this.initImagePosition(this.data.transparentImagePath); return; }
+    
+    if (!skipCheck && this.data.aiQuota <= 0) {
+      this.showAdModal('ai');
+      return;
+    }
+
+    this.setData({ isProcessing: true });
+    wx.showLoading({ title: 'AI 制作中...', mask: true });
+
+    try {
+      if (!SERVER_CONFIG.LAF_MATTING_URL || SERVER_CONFIG.LAF_MATTING_URL.includes('请替换')) throw new Error('请配置云函数地址');
+      
+      let imgBase64 = await this.getLocalImageBase64(this.data.rawImagePath);
+      imgBase64 = imgBase64.replace(/^data:image\/\w+;base64,/, '').replace(/[\r\n]/g, '');
+
+      wx.request({
+        url: SERVER_CONFIG.LAF_MATTING_URL,
+        method: 'POST',
+        data: { base64: imgBase64 }, 
+        success: (res) => {
+          const aiData = res.data;
+          
+          if (aiData && aiData.code === 0 && aiData.result_base64) {
+            if (!skipCheck) this.updateQuota('ai', -1);
+
+            let rawBase64 = aiData.result_base64;
+            if (rawBase64.startsWith('data:image')) rawBase64 = rawBase64.split('base64,')[1];
+            rawBase64 = rawBase64.replace(/[\r\n\s]/g, "");
+
+            this.base64ToTempFile(rawBase64).then(transparentPath => {
+              this.setData({ transparentImagePath: transparentPath, isProcessing: false });
+              wx.hideLoading();
+              setTimeout(() => {
+                 this.initImagePosition(transparentPath);
+                 wx.showToast({ title: '制作完成', icon: 'success' });
+              }, 200);
+            }).catch(err => this.handleError(new Error('结果保存失败')));
+          } else {
+            const msg = (aiData && aiData.msg) ? aiData.msg : 'AI 处理失败';
+            this.handleError(new Error(`API报错: ${msg}`));
+          }
+        },
+        fail: (err) => this.handleError(new Error('网络请求失败'))
+      });
+    } catch (err) { this.handleError(err); }
+  },
+
+  generateFinalImage() {
+    this.setData({ isProcessing: true });
+    wx.showLoading({ title: '合成中...' });
+
+    const pixelRatio = 3; 
+    const sizeObj = this.data.sizeList.find(item => item.id === this.data.selectedSize);
+    const targetW = (sizeObj.width || 295) * pixelRatio;
+    const targetH = (sizeObj.height || 413) * pixelRatio;
+    const canvas = wx.createOffscreenCanvas({ type: '2d', width: targetW, height: targetH });
+    const ctx = canvas.getContext('2d');
+
+    let sourcePath = this.data.rawImagePath;
+    if (this.data.mode === 'auto' && this.data.transparentImagePath) sourcePath = this.data.transparentImagePath;
+
+    ctx.fillStyle = this.data.selectedColor;
+    ctx.fillRect(0, 0, targetW, targetH);
+
+    const img = canvas.createImage();
+    img.onload = () => {
+      const scaleFactor = targetW / this.data.previewW;
+      const drawX = this.data.imgX * scaleFactor;
+      const drawY = this.data.imgY * scaleFactor;
+      const drawWidth = this.data.imgWidth * scaleFactor;
+      const drawHeight = this.data.imgHeight * scaleFactor;
+
+      ctx.filter = `brightness(${this.data.brightness}%) contrast(${this.data.contrast}%)`;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+      ctx.filter = 'none';
+
+      wx.canvasToTempFilePath({
+        canvas: canvas, fileType: 'jpg', quality: 1.0, 
+        success: (res) => {
+          this.setData({ processedImage: res.tempFilePath, isProcessing: false });
+          wx.hideLoading();
+          if (this.data.saveQuota < 900) this.updateQuota('save', -1);
+          this.realSaveProcess(); 
+        },
+        fail: (err) => { console.error(err); this.handleError(new Error('合成失败')); }
+      });
+    };
+    img.onerror = () => this.handleError(new Error('加载资源失败'));
+    img.src = sourcePath;
   },
 
   openCamera() {
     const that = this;
     wx.getSetting({
       success(res) {
-        if (res.authSetting['scope.camera']) {
-          that.setData({ showCamera: true, processedImage: '' });
-        } else if (res.authSetting['scope.camera'] === false) {
-          wx.showModal({
-            title: '提示', content: '请授权使用相机',
-            success: (res) => { if (res.confirm) wx.openSetting(); }
-          });
-        } else {
-          wx.authorize({
-            scope: 'scope.camera',
-            success() { that.setData({ showCamera: true, processedImage: '' }); },
-            fail() { wx.showToast({ title: '授权失败', icon: 'none' }); }
-          });
-        }
-      }
+        if (res.authSetting['scope.camera']) that.setData({ showCamera: true, processedImage: '' });
+        else wx.authorize({ scope: 'scope.camera', success() { that.setData({ showCamera: true, processedImage: '' }); }, fail() { wx.showToast({ title: '需相机授权', icon: 'none' }); } });
+      },
+      fail() { that.setData({ showCamera: true, processedImage: '' }); }
     });
   },
-
   closeCamera() { this.setData({ showCamera: false }); },
-  switchCamera() {
-    this.setData({ cameraPosition: this.data.cameraPosition === 'front' ? 'back' : 'front' });
-  },
-  onCameraError() {
-    wx.showToast({ title: '相机启动失败', icon: 'none' });
-    this.setData({ showCamera: false });
-  },
-
+  switchCamera() { this.setData({ cameraPosition: this.data.cameraPosition === 'front' ? 'back' : 'front' }); },
+  
   takePhoto() {
     wx.showLoading({ title: '拍摄中...' });
     this.cameraContext.takePhoto({
       quality: 'high',
-      success: (res) => {
-        wx.hideLoading();
-        this.checkAndSetImage(res.tempImagePath);
-      },
-      fail: () => {
-        wx.hideLoading();
-        wx.showToast({ title: '拍摄失败', icon: 'none' });
-      }
+      success: (res) => { wx.hideLoading(); this.handleNewImage(res.tempImagePath); },
+      fail: () => { wx.hideLoading(); wx.showToast({ title: '拍摄失败', icon: 'none' }); }
     });
   },
 
   chooseFromAlbum() {
     wx.chooseMedia({
-      count: 1, mediaType: ['image'], sourceType: ['album'],
-      success: (res) => {
-        this.checkAndSetImage(res.tempFiles[0].tempFilePath);
-      }
+      count: 1, mediaType: ['image'], sourceType: ['album'], sizeType: ['original'],
+      success: (res) => { this.handleNewImage(res.tempFiles[0].tempFilePath); }
     });
   },
 
-  checkAndSetImage(path) {
-    wx.showLoading({ title: '检测中...' });
-    Security.checkImage(path).then(isSafe => {
-      wx.hideLoading();
-      if (isSafe) {
-        this.setData({ showCamera: false, imagePath: path, processedImage: '' }, () => {
-          setTimeout(() => this.initImagePosition(path), 100);
-        });
-      }
-    }).catch(() => {
+  handleNewImage(path) {
+    wx.showLoading({ title: '加载中...' });
+    this.setData({ showCamera: false, rawImagePath: path, transparentImagePath: '', processedImage: '' }, () => {
+      if (this.data.mode === 'auto') {
+        this.processAiMatting(); 
+      } else {
         wx.hideLoading();
-        this.setData({ showCamera: false, imagePath: path, processedImage: '' }, () => {
-          setTimeout(() => this.initImagePosition(path), 100);
-        });
+        this.initImagePosition(path);
+      }
     });
   },
 
   initImagePosition(imagePath) {
-    if (!this.data.previewW) this.updatePreviewSize();
-    const containerW = this.data.previewW; 
-    const containerH = this.data.previewH;
-    const that = this;
+    if (!imagePath) return;
+    this.updatePreviewSize(); 
+    setTimeout(() => {
+      const containerW = this.data.previewW; 
+      const containerH = this.data.previewH;
+      const that = this;
+      if (!containerW || !containerH) { this.updatePreviewSize(); return; }
 
-    wx.getImageInfo({
-      src: imagePath,
-      success(imgInfo) {
-        let ratio = Math.max(containerW / imgInfo.width, containerH / imgInfo.height);
-        ratio = ratio * 1.05; 
-        const initWidth = imgInfo.width * ratio;
-        const initHeight = imgInfo.height * ratio;
-        const initX = (containerW - initWidth) / 2;
-        const initY = (containerH - initHeight) / 2;
+      wx.getImageInfo({
+        src: imagePath,
+        success(imgInfo) {
+          let scale = 1;
+          const imgRatio = imgInfo.width / imgInfo.height;
+          const boxRatio = containerW / containerH;
+          if (imgRatio > boxRatio) scale = containerH / imgInfo.height;
+          else scale = containerW / imgInfo.width;
+          scale = scale * 1.02; 
 
-        that.setData({
-          imgWidth: initWidth, imgHeight: initHeight, imgX: initX, imgY: initY,
-          processedImage: '', brightness: 100, contrast: 100
-        });
-      }
-    });
+          const initWidth = imgInfo.width * scale;
+          const initHeight = imgInfo.height * scale;
+          const initX = (containerW - initWidth) / 2;
+          const initY = (containerH - initHeight) / 2;
+
+          that.setData({ imgWidth: initWidth, imgHeight: initHeight, imgX: initX, imgY: initY, brightness: 100, contrast: 100 });
+        }
+      });
+    }, 200);
   },
 
   onTouchStart(e) {
-    if (e.touches.length === 1) {
-      this.setData({ lastX: e.touches[0].clientX, lastY: e.touches[0].clientY });
-    } else if (e.touches.length === 2) {
+    if (e.touches.length === 1) { this.setData({ lastX: e.touches[0].clientX, lastY: e.touches[0].clientY }); }
+    else if (e.touches.length === 2) {
       const x = e.touches[1].clientX - e.touches[0].clientX;
       const y = e.touches[1].clientY - e.touches[0].clientY;
       this.setData({ initialDistance: Math.sqrt(x * x + y * y) });
     }
   },
-
   onTouchMove(e) {
     if (e.touches.length === 1) {
-      const cx = e.touches[0].clientX, cy = e.touches[0].clientY;
-      this.setData({
-        imgX: this.data.imgX + (cx - this.data.lastX),
-        imgY: this.data.imgY + (cy - this.data.lastY),
-        lastX: cx, lastY: cy
-      });
+      const cx = e.touches[0].clientX; const cy = e.touches[0].clientY;
+      const dx = cx - this.data.lastX; const dy = cy - this.data.lastY;
+      this.setData({ imgX: this.data.imgX + dx, imgY: this.data.imgY + dy, lastX: cx, lastY: cy });
     } else if (e.touches.length === 2) {
       const x = e.touches[1].clientX - e.touches[0].clientX;
       const y = e.touches[1].clientY - e.touches[0].clientY;
       const dist = Math.sqrt(x * x + y * y);
-      const scale = 1 + (dist - this.data.initialDistance) * 0.005;
-      
-      const nw = this.data.imgWidth * scale;
-      const nh = this.data.imgHeight * scale;
-      this.setData({
-        imgWidth: nw, imgHeight: nh,
-        imgX: this.data.imgX - (nw - this.data.imgWidth) / 2,
-        imgY: this.data.imgY - (nh - this.data.imgHeight) / 2,
-        initialDistance: dist
-      });
+      if (this.data.initialDistance > 0) {
+        const zoomSpeed = 0.005; 
+        const delta = (dist - this.data.initialDistance) * zoomSpeed;
+        const scale = 1 + delta;
+        const newW = this.data.imgWidth * scale;
+        const newH = this.data.imgHeight * scale;
+        const shiftX = (this.data.imgWidth - newW) / 2;
+        const shiftY = (this.data.imgHeight - newH) / 2;
+        this.setData({ imgWidth: newW, imgHeight: newH, imgX: this.data.imgX + shiftX, imgY: this.data.imgY + shiftY, initialDistance: dist });
+      }
     }
   },
   onTouchEnd() {},
 
   selectSize(e) {
-    this.setData({ selectedSize: e.currentTarget.dataset.id, processedImage: '' }, () => {
+    const id = e.currentTarget.dataset.id;
+    if (this.data.selectedSize === id) return;
+    this.setData({ selectedSize: id }, () => {
       this.updatePreviewSize();
-      if (this.data.imagePath) this.initImagePosition(this.data.imagePath);
+      const currentImg = (this.data.mode === 'auto' && this.data.transparentImagePath) ? this.data.transparentImagePath : this.data.rawImagePath;
+      if(currentImg) this.initImagePosition(currentImg);
     });
   },
   
-  selectColor(e) { 
-    this.setData({ selectedColor: e.currentTarget.dataset.value, selectedColorName: e.currentTarget.dataset.name, processedImage: '' }); 
-  },
-  
+  selectColor(e) { this.setData({ selectedColor: e.currentTarget.dataset.value, selectedColorName: e.currentTarget.dataset.name }); },
   onBrightnessChange(e) { this.setData({ brightness: e.detail.value }); },
   onContrastChange(e) { this.setData({ contrast: e.detail.value }); },
 
@@ -323,96 +407,64 @@ Page({
     const h = sizeObj ? sizeObj.height : 413;
     const ratio = w / h;
     const sys = wx.getSystemInfoSync();
-    
-    const maxW = sys.windowWidth * 0.6;
-    const maxH = sys.windowHeight * 0.45;
-
+    const maxW = sys.windowWidth * 0.65; 
+    const maxH = sys.windowHeight * 0.5;
     let finalW, finalH;
-    if (maxW / ratio <= maxH) {
-      finalW = maxW; finalH = maxW / ratio;
-    } else {
-      finalH = maxH; finalW = maxH * ratio;
-    }
+    if (maxW / ratio <= maxH) { finalW = maxW; finalH = maxW / ratio; }
+    else { finalH = maxH; finalW = maxH * ratio; }
     this.setData({ previewW: finalW, previewH: finalH });
   },
 
-  processImage() {
-    if (!this.data.imagePath) return wx.showToast({ title: '请先拍摄', icon: 'none' });
-    this.setData({ isProcessing: true });
-    
-    const pixelRatio = 3; 
-    const sizeObj = this.data.sizeList.find(item => item.id === this.data.selectedSize);
-    const targetW = (sizeObj.width || 295) * pixelRatio;
-    const targetH = (sizeObj.height || 413) * pixelRatio;
-
-    const canvas = wx.createOffscreenCanvas({ type: '2d', width: targetW, height: targetH });
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = this.data.selectedColor;
-    ctx.fillRect(0, 0, targetW, targetH);
-
-    const img = canvas.createImage();
-    img.onload = () => {
-      const scaleX = targetW / this.data.previewW;
-      const scaleY = targetH / this.data.previewH;
-      const drawX = this.data.imgX * scaleX;
-      const drawY = this.data.imgY * scaleY;
-      const drawWidth = this.data.imgWidth * scaleX;
-      const drawHeight = this.data.imgHeight * scaleY;
-
-      ctx.filter = `brightness(${this.data.brightness}%) contrast(${this.data.contrast}%)`;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-      ctx.filter = 'none';
-
-      wx.canvasToTempFilePath({
-        canvas: canvas, fileType: 'jpg', quality: 0.95,
-        success: (res) => {
-          this.setData({ processedImage: res.tempFilePath, isProcessing: false });
-          wx.showToast({ title: '生成成功', icon: 'success' });
-        },
-        fail: (err) => {
-          console.error(err);
-          this.setData({ isProcessing: false });
-          wx.showToast({ title: '生成失败', icon: 'none' });
-        }
-      });
-    };
-    img.onerror = () => {
-        this.setData({ isProcessing: false });
-        wx.showToast({ title: '图片加载失败', icon: 'none' });
-    };
-    img.src = this.data.imagePath;
+  handleError(err) {
+    console.error(err);
+    this.setData({ isProcessing: false });
+    wx.hideLoading();
+    wx.showModal({ title: '提示', content: err.message || '操作失败', showCancel: false });
   },
 
-  // === 4. 点击保存按钮 -> 触发额度检查 ===
-  saveImage() {
-    if (!this.data.processedImage) return;
-    this.checkQuotaAndSave();
+  getLocalImageBase64(path) {
+    return new Promise((resolve, reject) => {
+      const fs = wx.getFileSystemManager();
+      fs.readFile({ filePath: path, encoding: 'base64', success: (res) => resolve(res.data), fail: reject });
+    });
   },
 
-  // === 5. 实际保存逻辑 (获得权限后调用) ===
+  base64ToTempFile(base64Data) {
+    return new Promise((resolve, reject) => {
+      const fs = wx.getFileSystemManager();
+      const fileName = `${wx.env.USER_DATA_PATH}/ai_matting_${Date.now()}.png`;
+      try {
+        const pureBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = wx.base64ToArrayBuffer(pureBase64);
+        fs.writeFile({ filePath: fileName, data: buffer, encoding: 'binary', success: () => resolve(fileName), fail: (err) => reject(new Error('写入失败')) });
+      } catch (e) { reject(e); }
+    });
+  },
+
+  // === 🔥 最终保存逻辑 (含分支跳转) ===
   realSaveProcess() {
     wx.saveImageToPhotosAlbum({
       filePath: this.data.processedImage,
       success: () => {
-        wx.navigateTo({
-          url: `/pages/success/success?path=${encodeURIComponent(this.data.processedImage)}`
-        });
+        // 保存成功后，判断去向
+        if (this.data.saveTarget === 'layout') {
+          // 跳转排版页
+          wx.navigateTo({
+            url: `/pages/idprint/idprint?src=${encodeURIComponent(this.data.processedImage)}`
+          });
+        } else {
+          // 跳转成功页
+          wx.navigateTo({
+            url: `/pages/success/success?path=${encodeURIComponent(this.data.processedImage)}`
+          });
+        }
       },
       fail: (err) => {
         if (!err.errMsg.includes('cancel')) {
-          wx.showModal({
-            title: '提示', content: '需要授权保存图片',
-            success: (res) => { if(res.confirm) wx.openSetting(); }
-          });
+          wx.showModal({ title: '提示', content: '需授权保存', success: (res) => { if(res.confirm) wx.openSetting(); } });
         }
       }
     });
   },
-
-  onShareAppMessage() {
-    return { title: '在线制作证件照', path: '/pages/idphoto/idphoto' };
-  }
+  onShareAppMessage() { return { title: '免费证件照制作', path: '/pages/idphoto/idphoto' }; }
 });
