@@ -1,8 +1,6 @@
 /* pages/crop/crop.wxss */
 
-/* ... (保留上面的 upload-area, preview-wrapper, ratio-grid 等原有样式) ... */
-/* ... (建议直接保留文件前半部分，只修改或添加底部的样式) ... */
-
+/* ... (保留顶部样式) ... */
 .preview-card {
   padding: 0;
   overflow: hidden;
@@ -14,212 +12,97 @@
   flex-direction: column;
   align-items: center;
 }
+.upload-icon { font-size: 80rpx; margin-bottom: 20rpx; }
+.upload-text { font-size: 30rpx; color: #64748b; }
 
-.upload-icon {
-  font-size: 80rpx;
-  margin-bottom: 20rpx;
-}
-
-.upload-text {
-  font-size: 30rpx;
-  color: #64748b; /* var(--text-secondary) */
-}
-
-.preview-wrapper {
-  padding: 20rpx;
-  background: #f1f5f9;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 500rpx;
+/* === 🔥 核心：裁剪交互区 === */
+.crop-container {
+  width: 100%;
+  height: 600rpx; /* 固定高度，提供充足的操作空间 */
+  background: #1a1a1a; /* 深色背景 */
   position: relative;
-}
-
-.preview-image {
-  max-width: 100%;
-  max-height: 500rpx;
-  border-radius: 12rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.1);
-}
-
-/* 自由裁剪提示遮罩 */
-.free-hint-mask {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 500;
-  backdrop-filter: blur(2px);
-  border-radius: 12rpx;
-}
-.hint-icon {
-  font-size: 60rpx;
-  margin-bottom: 16rpx;
-  animation: float 2s ease-in-out infinite;
-}
-
-/* 加载中 Spinner */
-.loading-mask {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(255, 255, 255, 0.6);
-  display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 10;
-}
-.spinner {
-  width: 50rpx; height: 50rpx;
-  border: 6rpx solid #e2e8f0;
-  border-top-color: #6366f1;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10rpx); } }
-
-.section-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1e293b; /* var(--text-primary) */
-  margin-bottom: 24rpx;
-}
-
-.ratio-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16rpx;
-}
-
-.ratio-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16rpx;
-  border-radius: 12rpx;
-  border: 2rpx solid transparent;
-}
-
-.ratio-item.active {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: #6366f1;
-}
-
-.ratio-icon {
-  width: 80rpx;
-  max-height: 80rpx;
-  background: #e2e8f0;
-  border-radius: 8rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12rpx;
   overflow: hidden;
 }
 
-.ratio-item.active .ratio-icon {
-  background: #6366f1;
+/* 1. 蒙版层 (视觉上压暗非裁剪区，其实这里主要靠 crop-area 的层级) */
+.crop-mask {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5); /* 稍微压暗 */
+  pointer-events: none;
+  z-index: 1;
 }
 
-.ratio-text {
-  font-size: 20rpx;
-  color: #64748b;
+/* 2. 可移动区域 (即裁剪框的大小) */
+.crop-area {
+  background: transparent;
+  z-index: 10; /* 在蒙版之上 */
+  overflow: hidden; /* 裁剪掉溢出的图片部分，实现预览效果 */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); /* 🔥 骚操作：用超大投影做真正的遮罩 */
 }
 
-.ratio-item.active .ratio-text {
-  color: #ffffff;
-}
-
-.ratio-name {
-  font-size: 22rpx;
-  color: #64748b; /* var(--text-secondary) */
-}
-
-.ratio-item.active .ratio-name {
-  color: #6366f1;
-  font-weight: 600;
-}
-
-.custom-size {
+/* 3. 图片承载容器 */
+.crop-view {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 20rpx;
-}
-
-.size-input-group {
-  display: flex;
-  flex-direction: column;
   align-items: center;
 }
 
-.size-label {
-  font-size: 24rpx;
-  color: #94a3b8; /* var(--text-light) */
-  margin-bottom: 8rpx;
+.target-image {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.size-input {
-  width: 160rpx;
-  height: 72rpx;
-  padding: 0 20rpx;
-  background: #f8fafc;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  text-align: center;
+/* 4. 裁剪框边框 (高亮显示) */
+.crop-border {
+  position: absolute;
+  border: 2rpx solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 20rpx rgba(0, 0, 0, 0.2);
+  pointer-events: none; /* 不拦截点击 */
+  z-index: 20;
+}
+.crop-border::before, .crop-border::after {
+  content: ''; position: absolute; background: rgba(255,255,255,0.5);
+}
+/* 九宫格辅助线 */
+.crop-border::before {
+  top: 33.33%; bottom: 33.33%; left: 0; right: 0;
+  border-top: 1px dashed rgba(255,255,255,0.3);
+  border-bottom: 1px dashed rgba(255,255,255,0.3);
+}
+.crop-border::after {
+  left: 33.33%; right: 33.33%; top: 0; bottom: 0;
+  border-left: 1px dashed rgba(255,255,255,0.3);
+  border-right: 1px dashed rgba(255,255,255,0.3);
 }
 
-.size-x {
-  font-size: 32rpx;
-  color: #94a3b8; /* var(--text-light) */
-  margin-top: 32rpx;
+/* Loading */
+.loading-mask {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50;
 }
+.spinner {
+  width: 50rpx; height: 50rpx; border: 6rpx solid #fff; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* === 核心修复：底部按钮样式 === */
-.bottom-bar {
-  /* 确保覆盖 app.wxss 里的布局，防止错乱 */
-  display: flex !important;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20rpx;
-}
+/* ... (保留下方的 ratio-grid, bottom-bar 等样式) ... */
+.section-title { font-size: 30rpx; font-weight: 600; color: #1e293b; margin-bottom: 24rpx; }
+.ratio-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16rpx; }
+.ratio-item { display: flex; flex-direction: column; align-items: center; padding: 16rpx; border-radius: 12rpx; border: 2rpx solid transparent; }
+.ratio-item.active { background: rgba(99, 102, 241, 0.1); border-color: #6366f1; }
+.ratio-icon { width: 80rpx; max-height: 80rpx; background: #e2e8f0; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; margin-bottom: 12rpx; overflow: hidden; }
+.ratio-item.active .ratio-icon { background: #6366f1; }
+.ratio-text { font-size: 20rpx; color: #64748b; }
+.ratio-item.active .ratio-text { color: #ffffff; }
+.ratio-name { font-size: 22rpx; color: #64748b; }
+.ratio-item.active .ratio-name { color: #6366f1; font-weight: 600; }
 
-/* 按钮组容器 */
-.btn-group {
-  display: flex;
-  gap: 16rpx;
-  flex-shrink: 0; /* 防止被挤压 */
-}
-
-/* 圆形图标按钮 */
-.btn-icon {
-  width: 88rpx !important; 
-  height: 88rpx !important;
-  padding: 0; 
-  margin: 0;
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  background: #f1f5f9; 
-  border-radius: 50%; /* 变成圆形 */
-  font-size: 36rpx;
-  color: #333;
-}
-
-/* 主按钮样式微调 */
-.btn-primary {
-  flex: 1;
-  height: 88rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 44rpx;
-  font-size: 30rpx;
-  font-weight: 600;
-  margin: 0;
-}
+.bottom-bar { display: flex !important; align-items: center; justify-content: space-between; gap: 20rpx; }
+.btn-group { display: flex; gap: 16rpx; flex-shrink: 0; }
+.btn-icon { width: 88rpx !important; height: 88rpx !important; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 50%; font-size: 36rpx; color: #333; }
+.btn-primary { flex: 1; height: 88rpx; display: flex; align-items: center; justify-content: center; border-radius: 44rpx; font-size: 30rpx; font-weight: 600; margin: 0; }
