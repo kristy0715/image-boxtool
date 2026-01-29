@@ -26,8 +26,7 @@
           <text class="feature-title">{{item.title}}</text>
           <text class="feature-desc">{{item.desc}}</text>
         </view>
-        <text class="feature-arrow">›</text>
-      </view>
+        </view>
     </view>
   </template>
 
