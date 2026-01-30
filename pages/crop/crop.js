@@ -8,15 +8,15 @@ const AD_CONFIG = {
 
 const FREE_COUNT_DAILY = 2;
 
-// 预览区最大宽高 (需与 WXSS .crop-container 配合)
-const MAX_PREVIEW_W = 320; // px (假设屏幕宽375，留边距)
-const MAX_PREVIEW_H = 300; // px (600rpx)
+// 预览区最大宽高
+const MAX_PREVIEW_W = 320; 
+const MAX_PREVIEW_H = 300; 
 
 Page({
   data: {
     imagePath: '',
     resultImage: '', 
-    selectedRatio: '1:1', // 默认选中 1:1
+    selectedRatio: '1:1',
     isCropping: false,
     
     // 裁剪框 (movable-area) 尺寸
@@ -27,25 +27,32 @@ Page({
     imgDisplayW: 300,
     imgDisplayH: 300,
     
-    // 交互状态 (绑定到 movable-view)
+    // 交互状态
     imgX: 0,
     imgY: 0,
     imgScale: 1,
     
+    // 🔥 12个比例，完美填满3行
     ratioList: [
       { id: 'free', name: '自由', label: '自由', ratio: 0 },
       { id: '1:1', name: '1:1', label: '1:1', ratio: 1 },
-      { id: '4:3', name: '4:3', label: '4:3', ratio: 4/3 },
       { id: '3:4', name: '3:4', label: '3:4', ratio: 3/4 },
+      { id: '4:3', name: '4:3', label: '4:3', ratio: 4/3 },
+      { id: '9:16', name: '9:16', label: '9:16', ratio: 9/16 },
       { id: '16:9', name: '16:9', label: '16:9', ratio: 16/9 },
-      { id: '9:16', name: '9:16', label: '9:16', ratio: 9/16 }
+      { id: '2:3', name: '2:3', label: '2:3', ratio: 2/3 },
+      { id: '3:2', name: '3:2', label: '3:2', ratio: 3/2 },
+      { id: '2:1', name: '2:1', label: '2:1', ratio: 2 },
+      { id: '1:2', name: '1:2', label: '1:2', ratio: 0.5 },
+      { id: '2.35:1', name: '电影', label: '2.35', ratio: 2.35 },
+      { id: 'A4', name: 'A4', label: 'A4', ratio: 210/297 }
     ],
     
     bannerUnitId: AD_CONFIG.BANNER_ID
   },
 
-  // 内部变量，不用于渲染
-  imageInfo: null, // 原图信息 {width, height}
+  // 内部变量
+  imageInfo: null, 
   currentX: 0,
   currentY: 0,
   currentScale: 1,
@@ -54,10 +61,9 @@ Page({
 
   onLoad() {
     this.initVideoAd();
-    // 获取屏幕宽度，用于计算自适应尺寸
     const sys = wx.getSystemInfoSync();
     this.screenWidth = sys.windowWidth;
-    this.maxPreviewW = this.screenWidth - 40; // 左右留边
+    this.maxPreviewW = this.screenWidth - 40; 
   },
 
   initVideoAd() {
@@ -68,7 +74,7 @@ Page({
         if (res && res.isEnded) {
           this.setDailyUnlimited();
           wx.showToast({ title: '已解锁', icon: 'success' });
-          this.manualCrop(); // 广告后继续保存
+          this.manualCrop(); 
         }
       });
     }
@@ -79,7 +85,7 @@ Page({
       count: 1, mediaType: ['image'],
       success: (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath;
-        wx.showLoading({ title: '加载中...' });
+        wx.showLoading({ title: '解析中...' });
         
         Security.checkImage(tempFilePath).then(isSafe => {
           if(isSafe) {
@@ -89,11 +95,10 @@ Page({
                 wx.hideLoading();
                 this.setData({
                   imagePath: tempFilePath,
-                  selectedRatio: '1:1', // 重置为默认
+                  selectedRatio: '1:1',
                   resultImage: ''
                 });
                 this.imageInfo = info;
-                // 初始化 1:1 布局
                 this.updateCropLayout(1);
               }
             });
@@ -112,89 +117,82 @@ Page({
 
     this.setData({ selectedRatio: id });
 
-    // 自由模式走特殊逻辑
-    if (id === 'free') {
-      // 这里的逻辑依然可以是跳转微信原生裁剪，或者不做变化
-      return; 
-    }
+    if (id === 'free') return; 
 
-    // 固定比例模式：重新计算裁剪框
     const ratioObj = this.data.ratioList.find(r => r.id === id);
     if (ratioObj) {
       this.updateCropLayout(ratioObj.ratio);
     }
   },
 
-  // === 🔥 核心：计算布局 ===
   updateCropLayout(ratio) {
     if (!this.imageInfo) return;
 
-    // 1. 计算裁剪框尺寸 (cropWidth/Height)
-    // 目标：在 maxPreviewW x MAX_PREVIEW_H 的区域内，放入一个符合 ratio 的最大矩形
     let cW, cH;
     const containerRatio = this.maxPreviewW / MAX_PREVIEW_H;
 
     if (ratio > containerRatio) {
-      // 比较宽，以宽为准
       cW = this.maxPreviewW;
       cH = cW / ratio;
     } else {
-      // 比较高，以高为准
       cH = MAX_PREVIEW_H;
       cW = cH * ratio;
     }
 
-    // 2. 计算图片初始显示尺寸 (imgDisplayW/H)
-    // 逻辑：Object-fit: cover (让图片短边填满裁剪框)
-    // 或者 contain (让图片完整显示在框内)。这里选 contain 方便用户自己放大。
-    // 为了体验更好，我们选 "Cover" 逻辑稍作修改：让图片稍微大一点点填满框
     const imgRatio = this.imageInfo.width / this.imageInfo.height;
     let dW, dH;
 
     if (imgRatio > ratio) {
-      // 图片比框更宽 -> 高度适配框高度
       dH = cH;
       dW = dH * imgRatio;
     } else {
-      // 图片比框更高 -> 宽度适配框宽度
       dW = cW;
       dH = dW / imgRatio;
     }
+
+    // 取整
+    cW = Math.floor(cW); cH = Math.floor(cH);
+    dW = Math.floor(dW); dH = Math.floor(dH);
+
+    const initX = (cW - dW) / 2;
+    const initY = (cH - dH) / 2;
 
     this.setData({
       cropWidth: cW,
       cropHeight: cH,
       imgDisplayW: dW,
       imgDisplayH: dH,
-      // 重置位置到居中
-      imgX: (cW - dW) / 2, 
-      imgY: (cH - dH) / 2,
+      imgX: initX, 
+      imgY: initY,
       imgScale: 1
     });
     
-    // 更新内部状态
-    this.currentX = (cW - dW) / 2;
-    this.currentY = (cH - dH) / 2;
+    this.currentX = initX;
+    this.currentY = initY;
     this.currentScale = 1;
   },
 
-  // === 🔥 还原按钮 ===
   resetPosition() {
     if (this.data.selectedRatio === 'free') return;
     
     const { cropWidth, cropHeight, imgDisplayW, imgDisplayH } = this.data;
+    const resetX = (cropWidth - imgDisplayW) / 2;
+    const resetY = (cropHeight - imgDisplayH) / 2;
+
     this.setData({
-      imgX: (cropWidth - imgDisplayW) / 2,
-      imgY: (cropHeight - imgDisplayH) / 2,
+      imgX: resetX,
+      imgY: resetY,
       imgScale: 1
     });
+
+    this.currentX = resetX;
+    this.currentY = resetY;
+    this.currentScale = 1;
   },
 
-  // === 交互监听 ===
   onInteractionChange(e) {
-    // 这里的 x, y 是 movable-view 相对于 movable-area 的偏移
-    // detail: {x, y, scale, source}
-    if (e.detail.source) { // 只有用户操作才记录
+    // 仅记录状态，不直接用于计算，计算交给 getBoundingClientRect
+    if (e.detail.source) {
       this.currentX = e.detail.x;
       this.currentY = e.detail.y;
       this.currentScale = e.detail.scale;
@@ -207,14 +205,12 @@ Page({
       src: this.data.imagePath,
       quality: 100,
       success: (res) => {
-        // 自由裁剪直接去保存
         this.setData({ resultImage: res.tempFilePath });
-        this.checkQuotaAndSave(true); // true 表示跳过裁剪步骤直接保存
+        this.checkQuotaAndSave(true);
       }
     });
   },
 
-  // === 点击保存 ===
   saveImage() {
     if (this.data.selectedRatio === 'free') {
       this.startFreeCrop();
@@ -261,91 +257,105 @@ Page({
     }
   },
 
-  // === 🔥 核心：执行 Canvas 裁剪 ===
+  // === 🔥🔥🔥 终极修复：物理测量绘图法 🔥🔥🔥 ===
   manualCrop() {
     this.setData({ isCropping: true });
-    wx.showLoading({ title: '处理中...' });
+    wx.showLoading({ title: '高清处理中...' });
 
-    // 1. 获取当前参数
-    const { cropWidth, cropHeight, imgDisplayW, imgDisplayH } = this.data;
-    const { currentX, currentY, currentScale } = this;
+    // 1. 使用 SelectorQuery 获取屏幕上真实的物理位置
+    // 这比依赖 bindchange 的数学计算要靠谱得多！所见即所得。
+    const query = wx.createSelectorQuery();
+    query.select('.crop-area').boundingClientRect();   // 获取裁剪框的位置
+    query.select('.target-image').boundingClientRect(); // 获取图片的实际位置（含缩放）
+    
+    query.exec((res) => {
+      if (!res || !res[0] || !res[1]) {
+        this.setData({ isCropping: false });
+        wx.hideLoading();
+        wx.showToast({ title: '定位失败，请重试', icon: 'none' });
+        return;
+      }
 
-    // 2. 计算原图与屏幕显示的比例
-    // 原图 1000px，屏幕显示 200px，则 ratio = 5
-    const pixelRatio = this.imageInfo.width / imgDisplayW;
+      const areaRect = res[0]; // 裁剪窗口
+      const imgRect = res[1];  // 实际图片（已缩放）
 
-    // 3. Canvas 尺寸 (为了清晰度，可以使用原图分辨率，或者限制最大 2000px)
-    // 这里我们希望能导出高清图，所以基于裁剪框 * pixelRatio
-    let canvasW = cropWidth * pixelRatio;
-    let canvasH = cropHeight * pixelRatio;
+      // 2. 计算相对位置（图片相对于裁剪框的偏移）
+      const relativeX = imgRect.left - areaRect.left;
+      const relativeY = imgRect.top - areaRect.top;
+      const relativeW = imgRect.width;
+      const relativeH = imgRect.height;
 
-    // 安全限制，防止 Canvas 过大崩溃
-    const MAX_CANVAS_DIM = 2048;
-    let exportScale = 1;
-    if (canvasW > MAX_CANVAS_DIM || canvasH > MAX_CANVAS_DIM) {
-      const maxSide = Math.max(canvasW, canvasH);
-      exportScale = MAX_CANVAS_DIM / maxSide;
-      canvasW *= exportScale;
-      canvasH *= exportScale;
-    }
+      // 3. 确定导出倍率 (Quality Ratio)
+      // 我们希望导出图足够清晰，所以需要映射回原图尺寸
+      // 比例 = 原图真实宽度 / 屏幕上看到的图片宽度
+      const pixelRatio = this.imageInfo.width / relativeW;
 
-    const canvas = wx.createOffscreenCanvas({ type: '2d', width: canvasW, height: canvasH });
-    const ctx = canvas.getContext('2d');
-    const img = canvas.createImage();
+      // 4. 计算 Canvas 尺寸 (裁剪结果尺寸)
+      // Canvas尺寸 = 屏幕裁剪框尺寸 * 倍率
+      let canvasW = Math.round(areaRect.width * pixelRatio);
+      let canvasH = Math.round(areaRect.height * pixelRatio);
 
-    img.onload = () => {
-      // 4. 绘图参数计算
-      // movable-view 的 x,y 是相对于框左上角的（通常是负数或0）
-      // 我们要画的是：图片被缩放、移动后的样子
-      
-      // 这里的逻辑是：
-      // ctx.drawImage(img, dx, dy, dWidth, dHeight)
-      // dx, dy 是图片在 Canvas 上的起始位置
-      // dWidth, dHeight 是图片在 Canvas 上的绘制大小
-      
-      // 屏幕上：图片位置 x=currentX, 宽=imgDisplayW * scale
-      // 映射到 Canvas (乘以 pixelRatio 和 exportScale)
+      // 5. 安全限制 (防止 4096px 崩溃)
+      const MAX_CANVAS_DIM = 2048;
+      let exportScale = 1;
+      if (canvasW > MAX_CANVAS_DIM || canvasH > MAX_CANVAS_DIM) {
+        const maxSide = Math.max(canvasW, canvasH);
+        exportScale = MAX_CANVAS_DIM / maxSide;
+        canvasW = Math.round(canvasW * exportScale);
+        canvasH = Math.round(canvasH * exportScale);
+      }
+
+      // 6. 最终绘制参数
       const finalRatio = pixelRatio * exportScale;
-      
-      const drawX = currentX * finalRatio;
-      const drawY = currentY * finalRatio;
-      const drawW = imgDisplayW * currentScale * finalRatio;
-      const drawH = imgDisplayH * currentScale * finalRatio;
+      const drawX = Math.round(relativeX * finalRatio);
+      const drawY = Math.round(relativeY * finalRatio);
+      const drawW = Math.round(relativeW * finalRatio);
+      const drawH = Math.round(relativeH * finalRatio);
 
-      // 绘制背景 (白色)
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvasW, canvasH);
+      // 7. 绘图
+      const canvas = wx.createOffscreenCanvas({ type: '2d', width: canvasW, height: canvasH });
+      const ctx = canvas.getContext('2d');
+      const img = canvas.createImage();
 
-      // 绘制图片
-      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      img.onload = () => {
+        ctx.fillStyle = '#ffffff'; // 白底防止透明
+        ctx.fillRect(0, 0, canvasW, canvasH);
+        
+        try {
+          // 5参数模式：把图按计算好的位置贴上去，超出画布的部分自动被剪裁
+          // 这是解决“位置偏移”和“白屏”最稳的方法
+          ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        } catch (e) { console.error(e); }
 
-      // 导出
-      wx.canvasToTempFilePath({
-        canvas: canvas,
-        width: canvasW,
-        height: canvasH,
-        destWidth: canvasW,
-        destHeight: canvasH,
-        fileType: 'jpg',
-        quality: 0.9,
-        success: (res) => {
-          this.setData({ 
-            resultImage: res.tempFilePath,
-            isCropping: false 
+        // 8. 延时导出 (给GPU缓冲时间)
+        setTimeout(() => {
+          wx.canvasToTempFilePath({
+            canvas: canvas,
+            width: canvasW, height: canvasH,
+            destWidth: canvasW, destHeight: canvasH,
+            fileType: 'jpg', quality: 0.95,
+            success: (r) => {
+              this.setData({ resultImage: r.tempFilePath, isCropping: false });
+              wx.hideLoading();
+              this.doSaveImage(); 
+            },
+            fail: () => {
+              this.setData({ isCropping: false });
+              wx.hideLoading();
+              wx.showToast({ title: '保存失败', icon: 'none' });
+            }
           });
-          wx.hideLoading();
-          this.doSaveImage(); // 直接保存到相册
-        },
-        fail: (err) => {
-          console.error(err);
-          this.setData({ isCropping: false });
-          wx.hideLoading();
-          wx.showToast({ title: '裁剪失败', icon: 'none' });
-        }
-      });
-    };
+        }, 300);
+      };
+      
+      img.onerror = () => {
+        this.setData({ isCropping: false });
+        wx.hideLoading();
+        wx.showToast({ title: '加载失败', icon: 'none' });
+      };
 
-    img.src = this.data.imagePath;
+      img.src = this.data.imagePath;
+    });
   },
 
   doSaveImage() {

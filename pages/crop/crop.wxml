@@ -71,21 +71,8 @@
       <button class="btn-icon" bindtap="resetPosition">↺</button>
     </view>
 
-    <button 
-      class="btn-primary" 
-      wx:if="{{selectedRatio === 'free'}}" 
-      bindtap="startFreeCrop"
-    >
-      进入自由裁剪
-    </button>
-
-    <button 
-      class="btn-primary" 
-      wx:else 
-      bindtap="saveImage"
-    >
-      确认裁剪并保存
-    </button>
+    <button class="btn-primary" wx:if="{{selectedRatio === 'free'}}" bindtap="startFreeCrop">进入自由裁剪</button>
+    <button class="btn-primary" wx:else bindtap="saveImage">确认裁剪并保存</button>
   </view>
 
   <view style="height: 220rpx;" wx:if="{{imagePath}}"></view>
