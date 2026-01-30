@@ -17,7 +17,7 @@
         show-menu-by-longpress
       ></image>
     </view>
-    <text class="preview-tip">点击图片预览 · 长按可发送给朋友</text>
+    <text class="preview-tip">点击图片预览</text>
   </view>
 
   <view class="action-area fade-in-delay-2">

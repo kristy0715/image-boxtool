@@ -15,6 +15,10 @@ Page({
     navBarHeight: 44,
     showFortuneModal: false,
     todayFortune: null,
+    
+    // 🔥 新增：Banner 广告 ID (沿用其他页面的ID)
+    bannerUnitId: 'adunit-ecfcec4c6a0c871b',
+
     // 工具列表 (保持不变)
     toolList: [
       {id:'idphoto',title:'证件照制作',desc:'一寸/二寸/签证照',icon:'📷',colors:['#6366f1','#8b5cf6']},
@@ -52,6 +56,11 @@ Page({
     this.initFortune();
     this.initVideoAd();
     this.initInterstitialAd();
+  },
+
+  // 🔥 新增：广告错误监听
+  onAdError(err) {
+    console.log('Banner 广告加载失败', err);
   },
 
   goToPage(e) {
@@ -476,7 +485,7 @@ Page({
   },
 
   // =================================================================
-  // --- 分享逻辑 (保留您手动修复的版本) ---
+  // --- 分享逻辑 (保持不变) ---
   // =================================================================
   onShareAppMessage(res) {
     if (res.from === 'button') {

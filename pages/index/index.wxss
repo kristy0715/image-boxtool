@@ -98,6 +98,14 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
 }
 
+/* 🔥 新增：广告容器样式 🔥 */
+.ad-container {
+  padding: 20rpx 30rpx;
+  margin-top: 10rpx;
+  margin-bottom: 10rpx;
+  box-sizing: border-box;
+}
+
 /* 底部信息 */
 .footer { padding: 40rpx 32rpx 160rpx; text-align: center; } /* 底部留白给悬浮按钮 */
 .footer-text { font-size: 22rpx; color: #cbd5e1; letter-spacing: 2rpx; }

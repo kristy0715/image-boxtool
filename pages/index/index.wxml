@@ -26,13 +26,17 @@
           <text class="feature-title">{{item.title}}</text>
           <text class="feature-desc">{{item.desc}}</text>
         </view>
-        </view>
+      </view>
     </view>
   </template>
 
   <template is="tool-section" data="{{title: '📌 实用工具', list: toolList}}"></template>
   <template is="tool-section" data="{{title: '📝 图文转换', list: ocrList}}"></template>
   <template is="tool-section" data="{{title: '🎨 趣味功能', list: funList}}"></template>
+
+  <view class="ad-container">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
 
   <view class="footer">
     <text class="footer-text">就这么图 · 让图片处理更简单</text>
