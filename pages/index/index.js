@@ -21,28 +21,29 @@ Page({
 
     // 工具列表 (保持不变)
     toolList: [
-      {id:'idphoto',title:'证件照制作',desc:'一寸/二寸/签证照',icon:'📷',colors:['#6366f1','#8b5cf6']},
+      {id:'idphoto',title:'证件照制作',desc:'一寸 二寸 换底色',icon:'📷',colors:['#6366f1','#8b5cf6']},
       {id:'idprint',title:'证件照排版',desc:'排版打印省钱',icon:'🖨️',colors:['#8b5cf6','#a78bfa']},
-      {id:'grid9',title:'九宫格切图',desc:'朋友圈九宫格',icon:'🍱',colors:['#64748b','#94a3b8']},
-      {id:'watermark',title:'图片去水印',desc:'一键去除图片水印',icon:'✨',colors:['#f59e0b','#fbbf24']},
-      {id:'mosaic',title:'图片马赛克',desc:'隐私打码保护',icon:'🔲',colors:['#64748b','#94a3b8']},
-      {id:'collage',title:'图片拼接',desc:'多图拼接/带编号',icon:'🧩',colors:['#14b8a6','#2dd4bf']},
-      {id:'crop',title:'图片裁剪',desc:'自由裁剪/比例裁剪',icon:'✂️',colors:['#f59e0b','#fbbf24']},
-      {id:'compress',title:'图片压缩',desc:'智能压缩，保持清晰',icon:'📦',colors:['#ec4899','#f472b6']},
+      {id:'grid9',title:'九宫格切图',desc:'朋友圈九宫格 心形拼图',icon:'🍱',colors:['#64748b','#94a3b8']},
+      {id:'watermark',title:'图片去水印',desc:'AI智能去除图片水印',icon:'✨',colors:['#f59e0b','#fbbf24']},
+      {id:'mosaic',title:'图片马赛克',desc:'隐私打码 模糊处理',icon:'🔲',colors:['#64748b','#94a3b8']},
+      {id:'collage',title:'图片拼接',desc:'多图合并 宫格拼图',icon:'🧩',colors:['#14b8a6','#2dd4bf']},
+      {id:'crop',title:'图片裁剪',desc:'自由裁剪 比例裁剪',icon:'✂️',colors:['#f59e0b','#fbbf24']},
+      {id:'compress',title:'图片压缩',desc:'智能压缩 高清无损',icon:'📦',colors:['#ec4899','#f472b6']},
       {id:'longpic',title:'长图拼接',desc:'聊天截图拼长图',icon:'📜',colors:['#06b6d4','#22d3ee']},
-      {id:'batchwm',title:'批量加水印',desc:'多图批量添加水印',icon:'💧',colors:['#ef4444','#f87171']},
+      {id:'batchwm',title:'批量加水印',desc:'一键加水印 微商专用',icon:'💧',colors:['#ef4444','#f87171']},
     ],
     ocrList: [
-      {id:'text2img',title:'长文转图片',desc:'文字生成图片',icon:'📄',colors:['#10b981','#34d399']},
-      {id:'ocr',title:'图片转文字',desc:'提取图中文字',icon:'🔍',colors:['#3b82f6','#60a5fa']},
-      {id:'text',title:'添加文字',desc:'图片加字/水印',icon:'✏️',colors:['#8b5cf6','#a78bfa']}
+      {id:'text2img',title:'长文转图片',desc:'文字生成图片防折叠',icon:'📄',colors:['#10b981','#34d399']},
+      {id:'ocr',title:'图片转文字',desc:'拍照取字 OCR文字提取',icon:'🔍',colors:['#3b82f6','#60a5fa']},
+      {id:'text',title:'添加文字',desc:'图片加字 加水印',icon:'✏️',colors:['#8b5cf6','#a78bfa']}
     ],
     funList: [
-      {id:'retouch',title:'一键精修',desc:'智能美颜/磨皮/提亮',icon:'✨',colors:['#ec4899','#f472b6']},
-      {id:'filter',title:'滤镜效果',desc:'复古/黑白/暖色调',icon:'🎭',colors:['#f43f5e','#fb7185']},
-      {id:'anime',title:'艺术风格',desc:'12种风格转换',icon:'🎨',colors:['#ec4899','#f472b6']},
-      {id:'avatar',title:'头像挂件',desc:'节日边框/装饰',icon:'🎀',colors:['#f59e0b','#fbbf24']},
-      {id:'meme',title:'表情包制作',desc:'DIY专属表情包',icon:'😂',colors:['#eab308','#facc15']},
+      {id:'burst',title:'3D冲出特效',desc:'人物悬浮九宫格',icon:'🚀',colors:['#ef4444','#f87171']},
+      {id:'retouch',title:'一键精修',desc:'智能美颜 磨皮 提亮',icon:'✨',colors:['#ec4899','#f472b6']},
+      {id:'filter',title:'滤镜效果',desc:'复古 黑白 暖色调',icon:'🎭',colors:['#f43f5e','#fb7185']},
+      {id:'anime',title:'艺术风格',desc:'照片变漫画 动漫头像',icon:'🎨',colors:['#ec4899','#f472b6']},
+      {id:'avatar',title:'头像挂件',desc:'节日头像 边框装饰',icon:'🎀',colors:['#f59e0b','#fbbf24']},
+      {id:'meme',title:'表情包制作',desc:'DIY专属表情包 斗图神器',icon:'😂',colors:['#eab308','#facc15']}
     ]
   },
 
@@ -491,13 +492,13 @@ Page({
     if (res.from === 'button') {
       const fortune = this.data.todayFortune;
       return { 
-        title: fortune ? `今日签文：${fortune.title}` : '每日一签', 
+        title: fortune ? `今日签文：${fortune.title}` : '免费制作高清证件照、去水印、切九宫格', 
         path: '/pages/index/index', 
         imageUrl: tempPosterPath || (fortune ? fortune.bgUrl : null) 
       };
     }
     return { 
-      title: '就这么图 - 全能图片工具箱', 
+      title: '我发现一个神器！免费做证件照、去水印、九宫格切图、美颜滤镜一键搞定！', 
       path: '/pages/index/index',
       imageUrl: '/assets/share-cover.png' 
     };
@@ -505,7 +506,7 @@ Page({
 
   onShareTimeline() { 
     return { 
-      title: '全能图片工具箱：美颜滤镜、修图、拼图、切图、图文处理、证件照一键搞定！', 
+      title: '我发现一个神器！免费做证件照、去水印、九宫格切图、美颜滤镜一键搞定！', 
       imageUrl: '/assets/share-cover.png' 
     }; 
   },
@@ -561,5 +562,42 @@ Page({
             }
         });
     });
-  }
+  },
+
+  // ... 其他代码 ...
+
+  // === 🥚 优化后的隐藏入口：连击 5 次 ===
+  _tapCount: 0,
+  _lastTapTime: 0,
+
+  onSecretTap() {
+    const now = Date.now();
+    // 如果两次点击间隔超过 500ms，重置计数
+    if (now - this._lastTapTime > 500) {
+      this._tapCount = 0;
+    }
+
+    this._tapCount++;
+    this._lastTapTime = now;
+
+    // 可以在第 3 次点击时给个轻微震动提示，增加手感
+    if (this._tapCount === 3) {
+       wx.vibrateShort({ type: 'light' });
+    }
+
+    // 达到 5 次，触发跳转
+    if (this._tapCount >= 5) {
+      this._tapCount = 0; // 重置
+      wx.vibrateShort({ type: 'medium' }); // 成功震动
+      
+      wx.navigateTo({
+        url: '/pages/admin/score/score',
+        fail: () => {
+          wx.showToast({ title: '页面未配置', icon: 'none' });
+        }
+      });
+    }
+  },
+  
+  // ... 其他代码 ...
 });

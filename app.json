@@ -19,7 +19,9 @@
     "pages/avatar/avatar",
     "pages/anime/anime",
     "pages/retouch/retouch",
-    "pages/success/success"
+    "pages/success/success",
+    "pages/burst/burst",
+    "pages/admin/score/score"
   ],
   "window": {
     "backgroundTextStyle": "dark",

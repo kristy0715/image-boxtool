@@ -1,27 +1,69 @@
+// pages/burst/burst.js
+const app = getApp();
 const Security = require('../../utils/security.js');
-const AD_CONFIG = { BANNER_ID: 'adunit-ecfcec4c6a0c871b', VIDEO_ID: 'adunit-da175a2014d3443b' };
+
+const TEST_MODE = false; 
+const LAF_MATTING_URL = 'https://kvpoib63ld.sealosbja.site/idphoto-matting'; 
+
+const AD_CONFIG = {
+  BANNER_ID: 'adunit-ecfcec4c6a0c871b',
+  VIDEO_ID: 'adunit-da175a2014d3443b'
+};
+
 const FREE_COUNT_DAILY = 2;
+const BASE_HD_SIZE = 2400; 
+// 🔥 新增：Canvas 最大安全尺寸 (防止 buffer exceed error)
+const MAX_CANVAS_DIMENSION = 4096; 
 
 Page({
   data: {
-    imagePath: '',
-    maskType: 'burst-circle',
-    tipText: '圆形破格 (适合人像)',
-    cropW: 0, cropH: 0, imgW: 0, imgH: 0, x: 0, y: 0, scale: 1, initialX: 0, initialY: 0,
-    isProcessing: false, loadingText: '处理中...', bannerUnitId: AD_CONFIG.BANNER_ID
+    bgPath: '',       
+    mattePath: '',    
+    editorSize: 300,  
+    gapSize: 5,       
+    fgX: 0, fgY: 0, fgScale: 1,
+    isProcessing: false,
+    loadingText: '处理中...',
+    bannerUnitId: AD_CONFIG.BANNER_ID,
+    
+    // 格子替换数据
+    gridOverrides: {}, 
+    gridIndices: [0,1,2,3,4,5,6,7,8] 
   },
-  
-  _pixelRatio: 1, _sys: null, _imgInfo: null,
+
+  _fgX: 0, _fgY: 0, _fgScale: 1,
+  _adAction: null, _pendingPath: '', videoAd: null,
 
   onLoad() {
-    this.initSystem();
     this.initVideoAd();
+    const sys = wx.getSystemInfoSync();
+    const size = sys.windowWidth * 0.94;
+    const offset = size * 2; 
+    const fgW = size * 0.5;
+    const initialPos = offset + (size - fgW) / 2;
+    
+    this.setData({ 
+      editorSize: size,
+      fgX: initialPos, fgY: initialPos
+    });
+    
+    this._fgX = initialPos; this._fgY = initialPos; this._fgScale = 1;
   },
 
-  initSystem() {
-    const sys = wx.getSystemInfoSync();
-    this._sys = sys;
-    this._pixelRatio = sys.windowWidth / 750;
+  resetEditor() {
+    const size = this.data.editorSize;
+    const offset = size * 2; 
+    const fgW = size * 0.5;
+    const initialPos = offset + (size - fgW) / 2;
+
+    this.setData({
+      gapSize: 5,
+      fgX: initialPos, fgY: initialPos, fgScale: 1,
+      gridOverrides: {}
+    });
+
+    this._fgX = initialPos; this._fgY = initialPos; this._fgScale = 1;
+    wx.showToast({ title: '已还原', icon: 'none' });
   },
 
   initVideoAd() {
@@ -30,226 +72,335 @@ Page({
       this.videoAd.onError((err) => console.error(err));
       this.videoAd.onClose((res) => {
         if (res && res.isEnded) {
-          this.setDailyUnlimited();
-          wx.showToast({ title: '已解锁', icon: 'success' });
-          this.realSaveAction();
+          if (this._adAction === 'save') this.handleSaveUnlockSuccess();
+          else if (this._adAction === 'matting') this.handleMattingUnlockSuccess();
         } else {
-          wx.showModal({ title: '提示', content: '需完整观看视频才能解锁', confirmText: '继续', success: (m) => { if (m.confirm) this.videoAd.show(); } });
+          wx.showToast({ title: '需完整观看才能解锁', icon: 'none' });
         }
+        this._adAction = null; this._pendingPath = '';
       });
     }
   },
+  onAdError(err) { console.log(err); },
 
-  chooseImage() {
+  chooseBgImage() {
     wx.chooseMedia({
       count: 1, mediaType: ['image'], sizeType: ['original'],
       success: (res) => {
         const path = res.tempFiles[0].tempFilePath;
-        wx.showLoading({ title: '加载中...' });
         Security.checkImage(path).then(isSafe => {
-          if (isSafe) this.initCropper(path);
-          else { wx.hideLoading(); wx.showToast({ title: '图片不合规', icon: 'none' }); }
-        }).catch(() => this.initCropper(path));
+          if (isSafe) this.setData({ bgPath: path, gridOverrides: {} });
+          else wx.showToast({ title: '图片不合规', icon: 'none' });
+        }).catch(() => this.setData({ bgPath: path, gridOverrides: {} }));
       }
     });
   },
 
-  initCropper(path) {
-    wx.getImageInfo({
-      src: path,
-      success: (info) => {
-        this._imgInfo = info;
-        const size = 600 * this._pixelRatio;
-        this.resetLayout(size, path);
-        wx.hideLoading();
+  chooseCellImage(e) {
+    const index = e.currentTarget.dataset.index;
+    wx.chooseMedia({
+      count: 1, mediaType: ['image'], sizeType: ['original'],
+      success: (res) => {
+        const path = res.tempFiles[0].tempFilePath;
+        const key = `gridOverrides.${index}`;
+        this.setData({ [key]: path });
       }
     });
   },
 
-  setMaskType(e) {
-    const { type, text } = e.currentTarget.dataset;
-    if (this.data.maskType === type) return;
-    this.setData({ maskType: type, tipText: text });
+  chooseFgImage() {
+    wx.chooseMedia({
+      count: 1, mediaType: ['image'], sizeType: ['original'],
+      success: (res) => {
+        const path = res.tempFiles[0].tempFilePath;
+        wx.showModal({
+          title: '图片处理方式',
+          content: '是否需要 AI 智能抠图去除背景？\n(抠图功能需观看一次广告)',
+          cancelText: '原图使用',
+          cancelColor: '#666666',
+          confirmText: 'AI抠图',
+          confirmColor: '#6366f1',
+          success: (modalRes) => {
+            if (modalRes.confirm) this.triggerMattingAd(path);
+            else this.setMatteImage(path);
+          }
+        });
+      }
+    });
   },
 
-  resetLayout(boxW, newPath) {
-    if (!this._imgInfo) return;
-    const info = this._imgInfo;
-    const ratio = info.width / info.height;
-    let viewW, viewH;
-    if (ratio > 1) { viewH = boxW; viewW = boxW * ratio; } 
-    else { viewW = boxW; viewH = boxW / ratio; }
-    
-    const cx = (boxW - viewW) / 2;
-    const cy = (boxW - viewH) / 2;
-    const dataUpdate = { cropW: boxW, cropH: boxW, imgW: viewW, imgH: viewH, scale: 1, initialX: cx, initialY: cy };
-    if (newPath) dataUpdate.imagePath = newPath;
-    this.setData(dataUpdate, () => { setTimeout(() => { this.setData({ x: cx, y: cy }); }, 100); });
+  triggerMattingAd(path) {
+      this._adAction = 'matting';
+      this._pendingPath = path;
+      if (this.videoAd) this.videoAd.show().catch(() => this.startAiMatting(path));
+      else this.startAiMatting(path);
   },
 
-  resetView() {
-    this.setData({ x: this.data.initialX, y: this.data.initialY, scale: 1 });
+  handleMattingUnlockSuccess() {
+      if (this._pendingPath) this.startAiMatting(this._pendingPath);
   },
+
+  async startAiMatting(path) {
+    if (TEST_MODE) {
+      wx.showToast({ title: '测试模式', icon: 'none' });
+      this.setMatteImage(path); return;
+    }
+    this.setData({ isProcessing: true, loadingText: '优化图片中...' });
+    try {
+      const imgInfo = await new Promise((r, j) => { wx.getImageInfo({ src: path, success: r, fail: j }); });
+      const { width, height } = this.getOptimalSize(imgInfo.width, imgInfo.height);
+      this.setData({ loadingText: 'AI 智能抠图中...' });
+      let base64 = await this.getResizedImageBase64(path, width, height);
+      base64 = base64.replace(/^data:image\/\w+;base64,/, '').replace(/[\r\n]/g, '');
+      const res = await new Promise((r, j) => {
+        wx.request({ url: LAF_MATTING_URL, method: 'POST', data: { base64: base64 }, success: r, fail: j });
+      });
+      const aiData = res.data;
+      if (aiData && aiData.code === 0 && aiData.result_base64) {
+        let mattedBase64 = aiData.result_base64;
+        if (mattedBase64.startsWith('data:image')) mattedBase64 = mattedBase64.split('base64,')[1];
+        mattedBase64 = mattedBase64.replace(/[\r\n\s]/g, "");
+        const localPath = `${wx.env.USER_DATA_PATH}/burst_matted_${Date.now()}.png`;
+        await new Promise((r, j) => {
+          const fs = wx.getFileSystemManager();
+          fs.writeFile({ filePath: localPath, data: wx.base64ToArrayBuffer(mattedBase64), encoding: 'binary', success: r, fail: j });
+        });
+        this.setMatteImage(localPath);
+      } else { throw new Error(aiData?.msg || '抠图服务异常'); }
+    } catch (err) {
+      console.error(err);
+      this.setData({ isProcessing: false });
+      wx.showModal({ title: '处理失败', content: '是否使用原图继续？', success: (r) => { if (r.confirm) this.setMatteImage(path); } });
+    }
+  },
+
+  getOptimalSize(w, h) {
+    const MAX = 1500; let r = 1;
+    if (w > MAX || h > MAX) r = Math.min(MAX / w, MAX / h);
+    return { width: Math.round(w * r), height: Math.round(h * r) };
+  },
+
+  getResizedImageBase64(path, w, h) {
+    return new Promise((r, j) => {
+      const cvs = wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+      const ctx = cvs.getContext('2d');
+      const img = cvs.createImage();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, w, h);
+        wx.canvasToTempFilePath({ canvas: cvs, fileType: 'jpg', quality: 0.85, success: res => {
+            wx.getFileSystemManager().readFile({ filePath: res.tempFilePath, encoding: 'base64', success: d => r(d.data), fail: j });
+        }, fail: j });
+      };
+      img.onerror = j; img.src = path;
+    });
+  },
+  
+  setMatteImage(path) {
+      const size = this.data.editorSize;
+      const offset = size * 2; 
+      const fgW = size * 0.5;
+      const initialPos = offset + (size - fgW) / 2;
+      this.setData({ mattePath: path, isProcessing: false, fgScale: 1, fgX: initialPos, fgY: initialPos });
+      this._fgScale = 1; this._fgX = initialPos; this._fgY = initialPos;
+  },
+
+  onFgChange(e) { this._fgX = e.detail.x; this._fgY = e.detail.y; if(e.detail.scale) this._fgScale = e.detail.scale; },
+  onFgScale(e) { this._fgScale = e.detail.scale; },
+  onGapChange(e) { this.setData({ gapSize: e.detail.value }); },
 
   saveToAlbum() {
-    if (!this.data.imagePath) return;
-    wx.showLoading({ title: '准备中...' });
+    if (!this.data.bgPath || !this.data.mattePath) return;
     this.checkQuotaAndSave();
   },
 
   checkQuotaAndSave() {
-    const today = new Date().toLocaleDateString();
     const key = 'burst_usage_record';
+    const today = new Date().toLocaleDateString();
     let record = wx.getStorageSync(key) || { date: today, count: 0, isUnlimited: false };
     if (record.date !== today) { record = { date: today, count: 0, isUnlimited: false }; wx.setStorageSync(key, record); }
     if (record.isUnlimited || record.count < FREE_COUNT_DAILY) {
-      if (!record.isUnlimited) { record.count++; wx.setStorageSync(key, record); }
+      if(!record.isUnlimited) { record.count++; wx.setStorageSync(key, record); }
       this.realSaveAction();
-    } else {
-      wx.hideLoading();
-      if (this.videoAd) {
-        wx.showModal({ title: '次数不足', content: '看视频解锁无限次', success: (res) => { if (res.confirm) this.videoAd.show().catch(() => this.realSaveAction()); } });
-      } else { this.realSaveAction(); }
-    }
+    } else { this.triggerSaveAd(); }
   },
 
-  setDailyUnlimited() {
-    wx.setStorageSync('burst_usage_record', { date: new Date().toLocaleDateString(), count: 999, isUnlimited: true });
+  triggerSaveAd() {
+      wx.showModal({
+          title: '次数不足', content: '观看视频解锁今日无限保存', 
+          success: (res) => { if (res.confirm) { this._adAction = 'save'; if (this.videoAd) this.videoAd.show().catch(() => this.realSaveAction()); else this.realSaveAction(); } }
+      });
   },
 
+  handleSaveUnlockSuccess() {
+      this.setDailyUnlimited();
+      wx.showToast({ title: '已解锁', icon: 'success' });
+      this.realSaveAction();
+  },
+
+  setDailyUnlimited() { wx.setStorageSync('burst_usage_record', { date: new Date().toLocaleDateString(), count: 999, isUnlimited: true }); },
+
+  // === 🔥 修复版：限制最大分辨率，防止崩溃 ===
   realSaveAction() {
-    this.setData({ isProcessing: true, loadingText: '正在处理...' });
-    wx.hideLoading();
+    this.setData({ isProcessing: true, loadingText: '正在合成...' });
+
+    const pixelRatio = BASE_HD_SIZE / this.data.editorSize; 
+    const offset = this.data.editorSize * 2; 
+
+    const fgScreenX = (this._fgX || offset) - offset;
+    const fgScreenY = (this._fgY || offset) - offset;
+    const fgScale = (this._fgScale || 1);
+    const baseFgW = this.data.editorSize * 0.5; 
     
-    const query = wx.createSelectorQuery();
-    query.select('.crop-area').boundingClientRect();
-    query.select('.crop-img').boundingClientRect();
-    query.exec((res) => {
-      if (!res || !res[0] || !res[1]) { this.setData({ isProcessing: false }); return; }
-      
-      const boxRect = res[0];
-      const imgRect = res[1];
-      const canvasW = 2400; const canvasH = 2400;
-      const mapScale = canvasW / boxRect.width;
+    const canvas = wx.createOffscreenCanvas({ type: '2d', width: 100, height: 100 });
+    const imgBg = canvas.createImage();
+    const imgFg = canvas.createImage();
+    
+    const mainTasks = [
+        new Promise((r, j) => { imgBg.onload = r; imgBg.onerror = j; }),
+        new Promise((r, j) => { imgFg.onload = r; imgFg.onerror = j; })
+    ];
+    imgBg.src = this.data.bgPath;
+    imgFg.src = this.data.mattePath;
 
-      try {
-        const canvas = wx.createOffscreenCanvas({ type: '2d', width: canvasW, height: canvasH });
-        const ctx = canvas.getContext('2d');
-        const img = canvas.createImage();
+    const overrides = this.data.gridOverrides;
+    const overrideIndices = Object.keys(overrides);
+    const overrideImages = {};
+    const overrideTasks = overrideIndices.map(idx => {
+        return new Promise((resolve) => {
+            const img = canvas.createImage();
+            img.onload = () => { overrideImages[idx] = img; resolve(); };
+            img.onerror = resolve; 
+            img.src = overrides[idx];
+        });
+    });
 
-        img.onload = async () => {
-          // 1. 底层：白色背景
-          ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvasW, canvasH);
-          
-          // 2. 绘制图片
-          const drawX = (imgRect.left - boxRect.left) * mapScale;
-          const drawY = (imgRect.top - boxRect.top) * mapScale;
-          const drawW = imgRect.width * mapScale;
-          const drawH = imgRect.height * mapScale;
-          ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    Promise.all([...mainTasks, ...overrideTasks]).then(() => {
+        // 1. 计算理论尺寸
+        const fgRatio = imgFg.height / imgFg.width;
+        const fgCanvasW = baseFgW * fgScale * pixelRatio;
+        const fgCanvasH = fgCanvasW * fgRatio;
+        const fgCanvasX = fgScreenX * pixelRatio;
+        const fgCanvasY = fgScreenY * pixelRatio;
 
-          // 3. 制作遮罩 (白色覆盖，挖空露出图片)
-          const maskCanvas = wx.createOffscreenCanvas({ type: '2d', width: canvasW, height: canvasH });
-          const mCtx = maskCanvas.getContext('2d');
-          
-          // 铺满白色
-          mCtx.fillStyle = '#ffffff'; mCtx.fillRect(0, 0, canvasW, canvasH);
-          
-          // 擦除 (挖洞)
-          mCtx.globalCompositeOperation = 'destination-out';
-          mCtx.fillStyle = '#000000';
-          this.drawBurstMask(mCtx, canvasW, canvasH, this.data.maskType);
-          mCtx.fill();
+        const overflowLeft = Math.max(0, -fgCanvasX);
+        const overflowRight = Math.max(0, (fgCanvasX + fgCanvasW) - BASE_HD_SIZE);
+        const overflowTop = Math.max(0, -fgCanvasY);
+        const overflowBottom = Math.max(0, (fgCanvasY + fgCanvasH) - BASE_HD_SIZE);
 
-          // 叠加遮罩
-          ctx.drawImage(maskCanvas, 0, 0, canvasW, canvasH);
+        const marginX = Math.max(overflowLeft, overflowRight);
+        const marginY = Math.max(overflowTop, overflowBottom);
 
-          const previewPath = await new Promise(resolve => {
-            wx.canvasToTempFilePath({ canvas: canvas, fileType: 'jpg', quality: 0.9, success: res => resolve(res.tempFilePath) });
-          });
+        let targetW = BASE_HD_SIZE + marginX * 2;
+        let targetH = BASE_HD_SIZE + marginY * 2;
 
-          // 切片保存
-          const saveLoop = async (index) => {
-            if (index >= 9) {
-              this.setData({ isProcessing: false });
-              wx.navigateTo({ url: `/pages/success/success?path=${encodeURIComponent(previewPath)}` });
-              return;
+        // 🔥 2. 检查尺寸限制，计算缩放比
+        let exportScale = 1;
+        if (targetW > MAX_CANVAS_DIMENSION || targetH > MAX_CANVAS_DIMENSION) {
+            const maxSide = Math.max(targetW, targetH);
+            exportScale = MAX_CANVAS_DIMENSION / maxSide;
+            // 提示用户
+            console.warn(`Canvas尺寸过大(${targetW}x${targetH})，自动缩放 ${exportScale.toFixed(2)}倍`);
+        }
+
+        // 应用缩放后的物理尺寸
+        const finalW = Math.floor(targetW * exportScale);
+        const finalH = Math.floor(targetH * exportScale);
+
+        const finalCanvas = wx.createOffscreenCanvas({ type: '2d', width: finalW, height: finalH });
+        const ctx = finalCanvas.getContext('2d');
+        
+        // 🔥 3. 关键：设置全局缩放，后续绘图坐标不需要变，自动缩小
+        ctx.scale(exportScale, exportScale);
+
+        // 填充背景
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetW, targetH); // 注意这里填的是逻辑尺寸，scale会自动处理
+
+        const offsetX = marginX;
+        const offsetY = marginY;
+
+        // Layer 1: 底图
+        const bgRatio = imgBg.width / imgBg.height;
+        let sWidth, sHeight, sX, sY;
+        if (bgRatio > 1) {
+            sHeight = imgBg.height; sWidth = sHeight; sX = (imgBg.width - sWidth) / 2; sY = 0;
+        } else {
+            sWidth = imgBg.width; sHeight = sWidth; sX = 0; sY = (imgBg.height - sHeight) / 2;
+        }
+        ctx.drawImage(imgBg, sX, sY, sWidth, sHeight, offsetX, offsetY, BASE_HD_SIZE, BASE_HD_SIZE);
+
+        // Layer 2: 替换格子
+        const cellW = BASE_HD_SIZE / 3;
+        const cellH = BASE_HD_SIZE / 3;
+        overrideIndices.forEach(idx => {
+            const img = overrideImages[idx];
+            if (img) {
+                const row = Math.floor(idx / 3);
+                const col = idx % 3;
+                const drawX = offsetX + col * cellW;
+                const drawY = offsetY + row * cellH;
+                const r = img.width / img.height;
+                const tr = cellW / cellH;
+                let sw, sh, sx, sy;
+                if (r > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw)/2; sy = 0; }
+                else { sw = img.width; sh = sw / tr; sx = 0; sy = (img.height - sh)/2; }
+                ctx.drawImage(img, sx, sy, sw, sh, drawX, drawY, cellW, cellH);
             }
-            const r = Math.floor(index / 3);
-            const c = index % 3;
-            const cellW = canvasW / 3;
-            const cellH = canvasH / 3;
-            const x1 = Math.floor(c * cellW);
-            const y1 = Math.floor(r * cellH);
-            
-            const cellData = ctx.getImageData(x1, y1, cellW, cellH);
-            const cellCan = wx.createOffscreenCanvas({ type: '2d', width: cellW, height: cellH });
-            const cCtx = cellCan.getContext('2d');
-            cCtx.putImageData(cellData, 0, 0);
-            
-            this.setData({ loadingText: `保存中 ${index+1}/9` });
-            const tempFilePath = await new Promise(resolve => {
-              wx.canvasToTempFilePath({ canvas: cellCan, fileType: 'jpg', quality: 1.0, success: res => resolve(res.tempFilePath) });
-            });
-            wx.saveImageToPhotosAlbum({
-              filePath: tempFilePath,
-              success: () => setTimeout(() => saveLoop(index + 1), 200),
-              fail: () => saveLoop(index + 1)
-            });
-          };
-          saveLoop(0);
-        };
-        img.src = this.data.imagePath;
-      } catch (err) { this.setData({ isProcessing: false }); }
+        });
+
+        // Layer 3: 网格线
+        const gap = this.data.gapSize * pixelRatio;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(offsetX, offsetY + cellH - gap/2, BASE_HD_SIZE, gap);
+        ctx.fillRect(offsetX, offsetY + cellH * 2 - gap/2, BASE_HD_SIZE, gap);
+        ctx.fillRect(offsetX + cellW - gap/2, offsetY, gap, BASE_HD_SIZE);
+        ctx.fillRect(offsetX + cellW * 2 - gap/2, offsetY, gap, BASE_HD_SIZE);
+
+        // Layer 4: 人物
+        ctx.drawImage(imgFg, offsetX + fgCanvasX, offsetY + fgCanvasY, fgCanvasW, fgCanvasH);
+
+        // 导出
+        wx.canvasToTempFilePath({
+            canvas: finalCanvas, fileType: 'jpg', quality: 0.9,
+            success: (res) => {
+                this.setData({ isProcessing: false });
+                this.saveImageAndJump(res.tempFilePath);
+            },
+            fail: (err) => {
+                console.error(err);
+                this.setData({ isProcessing: false });
+                wx.showToast({ title: '导出失败', icon: 'none' });
+            }
+        });
+
+    }).catch(err => {
+        console.error(err);
+        this.setData({ isProcessing: false });
+        wx.showToast({ title: '加载失败', icon: 'none' });
     });
   },
 
-  drawBurstMask(ctx, w, h, type) {
-    const cellW = w / 3; const cellH = h / 3; const gap = w * 0.015;
-    // 挖9个格子
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        const cx = c * cellW + gap; const cy = r * cellH + gap;
-        const cw = cellW - 2 * gap; const ch = cellH - 2 * gap;
-        ctx.beginPath(); this.roundRect(ctx, cx, cy, cw, ch, 20); ctx.fill();
-      }
-    }
-    // 挖中间大形状
-    const center = { x: w / 2, y: h / 2 };
-    const scale = w / 2400;
-    ctx.beginPath();
-    if (type === 'burst-circle') {
-      ctx.arc(center.x, center.y, 450 * scale, 0, 2 * Math.PI);
-    } else if (type === 'burst-heart') {
-      const t = (x, y) => ({ x: center.x + (x - 50) * 11 * scale, y: center.y + (y - 50) * 11 * scale });
-      ctx.moveTo(t(50, 28).x, t(50, 28).y);
-      ctx.bezierCurveTo(t(10, 5).x, t(10, 5).y, t(0, 30).x, t(0, 30).y, t(0, 50).x, t(0, 50).y);
-      ctx.bezierCurveTo(t(0, 72).x, t(0, 72).y, t(25, 88).x, t(25, 88).y, t(50, 95).x, t(50, 95).y);
-      ctx.bezierCurveTo(t(75, 88).x, t(75, 88).y, t(100, 72).x, t(100, 72).y, t(100, 50).x, t(100, 50).y);
-      ctx.bezierCurveTo(t(100, 30).x, t(100, 30).y, t(90, 5).x, t(90, 5).y, t(50, 28).x, t(50, 28).y);
-    } else if (type === 'burst-star') {
-      const R = 480 * scale; const r = 220 * scale;
-      for (let i = 0; i < 10; i++) {
-        const angle = Math.PI / 5 * i - Math.PI / 2;
-        const len = i % 2 === 0 ? R : r;
-        const px = center.x + Math.cos(angle) * len;
-        const py = center.y + Math.sin(angle) * len;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-    }
-    ctx.fill();
+  saveImageAndJump(filePath) {
+      wx.saveImageToPhotosAlbum({
+          filePath: filePath,
+          success: () => {
+              setTimeout(() => {
+                  wx.navigateTo({
+                      url: `/pages/success/success?path=${encodeURIComponent(filePath)}`,
+                      fail: () => wx.showToast({ title: '已保存', icon: 'success' })
+                  });
+              }, 500);
+          },
+          fail: (err) => {
+              this.setData({ isProcessing: false });
+              if (err.errMsg && err.errMsg.indexOf('auth') > -1) {
+                  wx.showModal({ title: '提示', content: '需开启相册权限', success: r => r.confirm && wx.openSetting() });
+              } else {
+                  wx.navigateTo({ url: `/pages/success/success?path=${encodeURIComponent(filePath)}` });
+              }
+          }
+      });
   },
 
-  roundRect(ctx, x, y, w, h, r) {
-    if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2;
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  },
-
-  onShareAppMessage() { return { title: '酷！冲出九宫格特效', path: '/pages/burst/burst', imageUrl: '/assets/share-cover.png' }; }
+  onShareAppMessage() { return { title: '3D冲出九宫格特效' }; }
 });

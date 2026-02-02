@@ -1,0 +1,38 @@
+<view class="container">
+  <view class="card header-card">
+    <view class="card-title">
+      <text class="icon">💰</text>
+      <text>剩余积分</text>
+    </view>
+    <view class="score-num">{{score}}</view>
+    <view class="score-desc">积分可用于图片处理服务</view>
+  </view>
+
+  <view class="card info-card">
+    <view class="card-header">积分使用说明</view>
+    <view class="info-list">
+      <view class="info-item"><view class="dot"></view>每张图片去水印消耗 1 积分</view>
+      <view class="info-item"><view class="dot"></view>抠图处理消耗 1 积分</view>
+      <view class="info-item"><view class="dot"></view>高清图片处理消耗 1 积分</view>
+      <view class="info-item"><view class="dot"></view>积分不足时无法使用相应功能</view>
+    </view>
+  </view>
+
+  <button class="refresh-btn" hover-class="btn-hover" bindtap="onRefresh">刷新积分</button>
+
+  <view class="list-title">积分查询记录</view>
+  <view class="record-list">
+    <view class="record-card" wx:for="{{logs}}" wx:key="id">
+      <view class="record-left">
+        <view class="record-score">{{item.score}} <text class="unit">积分</text></view>
+      </view>
+      <view class="record-center">
+        <view class="record-date">{{item.date}}</view>
+        <view class="record-time">{{item.time}}</view>
+      </view>
+      <view class="record-right">
+        <view class="delete-btn" bindtap="onDeleteLog" data-id="{{item.id}}">删除</view>
+      </view>
+    </view>
+  </view>
+</view>

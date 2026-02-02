@@ -39,7 +39,9 @@
   </view>
 
   <view class="footer">
-    <text class="footer-text">就这么图 · 让图片处理更简单</text>
+    <view class="footer-text-wrapper" bindtap="onSecretTap">
+      <text class="footer-text">就这么图 · 让图片处理更简单</text>
+    </view>
   </view>
 
   <canvas type="2d" id="posterCanvas" style="position:fixed; left: -9999px; width: 1080px; height: 1920px;"></canvas>
