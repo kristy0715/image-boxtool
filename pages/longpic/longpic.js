@@ -334,7 +334,22 @@ Page({
     });
   },
 
-  onShareAppMessage() {
-    return { title: '长图拼接工具', path: '/pages/longpic/longpic', imageUrl: this.data.resultImage || '' };
-  }
+ // === 分享配置 ===
+ onShareAppMessage() {
+  const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+  return {
+    title: '截图拼接长图工具，聊天记录无缝衔接！',
+    path: '/pages/longpic/longpic',
+    imageUrl: imageUrl
+  };
+},
+
+onShareTimeline() {
+  const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+  return {
+    title: '截图拼接长图工具，聊天记录无缝衔接！',
+    query: '',
+    imageUrl: imageUrl
+  };
+}
 });

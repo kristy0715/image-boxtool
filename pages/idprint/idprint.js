@@ -297,5 +297,22 @@ Page({
   },
   
   onAdError(err) { console.log(err); },
-  onShareAppMessage() { return { title: '超清无损证件照排版', path: '/pages/idprint/idprint' }; }
+  // === 分享配置 ===
+  onShareAppMessage() {
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '证件照智能排版工具，多个尺寸支持！',
+      path: '/pages/idprint/idprint',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '证件照智能排版工具，在家打印立省几十块！',
+      query: '',
+      imageUrl: imageUrl
+    };
+  }
 });

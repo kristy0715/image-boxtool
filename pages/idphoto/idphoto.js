@@ -466,5 +466,22 @@ Page({
       }
     });
   },
-  onShareAppMessage() { return { title: '免费证件照制作', path: '/pages/idphoto/idphoto' }; }
+  // === 分享配置 ===
+  onShareAppMessage() {
+    const imageUrl = this.data.processedImage || '/assets/share-cover.png';
+    return {
+      title: '手机就能拍证件照，自动抠图换底色！',
+      path: '/pages/idphoto/idphoto',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.processedImage || '/assets/share-cover.png';
+    return {
+      title: '免费制作高清证件照，一寸二寸随心换，立省几十块！',
+      query: '',
+      imageUrl: imageUrl
+    };
+  }
 });

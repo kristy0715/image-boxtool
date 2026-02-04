@@ -1,0 +1,76 @@
+<view class="container">
+  
+  <view class="page-header">
+    <text class="page-title">AI 智能抠图</text>
+    <text class="page-subtitle">自动识别主体 · 剩余次数: {{aiLeft}}</text>
+  </view>
+
+  <view class="content-area">
+    
+    <view class="card editor-card" wx:if="{{!resultImage}}">
+      <view class="feature-tip">
+        <text>📅 每日免费 1 次，看广告领 3 次</text>
+      </view>
+
+      <view class="upload-container">
+        <view class="upload-area" bindtap="chooseImage">
+          <text class="upload-icon">🦋</text>
+          <text class="upload-text">点击上传图片</text>
+          <text class="upload-hint">自动去底 · 预览满意再解锁</text> 
+        </view>
+      </view>
+    </view>
+
+    <view class="card edit-card" wx:else>
+      
+      <view class="preview-box">
+        <view class="canvas-box" style="background: {{previewBgColor}};">
+          <view class="checkerboard" wx:if="{{previewBgColor === 'transparent'}}"></view>
+          <image class="result-img" src="{{resultImage}}" mode="aspectFit"></image>
+        </view>
+      </view>
+
+      <view class="tool-header">
+        <view class="tool-label">背景填充</view>
+        <view class="color-options">
+          <view class="color-circle checker {{previewBgColor === 'transparent' ? 'active' : ''}}" 
+                bindtap="changeBg" data-color="transparent"></view>
+          <view class="color-circle white {{previewBgColor === '#ffffff' ? 'active' : ''}}" 
+                bindtap="changeBg" data-color="#ffffff"></view>
+          <view class="color-circle red {{previewBgColor === '#D9241E' ? 'active' : ''}}" 
+                bindtap="changeBg" data-color="#D9241E"></view>
+          <view class="color-circle blue {{previewBgColor === '#438EDB' ? 'active' : ''}}" 
+                bindtap="changeBg" data-color="#438EDB"></view>
+          <view class="color-circle black {{previewBgColor === '#000000' ? 'active' : ''}}" 
+                bindtap="changeBg" data-color="#000000"></view>
+        </view>
+      </view>
+
+    </view>
+  </view>
+
+  <view class="ad-container">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view style="height: 250rpx;"></view>
+
+  <view class="bottom-bar" wx:if="{{resultImage}}">
+    <view class="action-row">
+      <view class="circle-btn" bindtap="chooseImage">
+        <text>🔄</text>
+        <text class="btn-label">重选</text>
+      </view>
+      <button class="save-btn" bindtap="saveImage">
+        保存到相册
+      </button>
+    </view>
+  </view>
+
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">AI 正在抠图中...</text>
+    </view>
+  </view>
+</view>

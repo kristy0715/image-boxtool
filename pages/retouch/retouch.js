@@ -468,11 +468,22 @@ Page({
     });
   },
 
-  onShareAppMessage() {
-      return {
-          title: '一键智能美颜，人像修图神器',
-          path: '/pages/retouch/retouch',
-          imageUrl: this.data.resultPath || '/assets/share-cover.png'
-      };
-  }
+ // === 分享配置 ===
+ onShareAppMessage() {
+  const imageUrl = this.data.resultPath || '/assets/share-cover.png';
+  return {
+    title: '一键人像精修，智能美颜磨皮！',
+    path: '/pages/retouch/retouch',
+    imageUrl: imageUrl
+  };
+},
+
+onShareTimeline() {
+  const imageUrl = this.data.resultPath || '/assets/share-cover.png';
+  return {
+    title: '一键人像精修，智能美颜磨皮！',
+    query: '',
+    imageUrl: imageUrl
+  };
+}
 });

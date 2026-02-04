@@ -54,20 +54,22 @@ Page({
     }
   },
 
-  // 分享给好友
+  // === 分享配置 ===
   onShareAppMessage() {
+    const imageUrl = this.data.imagePath || '/assets/share-cover.png';
     return {
-      title: '免费好用的全能图片工具箱！证件照、去水印、九宫格切图、一键搞定',
-      path: '/pages/index/index',
-      imageUrl: this.data.imagePath
+      title: '我制作了一张超棒的图片，快来看看！',
+      path: '/pages/index/index', // 成功页分享通常跳回首页，或者跳回具体功能页，这里回首页较稳妥
+      imageUrl: imageUrl
     };
   },
 
-  // 分享到朋友圈
   onShareTimeline() {
+    const imageUrl = this.data.imagePath || '/assets/share-cover.png';
     return {
-      title: '强烈推荐这个全能图片工具箱，功能强大完全免费！',
-      imageUrl: this.data.imagePath
+      title: '我制作了一张超棒的图片，快来看看！',
+      query: '',
+      imageUrl: imageUrl
     };
   },
 

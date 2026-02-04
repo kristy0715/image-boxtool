@@ -373,7 +373,22 @@ Page({
     return arr;
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
-    return { title: '图片文字一键提取', path: '/pages/ocr/ocr' };
+    const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+    return {
+      title: '免费图片转文字OCR，拍照一键提取！',
+      path: '/pages/ocr/ocr',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+    return {
+      title: '免费图片转文字OCR，拍照一键提取！',
+      query: '',
+      imageUrl: imageUrl
+    };
   }
 });

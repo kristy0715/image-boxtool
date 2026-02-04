@@ -5,7 +5,7 @@ let videoAd = null;
 let interstitialAd = null;
 let tempPosterPath = ''; 
 let nextBgPromise = null; // 弹窗打开时的预加载任务
-let downloadingBgTask = null; // 【核心新增】点击广告时的实时下载任务
+let downloadingBgTask = null; // 点击广告时的实时下载任务
 
 const app = getApp();
 
@@ -16,19 +16,24 @@ Page({
     showFortuneModal: false,
     todayFortune: null,
     
-    // 🔥 新增：Banner 广告 ID (沿用其他页面的ID)
+    // Banner 广告 ID
     bannerUnitId: 'adunit-ecfcec4c6a0c871b',
 
-    // 工具列表 (保持不变)
+    // 🔥 工具列表 (已更新：新增抠图和修复)
     toolList: [
       {id:'idphoto',title:'证件照制作',desc:'一寸 二寸 换底色',icon:'📷',colors:['#6366f1','#8b5cf6']},
       {id:'idprint',title:'证件照排版',desc:'排版打印省钱',icon:'🖨️',colors:['#8b5cf6','#a78bfa']},
-      {id:'grid9',title:'九宫格切图',desc:'朋友圈九宫格 心形拼图',icon:'🍱',colors:['#64748b','#94a3b8']},
+      // ✨ 新增模块：AI 抠图
+      {id:'matting',title:'AI智能抠图',desc:'发丝级自动去底',icon:'🦋',colors:['#ec4899','#f472b6']},
+      // ✨ 新增模块：AI 修复
+      {id:'restore', title:'AI高清修复', desc:'模糊变清晰 老照片', icon:'💎', colors:['#6366f1', '#8b5cf6']},
+      
       {id:'watermark',title:'图片去水印',desc:'AI智能去除图片水印',icon:'✨',colors:['#f59e0b','#fbbf24']},
-      {id:'mosaic',title:'图片马赛克',desc:'隐私打码 模糊处理',icon:'🔲',colors:['#64748b','#94a3b8']},
+      {id:'grid9',title:'九宫格切图',desc:'朋友圈九宫格 心形拼图',icon:'🍱',colors:['#64748b','#94a3b8']},
       {id:'collage',title:'图片拼接',desc:'多图合并 宫格拼图',icon:'🧩',colors:['#14b8a6','#2dd4bf']},
       {id:'crop',title:'图片裁剪',desc:'自由裁剪 比例裁剪',icon:'✂️',colors:['#f59e0b','#fbbf24']},
       {id:'compress',title:'图片压缩',desc:'智能压缩 高清无损',icon:'📦',colors:['#ec4899','#f472b6']},
+      {id:'mosaic',title:'图片马赛克',desc:'隐私打码 模糊处理',icon:'🔲',colors:['#64748b','#94a3b8']},
       {id:'longpic',title:'长图拼接',desc:'聊天截图拼长图',icon:'📜',colors:['#06b6d4','#22d3ee']},
       {id:'batchwm',title:'批量加水印',desc:'一键加水印 微商专用',icon:'💧',colors:['#ef4444','#f87171']},
     ],
@@ -59,7 +64,6 @@ Page({
     this.initInterstitialAd();
   },
 
-  // 🔥 新增：广告错误监听
   onAdError(err) {
     console.log('Banner 广告加载失败', err);
   },
@@ -87,7 +91,6 @@ Page({
   openFortuneModal() {
     this.setData({ showFortuneModal: true });
     this.generatePoster().catch((err) => { console.error("预加载失败:", err); });
-    // 依然保留打开时的预加载，作为备选方案
     this.preloadNextBg(); 
   },
   
@@ -107,11 +110,9 @@ Page({
       videoAd.onError((err) => console.error('激励视频加载失败', err));
       videoAd.onClose((res) => {
         if (res && res.isEnded) {
-          // 广告结束，立即使用刚才下载的图
           this.changeToPremiumBg();
         } else {
           wx.showToast({ title: '需完整观看才能解锁', icon: 'none' });
-          // 如果中途退出，取消/忽略刚才的下载任务，避免下次混淆
           downloadingBgTask = null;
         }
       });
@@ -126,9 +127,8 @@ Page({
     }
   },
 
-  // === 【关键修改】点击按钮：边下图片，边播广告 ===
+  // === 点击按钮：边下图片，边播广告 ===
   handleChangeBgAd() {
-    // 1. 立即开始下载 (利用广告时间的15-30秒)
     const newBgUrl = fortuneService.getRandomPremiumBg();
     console.log('开始静默下载背景:', newBgUrl);
     downloadingBgTask = this.downloadFile(newBgUrl).catch(err => {
@@ -136,7 +136,6 @@ Page({
       return null;
     });
 
-    // 2. 同时展示广告
     if (videoAd) {
       videoAd.show().catch(() => {
         videoAd.load().then(() => videoAd.show()).catch(err => {
@@ -144,42 +143,36 @@ Page({
         });
       });
     } else {
-      // 异常兜底
       this.changeToPremiumBg();
     }
   },
 
-  // === 【关键修改】应用背景 ===
+  // === 应用背景 ===
   async changeToPremiumBg() {
     wx.showLoading({ title: '正在切换...', mask: true });
 
     try {
       let localPath = null;
 
-      // 优先级 1: 使用刚才点击广告时发起的下载任务 (大概率已经下载完了)
       if (downloadingBgTask) {
         localPath = await downloadingBgTask;
       }
 
-      // 优先级 2: 如果上面的失败了，尝试使用弹窗打开时的预加载任务
       if (!localPath && nextBgPromise) {
         console.log('使用备用预加载图');
         localPath = await nextBgPromise;
       }
 
-      // 优先级 3: 实在不行，现场下载一张新的
       if (!localPath) {
         const newBgUrl = fortuneService.getRandomPremiumBg(); 
         localPath = await this.downloadFile(newBgUrl);
       }
 
-      // 更新 UI
       this.setData({
         'todayFortune.bgUrl': localPath, 
         'todayFortune.isPremiumBg': true
       }, () => {
         this.generatePoster();
-        // 重置任务，并预加载下一张
         downloadingBgTask = null;
         this.preloadNextBg();
       });
@@ -210,7 +203,7 @@ Page({
   },
 
   // =================================================================
-  // --- 绘图逻辑 (保持不变) ---
+  // --- 绘图逻辑 ---
   // =================================================================
   async generatePoster() {
     if (!this.data.showFortuneModal) return;
@@ -338,9 +331,10 @@ Page({
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
       ctx.fillText(String(fortune.day), contentLeft, headerY - R(12)); 
+      
       const dayW = ctx.measureText(String(fortune.day)).width;
-
       const dateRightX = contentLeft + dayW + R(20); 
+      
       ctx.font = `900 ${R(26)}px sans-serif`;
       ctx.fillText(fortune.month, dateRightX, headerY + R(10)); 
       ctx.fillStyle = '#666';
@@ -485,9 +479,6 @@ Page({
     ctx.drawImage(img, sX, sY, sW, sH, x, y, w, h);
   },
 
-  // =================================================================
-  // --- 分享逻辑 (保持不变) ---
-  // =================================================================
   onShareAppMessage(res) {
     if (res.from === 'button') {
       const fortune = this.data.todayFortune;
@@ -498,7 +489,7 @@ Page({
       };
     }
     return { 
-      title: '我发现一个神器！免费做证件照、去水印、九宫格切图、美颜滤镜一键搞定！', 
+      title: '我发现一个神器！免费做证件照、去水印、抠图、九宫格、美颜滤镜一键搞定！', 
       path: '/pages/index/index',
       imageUrl: '/assets/share-cover.png' 
     };
@@ -506,7 +497,7 @@ Page({
 
   onShareTimeline() { 
     return { 
-      title: '我发现一个神器！免费做证件照、去水印、九宫格切图、美颜滤镜一键搞定！', 
+      title: '我发现一个神器！免费做证件照、去水印、抠图、九宫格切图、美颜滤镜一键搞定！', 
       imageUrl: '/assets/share-cover.png' 
     }; 
   },
@@ -564,15 +555,11 @@ Page({
     });
   },
 
-  // ... 其他代码 ...
-
-  // === 🥚 优化后的隐藏入口：连击 5 次 ===
   _tapCount: 0,
   _lastTapTime: 0,
 
   onSecretTap() {
     const now = Date.now();
-    // 如果两次点击间隔超过 500ms，重置计数
     if (now - this._lastTapTime > 500) {
       this._tapCount = 0;
     }
@@ -580,15 +567,13 @@ Page({
     this._tapCount++;
     this._lastTapTime = now;
 
-    // 可以在第 3 次点击时给个轻微震动提示，增加手感
     if (this._tapCount === 3) {
        wx.vibrateShort({ type: 'light' });
     }
 
-    // 达到 5 次，触发跳转
     if (this._tapCount >= 5) {
-      this._tapCount = 0; // 重置
-      wx.vibrateShort({ type: 'medium' }); // 成功震动
+      this._tapCount = 0;
+      wx.vibrateShort({ type: 'medium' });
       
       wx.navigateTo({
         url: '/pages/admin/score/score',
@@ -598,6 +583,4 @@ Page({
       });
     }
   },
-  
-  // ... 其他代码 ...
 });

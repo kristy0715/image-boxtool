@@ -393,6 +393,23 @@ Page({
       }
   },
   
-  onShareAppMessage() { return { title: '朋友圈九宫格切图神器', path: '/pages/grid9/grid9', imageUrl: '/assets/share-cover.png' }; },
-  onShareTimeline() { return { title: '朋友圈九宫格切图神器', imageUrl: '/assets/share-cover.png' }; }
+ // === 分享配置 ===
+ onShareAppMessage() {
+  // 切图模块没有单张结果图，使用原图或默认封面
+  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+  return {
+    title: '朋友圈九宫格切图神器，心形拼图太好看了！',
+    path: '/pages/grid9/grid9',
+    imageUrl: imageUrl
+  };
+},
+
+onShareTimeline() {
+  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+  return {
+    title: '朋友圈九宫格切图神器，心形拼图太好看了！',
+    query: '',
+    imageUrl: imageUrl
+  };
+}
 });

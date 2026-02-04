@@ -315,7 +315,22 @@ Page({
     });
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
-    return { title: '长文转图片工具', path: '/pages/text2img/text2img' };
+    const imageUrl = this.data.previewImage || '/assets/share-cover.png';
+    return {
+      title: '长文转图片防折叠，朋友圈发文神器！',
+      path: '/pages/text2img/text2img',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.previewImage || '/assets/share-cover.png';
+    return {
+      title: '长文转图片防折叠，朋友圈发文神器！',
+      query: '',
+      imageUrl: imageUrl
+    };
   }
 });

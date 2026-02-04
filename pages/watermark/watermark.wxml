@@ -10,7 +10,7 @@
 
   <view class="card editor-card">
     <view class="feature-tip" wx:if="{{mode === 'manual'}}">
-      <text>⚠️ 普通消除仅限简单纯色背景</text>
+      <text>⚠️ 纯色背景我最棒</text>
     </view>
     <view class="feature-tip" wx:if="{{mode === 'auto'}}">
       <text>🚀 AI强力消除支持复杂背景</text>

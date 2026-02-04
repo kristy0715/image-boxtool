@@ -536,7 +536,22 @@ Page({
     img.src = this.originalImagePath;
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
-    return { title: '胶片质感滤镜', path: '/pages/filter/filter', imageUrl: this.data.generatedPath };
+    const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
+    return {
+      title: '一键切换滤镜，让照片瞬间高级起来！',
+      path: '/pages/filter/filter',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
+    return {
+      title: '一键切换滤镜，让照片瞬间高级起来！',
+      query: '',
+      imageUrl: imageUrl
+    };
   }
 });

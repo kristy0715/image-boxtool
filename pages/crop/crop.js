@@ -374,7 +374,22 @@ Page({
     });
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
-    return { title: '好用的图片裁剪工具', path: '/pages/crop/crop' };
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '图片无损裁剪工具，支持多种常用比例！',
+      path: '/pages/crop/crop',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '图片无损裁剪工具，支持多种常用比例！',
+      query: '',
+      imageUrl: imageUrl
+    };
   }
 });

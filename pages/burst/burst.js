@@ -402,5 +402,23 @@ Page({
       });
   },
 
-  onShareAppMessage() { return { title: '3D冲出九宫格特效' }; }
+  // === 分享配置 ===
+  onShareAppMessage() {
+    // 3D特效没有中间结果图变量，优先用底图(bgPath)展示，或者默认封面
+    const imageUrl = this.data.bgPath || '/assets/share-cover.png';
+    return {
+      title: '朋友圈3D冲出九宫格特效，这也太酷了吧！',
+      path: '/pages/burst/burst',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.bgPath || '/assets/share-cover.png';
+    return {
+      title: '快看！我做了一个3D冲出九宫格特效，超震撼！',
+      query: '',
+      imageUrl: imageUrl
+    };
+  }
 });

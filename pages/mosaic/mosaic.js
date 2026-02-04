@@ -528,10 +528,22 @@ Page({
     });
   },
 
-  onShareAppMessage() {
-    return {
-      title: '图片隐私打码工具',
-      path: '/pages/mosaic/mosaic'
-    };
-  }
+ // === 分享配置 ===
+ onShareAppMessage() {
+  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+  return {
+    title: '图片马赛克工具，隐私打码神器！',
+    path: '/pages/mosaic/mosaic',
+    imageUrl: imageUrl
+  };
+},
+
+onShareTimeline() {
+  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+  return {
+    title: '图片马赛克工具，隐私打码神器！',
+    query: '',
+    imageUrl: imageUrl
+  };
+}
 });

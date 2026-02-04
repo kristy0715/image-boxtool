@@ -684,18 +684,22 @@ Page({
     });
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
+    const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
     return {
-      title: '一键生成动漫头像，多种风格任你选！',
+      title: '一键照片变漫画，唯美日漫风！',
       path: '/pages/anime/anime',
-      imageUrl: this.data.generatedPath || '' 
+      imageUrl: imageUrl
     };
   },
 
   onShareTimeline() {
+    const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
     return {
-      title: '这个动漫风格滤镜太好玩了！',
-      imageUrl: this.data.generatedPath || ''
+      title: '一键照片变漫画，唯美日漫风！',
+      query: '',
+      imageUrl: imageUrl
     };
   }
 });

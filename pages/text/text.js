@@ -402,5 +402,23 @@ Page({
     else this.realSaveProcess();
   },
   onAdError() {},
-  onShareAppMessage() { return { title: '多功能加字贴纸', path: '/pages/text/text' }; }
+// === 分享配置 ===
+onShareAppMessage() {
+  // 优先展示用户上传的底图，或者默认封面
+  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+  return {
+    title: '图片加字/加水印，支持花样字体和贴纸！',
+    path: '/pages/text/text',
+    imageUrl: imageUrl
+  };
+},
+
+onShareTimeline() {
+  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+  return {
+    title: '图片加字/加水印，支持花样字体和贴纸！',
+    query: '',
+    imageUrl: imageUrl
+  };
+}
 });

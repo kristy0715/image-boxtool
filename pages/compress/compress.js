@@ -390,17 +390,22 @@ Page({
     else return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
+    const imageUrl = this.data.compressedImage || '/assets/share-cover.png';
     return {
-      title: '在线图片压缩，支持指定大小和质量！',
+      title: '图片无损压缩工具，节省空间不失真！',
       path: '/pages/compress/compress',
-      imageUrl: this.data.compressedImage || '' 
+      imageUrl: imageUrl
     };
   },
+
   onShareTimeline() {
+    const imageUrl = this.data.compressedImage || '/assets/share-cover.png';
     return {
-      title: '图片太大发不出？用这个一键压缩！',
-      imageUrl: this.data.compressedImage || ''
+      title: '图片无损压缩工具，节省空间不失真！',
+      query: '',
+      imageUrl: imageUrl
     };
-  },
+  }
 });

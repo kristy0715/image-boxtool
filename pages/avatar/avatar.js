@@ -400,18 +400,22 @@ Page({
     });
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
+    const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
     return {
-      title: '一键生成节日头像，快来试试！',
+      title: '定制专属头像挂件，节日氛围拉满！',
       path: '/pages/avatar/avatar',
-      imageUrl: this.data.generatedPath || '' 
+      imageUrl: imageUrl
     };
   },
 
   onShareTimeline() {
+    const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
     return {
-      title: '我的头像新挂件，好看吗？',
-      imageUrl: this.data.generatedPath || ''
+      title: '定制专属头像挂件，节日氛围拉满！',
+      query: '',
+      imageUrl: imageUrl
     };
   }
 });

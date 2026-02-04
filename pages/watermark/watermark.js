@@ -2,12 +2,14 @@
 const Security = require('../../utils/security.js');
 
 // ============================================================
-// 🔥 配置区域 (已移除敏感 Key)
+// 🔥 配置区域 (正式版：启用双接口配置)
 // ============================================================
 const SERVER_CONFIG = {
-  // 🔥🔥🔥 请替换为您在 Laf 创建的云函数地址 🔥🔥🔥
-  // 例如: https://xxxxxx.laf.run/remove-watermark
-  LAF_URL: 'https://kvpoib63ld.sealosbja.site/remove-watermark' 
+  // 🟢 Plan A: 新接口 (Guoxin via Laf)
+  NEW_LAF_URL: 'https://kvpoib63ld.sealosbja.site/remove-watermark-guoxin',
+  
+  // 🔵 Plan B: 旧接口 (Shiliu via Laf)
+  OLD_LAF_URL: 'https://kvpoib63ld.sealosbja.site/remove-watermark' 
 };
 
 const AD_CONFIG = {
@@ -141,12 +143,14 @@ Page({
     if (this.data.isProcessing) return;
 
     if (this.data.mode === 'manual') {
-      this.processTelea();
+      // 模式1：手动模式 (强制本地算法)
+      this.processTelea(); 
     } else {
+      // 模式2：AI模式 (云端优先 -> 降级)
       const stock = this.getAiStock();
       if (stock.total > 0) {
         this.consumeAiStock();
-        this.startShiliuAIProcess();
+        this.startAiPipeline();
       } else {
         this.setData({ pendingAdType: 'ai' });
         this.showAdModal('ai');
@@ -154,68 +158,124 @@ Page({
     }
   },
 
-  // === AI 算法 (已对接 Laf 云函数) ===
-  async startShiliuAIProcess() {
+  // === AI 智能流水线 (新接口 -> 旧接口 -> 本地算法) ===
+  async startAiPipeline() {
     this.setData({ isProcessing: true });
-    wx.showLoading({ title: 'AI去水印中...', mask: true });
+    wx.showLoading({ title: 'AI 消除中...', mask: true });
 
     try {
-      // 检查 Laf URL 是否配置
-      if (!SERVER_CONFIG.LAF_URL || SERVER_CONFIG.LAF_URL.includes('请在这里填入')) {
-        throw new Error('请先配置 Laf 云函数 URL');
+      // 1. 统一准备数据
+      const { imgBase64, maskBase64 } = await this.prepareAiData();
+
+      // 2. 尝试 Plan A (新接口 Guoxin)
+      try {
+        console.log('🚀 [Plan A] 尝试新接口...');
+        await this.processWithNewApi(imgBase64, maskBase64);
+        return; // 成功则退出
+      } catch (errA) {
+        console.warn('⚠️ [Plan A] 失败，切换备用线路。原因:', errA);
+        wx.showToast({ title: '切换备用线路...', icon: 'none', duration: 1500 });
       }
 
-      // 1. 限制尺寸 (防崩溃)
-      const { width, height } = this.getOptimalSize(this.data.imageWidth, this.data.imageHeight);
-      
-      // 2. 获取原图
-      const imgBase64 = await this.getResizedImageBase64(width, height);
-      
-      // 3. 🔥 获取“漂白”后的蒙版
-      const maskBase64 = await this.getMaskBase64PureWhite(width, height);
+      // 3. 尝试 Plan B (旧接口 Shiliu)
+      try {
+        console.log('🚀 [Plan B] 尝试旧接口...');
+        await this.processWithOldApi(imgBase64, maskBase64);
+        return; // 成功则退出
+      } catch (errB) {
+        console.warn('⚠️ [Plan B] 失败，切换本地算法。原因:', errB);
+        wx.showToast({ title: '网络波动，转本地增强', icon: 'none', duration: 1500 });
+      }
 
-      // 4. 🔥 请求 Laf 云函数 (不再直接请求 Shiliu)
-      wx.request({
-        url: SERVER_CONFIG.LAF_URL, // 您的 Laf 地址
-        method: 'POST',
-        data: { 
-          image_base64: imgBase64, 
-          mask_base64: maskBase64, 
-          mode: 'new' 
-        },
-        success: (res) => {
-          // 注意：Laf 返回的 res.data 才是云函数的返回值，所以可能需要多解一层
-          // 假设云函数直接返回了 AI 的 JSON
-          const aiData = res.data; 
+      // 4. 尝试 Plan C (本地算法 Telea)
+      console.log('💻 [Plan C] 使用本地算法...');
+      // true 表示这是降级调用，不要重复 setData
+      this.processTelea(true);
 
-          if (aiData && aiData.code === 0 && aiData.result_base64) {
-            // 清洗 Base64
-            let rawBase64 = aiData.result_base64;
-            if (rawBase64.startsWith('data:image')) {
-                rawBase64 = rawBase64.split('base64,')[1];
-            }
-            rawBase64 = rawBase64.replace(/[\r\n\s]/g, "");
-
-            this.base64ToTempFile(rawBase64)
-              .then(filePath => this.handleSuccess(filePath))
-              .catch(err => {
-                this.handleError(new Error('图片保存失败'));
-              });
-          } else {
-            const msg = (aiData && aiData.msg) ? aiData.msg : 'Server Error';
-            this.handleError(new Error(msg));
-          }
-        },
-        fail: (err) => { 
-          this.handleError(new Error('网络请求失败')); 
-        }
-      });
     } catch (err) {
       this.handleError(err);
     }
   },
 
-  // 🔥 蒙版生成器：颜色漂白 + 边缘膨胀
+  // 辅助：数据准备
+  async prepareAiData() {
+    const { width, height } = this.getOptimalSize(this.data.imageWidth, this.data.imageHeight);
+    const imgBase64 = await this.getResizedImageBase64(width, height);
+    const maskBase64 = await this.getMaskBase64PureWhite(width, height);
+    return { imgBase64, maskBase64 };
+  },
+
+  // Plan A: 新接口
+  processWithNewApi(imgBase64, maskBase64) {
+    return new Promise((resolve, reject) => {
+      if (!SERVER_CONFIG.NEW_LAF_URL) return reject(new Error('New API URL not set'));
+      
+      wx.request({
+        url: SERVER_CONFIG.NEW_LAF_URL,
+        method: 'POST',
+        data: { image_base64: imgBase64, mask_base64: maskBase64 },
+        timeout: 60000, 
+        success: (res) => {
+          if (res.data && res.data.code === 0 && res.data.result_url) {
+            this.downloadAndShowResult(res.data.result_url, resolve, reject);
+          } else {
+            reject(new Error(res.data?.msg || 'New API Biz Error'));
+          }
+        },
+        fail: (err) => reject(err)
+      });
+    });
+  },
+
+  // Plan B: 旧接口
+  processWithOldApi(imgBase64, maskBase64) {
+    return new Promise((resolve, reject) => {
+      if (!SERVER_CONFIG.OLD_LAF_URL) return reject(new Error('Old API URL not set'));
+
+      wx.request({
+        url: SERVER_CONFIG.OLD_LAF_URL,
+        method: 'POST',
+        data: { image_base64: imgBase64, mask_base64: maskBase64, mode: 'new' },
+        timeout: 60000,
+        success: (res) => {
+          const aiData = res.data;
+          if (aiData && aiData.code === 0 && aiData.result_base64) {
+            let rawBase64 = aiData.result_base64;
+            if (rawBase64.startsWith('data:image')) rawBase64 = rawBase64.split('base64,')[1];
+            rawBase64 = rawBase64.replace(/[\r\n\s]/g, "");
+            
+            this.base64ToTempFile(rawBase64)
+              .then(filePath => {
+                this.handleSuccess(filePath);
+                resolve();
+              })
+              .catch(err => reject(err));
+          } else {
+            reject(new Error(aiData?.msg || 'Old API Biz Error'));
+          }
+        },
+        fail: (err) => reject(err)
+      });
+    });
+  },
+
+  // 辅助：下载结果图
+  downloadAndShowResult(url, resolve, reject) {
+    wx.downloadFile({
+      url: url,
+      success: (res) => {
+        if (res.statusCode === 200) {
+          this.handleSuccess(res.tempFilePath);
+          resolve();
+        } else {
+          reject(new Error('Download failed'));
+        }
+      },
+      fail: reject
+    });
+  },
+
+  // 🔥 蒙版生成器
   getMaskBase64PureWhite(targetW, targetH) {
     return new Promise((resolve, reject) => {
       const w = targetW; const h = targetH;
@@ -251,9 +311,11 @@ Page({
   },
 
   // === 本地算法 (Telea) ===
-  processTelea() {
-    this.setData({ isProcessing: true });
-    wx.showLoading({ title: '普通去水印中...' });
+  processTelea(isFallback = false) {
+    if (!isFallback) {
+      this.setData({ isProcessing: true });
+      wx.showLoading({ title: '普通去水印中...' });
+    }
 
     setTimeout(() => {
       try {
@@ -617,5 +679,22 @@ Page({
   },
   startCompare() { this.setData({ isComparing: true }); },
   endCompare() { this.setData({ isComparing: false }); },
-  onShareAppMessage() { return { title: '免费去水印', path: '/pages/watermark/watermark' }; }
+  // === 分享配置 ===
+  onShareAppMessage() {
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '免费一键去水印，消除笔无痕修复！',
+      path: '/pages/watermark/watermark',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '免费一键去水印，消除笔无痕修复！',
+      query: '',
+      imageUrl: imageUrl
+    };
+  }
 });

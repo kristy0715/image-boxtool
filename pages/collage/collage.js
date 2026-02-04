@@ -431,7 +431,22 @@ Page({
       ctx.fillText(String(num), cx, cy + fontSize*0.1); 
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
-      return { title: '拼图神器', path: '/pages/collage/collage' };
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '免费拼图神器，支持多图合并、宫格拼图！',
+      path: '/pages/collage/collage',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '免费拼图神器，支持多图合并、宫格拼图！',
+      query: '',
+      imageUrl: imageUrl
+    };
   }
 });

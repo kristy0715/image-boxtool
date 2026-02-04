@@ -21,7 +21,9 @@
     "pages/retouch/retouch",
     "pages/success/success",
     "pages/burst/burst",
-    "pages/admin/score/score"
+    "pages/admin/score/score",
+    "pages/matting/matting",
+    "pages/restore/restore"
   ],
   "window": {
     "backgroundTextStyle": "dark",

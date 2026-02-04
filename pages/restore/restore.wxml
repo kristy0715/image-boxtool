@@ -1,0 +1,96 @@
+<view class="container">
+  
+  <view class="page-header">
+    <text class="page-title">AI 画质修复</text>
+    <view class="header-status">
+      <text class="page-subtitle">模糊变清晰 · 4倍无损放大</text>
+      <text class="quota-badge" wx:if="{{aiLeft > 0}}">剩余 {{aiLeft}} 次</text>
+      <text class="quota-badge empty" wx:else>次数用尽</text>
+    </view>
+  </view>
+
+  <view class="content-area">
+    
+    <view class="upload-wrapper" wx:if="{{!resultImage}}">
+      
+      <view class="hero-card">
+        <view class="hero-demo-box">
+          <view class="demo-half left">
+             <text class="blur-effect">😐</text>
+             <view class="demo-tag">Blur</view>
+          </view>
+          <view class="demo-slider-icon">↔</view>
+          <view class="demo-half right">
+             <text class="clear-effect">😎</text>
+             <view class="demo-tag">HD</view>
+          </view>
+        </view>
+        <view class="hero-text-row">
+          <text class="hero-h1">AI 智能画质重生</text>
+          <text class="hero-p">老照片修复 / 表情包变高清</text>
+        </view>
+      </view>
+
+      <view class="action-card">
+        <view class="upload-btn-area" bindtap="chooseImage">
+          <view class="icon-box">📸</view>
+          <text class="main-text">点击上传图片</text>
+          <text class="sub-text">支持 JPG/PNG · 每日免费 1 次</text>
+        </view>
+        
+        <view class="feature-tags">
+          <view class="tag-item">⚡️ 极速处理</view>
+          <view class="tag-item">🔒 隐私安全</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="compare-wrapper" wx:else>
+      <view class="compare-card">
+        
+        <view class="compare-box" id="compareBox" 
+              style="width: {{layout.width}}px; height: {{layout.height}}px;"
+              bindtouchstart="onTouchStart" 
+              bindtouchmove="onTouchMove" 
+              catchtap="return">
+          
+          <image class="comp-img full" src="{{resultImage}}"></image>
+          
+          <view class="comp-mask" style="{{ 'width:' + sliderValue + '%;' }}">
+            <image class="comp-img clip" src="{{originImage}}" 
+                   style="width: {{layout.width}}px; height: {{layout.height}}px;"></image>
+            
+            <view class="divider-line"></view>
+          </view>
+
+          <view class="status-tag left" style="{{ 'opacity:' + (sliderValue > 15 ? 1 : 0) + ';' }}">修复前</view>
+          <view class="status-tag right" style="{{ 'opacity:' + (sliderValue < 85 ? 1 : 0) + ';' }}">修复后</view>
+          
+          <view class="touch-layer"></view>
+        </view>
+        
+        <view class="instruction-bar">
+          <text>↔️ 左右拖动查看对比效果</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="ad-container">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view style="height: 240rpx;"></view>
+
+  <view class="bottom-bar" wx:if="{{resultImage}}">
+    <view class="circle-btn" bindtap="chooseImage"><text>🔄</text></view>
+    <button class="save-btn" bindtap="saveImage">保存高清原图</button>
+  </view>
+
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">AI 正在绘图中...</text>
+    </view>
+  </view>
+</view>

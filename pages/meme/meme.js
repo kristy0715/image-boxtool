@@ -466,7 +466,23 @@ Page({
     img.src = this.data.imagePath;
   },
 
-  onShareAppMessage() {
-    return { title: '表情包制作神器', path: '/pages/meme/meme' };
-  }
+ // === 分享配置 ===
+ onShareAppMessage() {
+  // 优先使用原图作为背景示意，或默认封面
+  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+  return {
+    title: 'DIY专属表情包，斗图从此没输过！',
+    path: '/pages/meme/meme',
+    imageUrl: imageUrl
+  };
+},
+
+onShareTimeline() {
+  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+  return {
+    title: 'DIY专属表情包，斗图从此没输过！',
+    query: '',
+    imageUrl: imageUrl
+  };
+}
 });

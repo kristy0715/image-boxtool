@@ -323,7 +323,23 @@ Page({
       });
   },
 
+  // === 分享配置 ===
   onShareAppMessage() {
-    return { title: '图片批量加水印工具', path: '/pages/batchwm/batchwm' };
+    // 如果有生成结果预览图(resultImage)，则使用，否则用默认封面
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '微商必备！图片批量加水印，效率翻倍！',
+      path: '/pages/batchwm/batchwm',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
+    return {
+      title: '微商必备！图片批量加水印，效率翻倍！',
+      query: '',
+      imageUrl: imageUrl
+    };
   }
 });
