@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container" wx:if="{{isAllowed}}">
   <view class="page-header">
     <text class="page-title">艺术风格</text>
     <text class="page-subtitle">12种风格任你选</text>

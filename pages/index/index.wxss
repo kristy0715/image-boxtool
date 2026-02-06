@@ -39,17 +39,54 @@
   color: rgba(255, 255, 255, 0.9); font-weight: 500; letter-spacing: 1rpx; 
 }
 
+/* ... 前面的 Hero 样式保持不变 ... */
+
 /* === 工具列表 (双列网格) === */
 .section-header { 
-  padding: 30rpx 32rpx 20rpx; /* 减小间距 */
+  padding: 30rpx 32rpx 20rpx;
+  /* 🔥 改为 Flex 布局，两端对齐 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
+
 .section-title { 
   font-size: 30rpx; font-weight: 700; color: #1e293b; 
-  position: relative; padding-left: 16rpx; 
+  position: relative; padding-left: 16rpx;
 }
 .section-title::before { 
   content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); 
   width: 6rpx; height: 24rpx; background: #667eea; border-radius: 4rpx; 
+}
+
+/* 🔥 新增：极简纯图标客服按钮样式 */
+.mini-kefu-btn {
+  /* 强制重置微信按钮所有默认样式 */
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important; /* 透明背景 */
+  width: 60rpx !important;            /* 加大点击热区 */
+  height: 60rpx !important;
+  line-height: 60rpx !important;
+  min-height: 0 !important;
+  border: none !important;
+  
+  /* 布局 */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* 图标靠右对齐 */
+}
+
+/* 去掉伪元素边框 */
+.mini-kefu-btn::after { border: none; }
+
+/* 点击态 */
+.mini-kefu-btn:active { opacity: 0.5; }
+
+/* 图标大小 */
+.kefu-icon {
+  font-size: 34rpx;
+  color: #94a3b8; /* 使用和描述文字类似的灰色，低调不抢眼 */
 }
 
 /* 🔥 核心：双列布局 🔥 */

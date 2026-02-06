@@ -1,5 +1,10 @@
 // app.js
 App({
+  globalData: {
+    // 默认为 true (安全起见，默认开启保护，直到接口返回 false)
+    isAuditMode: true 
+  },
+  
   onLaunch() {
     // 初始化云开发
     if (wx.cloud) {

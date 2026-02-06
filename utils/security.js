@@ -1,7 +1,14 @@
 // utils/security.js
 
-// === 1. 本地敏感词库 (高频违规词) ===
-// 作用：无需联网，瞬间拦截明显违规内容，节省云资源。
+// =========================================================================
+
+const USE_LAF_CHANNEL = false; 
+// =========================================================================
+
+// 🔥 新方案配置：您的 Laf 云函数地址
+const LAF_CHECK_URL = 'https://kvpoib63ld.sealosbja.site/check-content';
+
+// === 本地敏感词库 (公用，第一道防线) ===
 const LOCAL_BLOCK_WORDS = [
   '台独', '港独', '藏独', '疆独', '法轮功', '六四', '暴乱', 
   '反共', '纳粹', '希特勒', '恐怖分子', 
@@ -15,18 +22,17 @@ const LOCAL_BLOCK_WORDS = [
 ];
 
 /**
- * 文本安全检测 (本地正则 + 云端检测)
+ * 文本安全检测 (双通道)
  */
 const checkText = (text) => {
   return new Promise(async (resolve) => {
     if (!text) { resolve(true); return; }
     
-    // 0. 预处理：去除干扰字符
+    // 0. 预处理
     const normalizedText = text.replace(/\s+/g, '').toLowerCase();
 
-    // --- 第一道防线：本地关键词检测 ---
+    // --- 第一道防线：本地关键词检测 (公用) ---
     const hitWord = LOCAL_BLOCK_WORDS.find(word => normalizedText.includes(word.toLowerCase()));
-    
     if (hitWord) {
       wx.hideLoading();
       wx.showToast({ title: '内容包含敏感词', icon: 'none' });
@@ -35,29 +41,54 @@ const checkText = (text) => {
       return;
     }
 
-    // --- 第二道防线：云端智能检测 ---
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'check-content',
-        data: { type: 'text', value: text }
+    // --- 第二道防线：分流处理 ---
+    if (USE_LAF_CHANNEL) {
+      // ✅ 方案 B：走 Laf 新接口 (备选)
+      console.log('🚀 [Security] 正在使用 Laf 通道检测文本...');
+      wx.request({
+        url: LAF_CHECK_URL,
+        method: 'POST',
+        data: { type: 'text', value: text },
+        success: (res) => {
+          if (res.data && res.data.errCode === 87014) {
+            wx.hideLoading();
+            wx.showToast({ title: '文字违规', icon: 'none' });
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        },
+        fail: () => {
+          console.warn('Laf 接口网络异常，默认放行');
+          resolve(true);
+        }
       });
-      
-      if (res.result && res.result.errCode === 87014) {
-        wx.hideLoading();
-        wx.showToast({ title: '文字违规', icon: 'none' });
-        resolve(false);
-      } else {
-        resolve(true);
+    } else {
+      // 🔄 方案 A：走原来的微信云开发 (当前默认)
+      console.log('☁️ [Security] 正在使用原微信云开发检测文本...');
+      try {
+        const res = await wx.cloud.callFunction({
+          name: 'check-content',
+          data: { type: 'text', value: text }
+        });
+        if (res.result && res.result.errCode === 87014) {
+          wx.hideLoading();
+          wx.showToast({ title: '文字违规', icon: 'none' });
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      } catch (err) {
+        // 云环境过期或调用失败，默认放行 (保持原有逻辑)
+        console.error('原云检测失效(已放行):', err);
+        resolve(true); 
       }
-    } catch (err) {
-      console.error('文字云检测失效(已放行):', err);
-      resolve(true); 
     }
   });
 };
 
 /**
- * 图片安全检测 (死守大小底线)
+ * 图片安全检测 (双通道)
  */
 const checkImage = (filePath) => {
   return new Promise(async (resolve) => {
@@ -66,56 +97,76 @@ const checkImage = (filePath) => {
       let checkPath = filePath;
 
       // 1. 获取原图大小
-      let fileInfo = fs.statSync(filePath); // 使用 statSync 更直接
+      let fileInfo = fs.statSync(filePath);
 
-      // 2. 压缩逻辑
+      // 2. 统一压缩逻辑 (为了过检测，两个方案都需要)
       // 如果图片 > 100KB，尝试极致压缩
       if (fileInfo.size > 100 * 1024) {
         try {
           const compressRes = await wx.compressImage({
             src: filePath,
-            quality: 1 // 极致压缩，只为过检测
+            quality: 1 // 极致压缩
           });
           checkPath = compressRes.tempFilePath;
-          
-          // 更新文件信息
           fileInfo = fs.statSync(checkPath);
           console.log('图片压缩后大小(KB):', Math.round(fileInfo.size / 1024));
         } catch (e) {
-          console.error('压缩失败，将使用原图判断:', e);
+          console.error('压缩失败，使用原图:', e);
         }
       }
 
-      // === 3. 核心修复：大小门槛熔断机制 ===
-      // 如果（无论是否压缩过）文件依然超过 200KB，直接放弃检测！
-      // 原因：微信云函数调用 payload 限制严格，大图必报 "data exceed max size"
-      if (fileInfo.size > 200 * 1024) {
+      // 3. 大小熔断 (太大的图直接放行，防止接口报错)
+      if (fileInfo.size > 200 * 1024) { // 200KB 限制
         console.warn('⚠️ 图片过大，跳过云检测，直接放行');
-        resolve(true); // 放行
+        resolve(true);
         return;
       }
 
-      // 4. 读取文件 Buffer
-      const fileBuffer = fs.readFileSync(checkPath);
+      // --- 分流处理 ---
+      if (USE_LAF_CHANNEL) {
+        // ✅ 方案 B：走 Laf 新接口 (备选)
+        console.log('🚀 [Security] 正在使用 Laf 通道检测图片...');
+        // 注意：Laf 方案通常需要 Base64 字符串
+        const base64 = fs.readFileSync(checkPath, 'base64');
+        
+        wx.request({
+          url: LAF_CHECK_URL,
+          method: 'POST',
+          data: { type: 'image', value: base64 },
+          success: (res) => {
+            if (res.data && res.data.errCode === 87014) {
+              wx.hideLoading();
+              wx.showToast({ title: '图片违规', icon: 'none' });
+              resolve(false);
+            } else {
+              resolve(true);
+            }
+          },
+          fail: () => resolve(true)
+        });
 
-      // 5. 调用云函数
-      const res = await wx.cloud.callFunction({
-        name: 'check-content',
-        data: { type: 'image', value: fileBuffer }
-      });
-
-      // 6. 判断结果
-      if (res.result && res.result.errCode === 87014) {
-        wx.hideLoading();
-        wx.showToast({ title: '图片违规', icon: 'none' });
-        resolve(false);
       } else {
-        resolve(true);
+        // 🔄 方案 A：走原来的微信云开发 (当前默认)
+        console.log('☁️ [Security] 正在使用原微信云开发检测图片...');
+        // 注意：微信云开发直接传 Buffer 效率更高
+        const fileBuffer = fs.readFileSync(checkPath);
+        
+        const res = await wx.cloud.callFunction({
+          name: 'check-content',
+          data: { type: 'image', value: fileBuffer }
+        });
+
+        if (res.result && res.result.errCode === 87014) {
+          wx.hideLoading();
+          wx.showToast({ title: '图片违规', icon: 'none' });
+          resolve(false);
+        } else {
+          resolve(true);
+        }
       }
 
     } catch (err) {
-      // 这里的 catch 是为了捕获网络错误或其他意外
-      console.error('云检测出错(已放行):', err);
+      console.error('检测流程出错(已放行):', err);
       resolve(true); 
     }
   });

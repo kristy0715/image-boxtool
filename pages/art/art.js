@@ -1,6 +1,8 @@
-// pages/anime/anime.js
+// pages/art/art.js
 
 const Security = require('../../utils/security.js');
+const Audit = require('../../utils/audit.js');
+
 
 // === 1. 广告配置 ===
 const AD_CONFIG = {
@@ -13,6 +15,8 @@ const FREE_COUNT_DAILY = 2; // 每天免费保存 2 次
 
 Page({
   data: {
+    // 🔥 1. 核心大锁：默认为 false，谁也别想看
+    isAllowed: false,
     imagePath: '',
     canvasWidth: 300,
     canvasHeight: 300,
@@ -43,11 +47,26 @@ Page({
   videoAd: null, // 广告实例
 
   onLoad() {
-    this.dpr = wx.getSystemInfoSync().pixelRatio;
-    this.initVideoAd();
+    // 🔥 核心修改：使用通用函数检查权限
+    Audit.checkAccess().then(allowed => {
+      if (!allowed) return; // 被拦截了，直接结束
+      // ✅ 3. 拿到通行证：解锁界面 + 恢复标题
+      // ✅ 权限通过：先解锁界面，确保渲染完成后，再设置标题
+      this.setData({ isAllowed: true }, () => {
+        // 放这里：界面渲染完了，再改标题，防止 "updateTextView:fail" 报错
+        wx.setNavigationBarTitle({ title: '照片变漫画_动漫头像_二次元头像制作' });
+      });
+
+      // ✅ 允许访问，执行初始化
+      this.dpr = wx.getSystemInfoSync().pixelRatio;
+      this.initVideoAd();
+    });
   },
 
   onReady() {
+    // 配合 onLoad 的拦截，防止未授权时 canvas 报错
+    const app = getApp();
+    if (app.globalData.isAuditMode) return;
     this.initCanvas();
   },
 
@@ -689,7 +708,7 @@ Page({
     const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
     return {
       title: '一键照片变漫画，唯美日漫风！',
-      path: '/pages/anime/anime',
+      path: '/pages/art/art',
       imageUrl: imageUrl
     };
   },

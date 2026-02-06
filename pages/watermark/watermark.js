@@ -171,9 +171,17 @@ Page({
       try {
         console.log('🚀 [Plan A] 尝试新接口...');
         await this.processWithNewApi(imgBase64, maskBase64);
-        return; // 成功则退出
+        console.log('✅ [Plan A] 流程完全成功 (包含下载)');
+        return; // 只有下载成功，才会return，不再执行后面
       } catch (errA) {
-        console.warn('⚠️ [Plan A] 失败，切换备用线路。原因:', errA);
+        // 🔥🔥🔥 重点：打印出具体的错误信息 🔥🔥🔥
+        console.warn('⚠️ [Plan A] 阶段失败 (可能是云端报错，也可能是前端下载失败)。详情:', errA);
+        
+        // 特别检测是不是域名问题
+        if (errA && errA.errMsg && errA.errMsg.includes('domain')) {
+            console.error('🚨 严重错误：未配置 downloadFile 域名！请去微信后台添加 https://www.guoxin.work');
+        }
+
         wx.showToast({ title: '切换备用线路...', icon: 'none', duration: 1500 });
       }
 
@@ -189,7 +197,6 @@ Page({
 
       // 4. 尝试 Plan C (本地算法 Telea)
       console.log('💻 [Plan C] 使用本地算法...');
-      // true 表示这是降级调用，不要重复 setData
       this.processTelea(true);
 
     } catch (err) {
