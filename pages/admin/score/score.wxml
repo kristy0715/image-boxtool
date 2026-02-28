@@ -1,30 +1,45 @@
 <view class="container">
   <view class="card header-card">
     <view class="card-title">
-      <text class="icon">💰</text>
-      <text>剩余积分</text>
+      <text class="icon">🔗</text>
+      <text>Shiliu 平台积分</text>
     </view>
     <view class="score-num">{{score}}</view>
-    <view class="score-desc">积分可用于图片处理服务</view>
+    <view class="score-desc">用于基础线路图片处理</view>
+  </view>
+
+  <view class="card info-card commercial-card">
+    <view class="card-header"><text class="icon">💎</text> GoodStudy AI 商业资产</view>
+    <view class="asset-row">
+      <view class="asset-box">
+        <view class="asset-val">¥{{balance}}</view>
+        <view class="asset-label">账户余额</view>
+      </view>
+      <view class="asset-box">
+        <view class="asset-val" style="color: {{isVip ? '#6366f1' : '#ff9800'}}">
+          {{isVip ? 'VIP' : '普通'}}
+        </view>
+        <view class="asset-label">{{isVip ? vipExpireAt + ' 到期' : '会员状态'}}</view>
+      </view>
+    </view>
   </view>
 
   <view class="card info-card">
-    <view class="card-header">积分使用说明</view>
+    <view class="card-header">双平台使用说明</view>
     <view class="info-list">
-      <view class="info-item"><view class="dot"></view>每张图片去水印消耗 1 积分</view>
-      <view class="info-item"><view class="dot"></view>抠图处理消耗 1 积分</view>
-      <view class="info-item"><view class="dot"></view>高清图片处理消耗 1 积分</view>
-      <view class="info-item"><view class="dot"></view>积分不足时无法使用相应功能</view>
+      <view class="info-item"><view class="dot"></view>Shiliu 积分用于兼容旧版接口服务</view>
+      <view class="info-item"><view class="dot red-dot"></view>商业余额用于最新的高性能 AI 接口</view>
     </view>
   </view>
 
-  <button class="refresh-btn" hover-class="btn-hover" bindtap="onRefresh">刷新积分</button>
+  <button class="refresh-btn" hover-class="btn-hover" bindtap="onRefresh">同步所有平台资产</button>
 
-  <view class="list-title">积分查询记录</view>
+  <view class="list-title">资产对账记录</view>
   <view class="record-list">
     <view class="record-card" wx:for="{{logs}}" wx:key="id">
       <view class="record-left">
-        <view class="record-score">{{item.score}} <text class="unit">积分</text></view>
+        <view class="record-score">{{item.score}} <text class="unit">Shiliu积分</text></view>
+        <view class="small-text">商业余额: ¥{{item.balance}}</view>
       </view>
       <view class="record-center">
         <view class="record-date">{{item.date}}</view>

@@ -20,12 +20,14 @@ const ALL_TOOLS = [
   {id:'mosaic',title:'图片马赛克',desc:'隐私打码 模糊处理',icon:'🔲',colors:['#64748b','#94a3b8']},
   {id:'longpic',title:'长图拼接',desc:'聊天截图拼长图',icon:'📜',colors:['#06b6d4','#22d3ee']},
   {id:'batchwm',title:'批量加水印',desc:'一键加水印 微商专用',icon:'💧',colors:['#ef4444','#f87171']},
+  //{id:'test',title:'测试去水印',desc:'测试去水印',icon:'💧',colors:['#ef4444','#f87171']},
 ];
 
 const ALL_OCR = [
   {id:'text2img',title:'长文转图片',desc:'文字生成图片防折叠',icon:'📄',colors:['#10b981','#34d399']},
   {id:'ocr',title:'图片转文字',desc:'拍照取字 OCR文字提取',icon:'🔍',colors:['#3b82f6','#60a5fa']}, // 敏感
-  {id:'text',title:'添加文字',desc:'图片加字 加水印',icon:'✏️',colors:['#8b5cf6','#a78bfa']}
+  {id:'text',title:'添加文字',desc:'图片加字 加水印',icon:'✏️',colors:['#8b5cf6','#a78bfa']},
+  {id:'qrcode',title:'二维码生成',desc:'文本/网址极速转码',icon:'🔳',colors:['#6366f1','#8b5cf6']},
 ];
 
 const ALL_FUN = [

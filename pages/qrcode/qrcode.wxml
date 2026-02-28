@@ -1,0 +1,47 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">二维码生成</text>
+    <text class="page-subtitle">文本、网址、WiFi 一键转码</text>
+  </view>
+
+  <view class="card">
+    <view class="section-title">
+        <text>输入内容</text>
+        <view class="char-count">{{content.length}}/500</view>
+    </view>
+    <textarea class="text-area" 
+        placeholder="请输入网址(http://...) 或 文本内容" 
+        value="{{content}}" 
+        bindinput="onContentInput" 
+        maxlength="500"
+        disable-default-padding
+        style="height: 240rpx;"
+    ></textarea>
+  </view>
+
+  <view class="card preview-card" wx:if="{{previewImage}}">
+    <view class="section-title">生成结果</view>
+    <view class="preview-box" style="background: #f1f5f9; padding: 40rpx; display: flex; justify-content: center; border-radius: 16rpx;">
+      <image class="preview-image" src="{{previewImage}}" style="width: 400rpx; height: 400rpx;" show-menu-by-longpress="{{false}}"></image>
+    </view>
+  </view>
+
+  <view class="ad-container" style="padding: 20rpx 30rpx;">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view class="bottom-bar">
+    <button wx:if="{{!previewImage}}" class="btn-primary" bindtap="generateCode">立即生成</button>
+
+    <block wx:else>
+        <view class="btn-group">
+            <button class="btn-icon" bindtap="generateCode">🔄</button> <button class="btn-icon" open-type="share">📤</button>
+        </view>
+        <button class="btn-primary" bindtap="saveImageAndJump">保存到相册</button>
+    </block>
+  </view>
+
+  <canvas canvas-id="myQrcode" style="width: 600px; height: 600px; position: fixed; left: -9999px; top: 0;"></canvas>
+
+  <view style="height: 220rpx;"></view>
+</view>

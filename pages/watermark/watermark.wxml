@@ -95,7 +95,7 @@
       <view class="compare-btn" bindtouchstart="startCompare" bindtouchend="endCompare" bindtouchcancel="endCompare">👀 长按对比原图</view>
     </view>
     <view class="result-box">
-        <image class="result-image" src="{{isComparing ? imagePath : resultImage}}" mode="widthFix" show-menu-by-longpress></image>
+        <image class="result-image" src="{{isComparing ? imagePath : resultImage}}" mode="widthFix"></image>
         <view class="compare-tag" wx:if="{{isComparing}}">原图</view>
     </view>
   </view>

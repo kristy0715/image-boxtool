@@ -1,100 +1,117 @@
 // pages/admin/score/score.js
 const app = getApp();
 
-// 🔥 LaF 云函数地址
-const LAF_CLOUD_FUNCTION_URL = 'https://kvpoib63ld.sealosbja.site/get-api-score'; 
+// 🟢 接口 1：Shiliu 平台接口 (原有积分)
+const SHILIU_API_URL = 'https://kvpoib63ld.sealosbja.site/get-api-score'; 
+// 🔵 接口 2：商业后台接口 (您的新接口)
+const COMMERCIAL_API_URL = 'https://goodgoodstudy-nb.top/api/user/info'; 
+// 🔑 您的 API Key
+const API_KEY = 'sk-ucGynTYiVxxw3_nclVtepg'; 
 
 Page({
   data: {
-    score: 0,
+    score: 0,          // Shiliu 平台积分
+    balance: 0.00,     // 商业余额
+    isVip: false,
+    vipExpireAt: '',
     logs: [],
     isLoading: false
   },
 
   onLoad() {
-    // 1. 启动时先加载本地历史记录
-    const cachedData = wx.getStorageSync('score_data_cache');
+    const cachedData = wx.getStorageSync('score_data_cache_v4');
     if (cachedData) {
       this.setData({ 
-        score: cachedData.score || 0, 
+        score: cachedData.score || 0,
+        balance: cachedData.balance || 0,
+        isVip: cachedData.isVip || false,
+        vipExpireAt: cachedData.vipExpireAt || '',
         logs: cachedData.logs || [] 
       });
     }
-    
-    // 2. 自动发起一次查询（这会增加一条新记录）
     this.fetchData();
   },
 
-  onPullDownRefresh() {
-    this.fetchData(() => wx.stopPullDownRefresh());
-  },
-
-  onRefresh() {
-    this.fetchData();
-  },
-
-  // 🔥 核心逻辑：查询积分 -> 生成记录 -> 存入本地
   fetchData(callback) {
     this.setData({ isLoading: true });
     wx.showNavigationBarLoading();
 
-    wx.request({
-      url: LAF_CLOUD_FUNCTION_URL, 
-      method: 'POST',
-      data: {}, 
-      success: (res) => {
-        if (res.statusCode === 200 && res.data && res.data.code === 0) {
-          const apiData = res.data.data || {};
-          
-          // 1. 获取当前最新积分
-          const currentScore = apiData.credit !== undefined ? apiData.credit : (apiData.score || 0);
-          
-          // 2. 生成一条新的查询记录
-          const now = new Date();
-          const newLog = {
-            id: now.getTime(), // 使用时间戳作为唯一ID
-            score: currentScore,
-            date: this.formatDate(now), // YYYY/MM/DD
-            time: this.formatTime(now)  // HH:mm:ss
-          };
+    // 1. 获取 Shiliu 积分
+    const p1 = new Promise((resolve) => {
+      wx.request({
+        url: SHILIU_API_URL,
+        method: 'POST',
+        success: (res) => {
+          // 适配 shiliu 返回格式
+          const s = res.data?.data?.credit || res.data?.data?.score || 0;
+          resolve(s);
+        },
+        fail: () => resolve(this.data.score)
+      });
+    });
 
-          // 3. 将新记录插入到现有列表的最前面 (追加模式)
-          const currentLogs = this.data.logs;
-          // 限制一下最大记录数，比如只保留最近50条，防止缓存无限膨胀
-          const updatedLogs = [newLog, ...currentLogs].slice(0, 50);
-
-          // 4. 更新页面
-          this.setData({
-            score: currentScore,
-            logs: updatedLogs,
-            isLoading: false
-          });
-
-          // 5. 保存到本地缓存
-          wx.setStorageSync('score_data_cache', { 
-            score: currentScore, 
-            logs: updatedLogs 
-          });
-
-          wx.showToast({ title: '查询成功', icon: 'success' });
-        } else {
-          console.error('API Error:', res);
-          wx.showToast({ title: '接口异常', icon: 'none' });
+    // 2. 获取商业后台资产 (加强解析逻辑)
+    const p2 = new Promise((resolve) => {
+      wx.request({
+        url: COMMERCIAL_API_URL,
+        method: 'GET',
+        header: { 
+          'x-api-key': API_KEY,
+          'Accept': 'application/json'
+        },
+        success: (res) => {
+          console.log("商业接口返回详情:", res.data); // 这里的打印非常重要，请在控制台查看
+          if (res.data && res.data.code === 200 && res.data.data) {
+            resolve(res.data.data); 
+          } else {
+            console.error("商业接口业务失败:", res.data?.msg || '未知错误');
+            resolve({ balance: 0, is_vip: false });
+          }
+        },
+        fail: (err) => {
+          console.error("商业接口网络请求失败:", err);
+          resolve({ balance: 0, is_vip: false });
         }
-      },
-      fail: (err) => {
-        console.error('Net Error:', err);
-        wx.showToast({ title: '网络错误', icon: 'none' });
-      },
-      complete: () => {
-        this.setData({ isLoading: false });
-        wx.hideNavigationBarLoading();
-        if (callback) callback();
-      }
+      });
+    });
+
+    Promise.all([p1, p2]).then(([newScore, commData]) => {
+      const now = new Date();
+      // 这里的 balance 取值严格对应后端字段
+      const currentBalance = commData.balance !== undefined ? parseFloat(commData.balance) : 0.00;
+      
+      const newLog = {
+        id: now.getTime(),
+        score: newScore,
+        balance: currentBalance,
+        date: this.formatDate(now),
+        time: this.formatTime(now)
+      };
+
+      const updatedLogs = [newLog, ...this.data.logs].slice(0, 50);
+
+      this.setData({
+        score: newScore,
+        balance: currentBalance,
+        isVip: commData.is_vip || false,
+        vipExpireAt: commData.vip_expire_at || '无',
+        logs: updatedLogs,
+        isLoading: false
+      });
+
+      wx.setStorageSync('score_data_cache_v4', { 
+        score: newScore,
+        balance: currentBalance,
+        isVip: this.data.isVip,
+        vipExpireAt: this.data.vipExpireAt,
+        logs: updatedLogs 
+      });
+
+      wx.hideNavigationBarLoading();
+      if (callback) callback();
     });
   },
 
-  // 获取日期 YYYY/MM/DD
   formatDate(date) {
     const y = date.getFullYear();
     const m = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -102,7 +119,6 @@ Page({
     return `${y}/${m}/${d}`;
   },
 
-  // 获取时间 HH:mm:ss
   formatTime(date) {
     const hh = date.getHours().toString().padStart(2, '0');
     const mm = date.getMinutes().toString().padStart(2, '0');
@@ -110,29 +126,14 @@ Page({
     return `${hh}:${mm}:${ss}`;
   },
 
-  // 删除单条记录
+  onRefresh() { this.fetchData(); },
+  
   onDeleteLog(e) {
     const id = e.currentTarget.dataset.id;
-    wx.showModal({
-      title: '提示',
-      content: '确定删除这条查询记录吗？',
-      confirmColor: '#e02020',
-      success: (res) => {
-        if (res.confirm) {
-          // 1. 过滤掉该ID的记录
-          const newLogs = this.data.logs.filter(item => item.id !== id);
-          
-          // 2. 更新页面
-          this.setData({ logs: newLogs });
-          
-          // 3. 更新缓存
-          const cachedData = wx.getStorageSync('score_data_cache') || {};
-          cachedData.logs = newLogs;
-          wx.setStorageSync('score_data_cache', cachedData);
-
-          wx.showToast({ title: '已删除', icon: 'none' });
-        }
-      }
-    });
+    const newLogs = this.data.logs.filter(item => item.id !== id);
+    this.setData({ logs: newLogs });
+    const cachedData = wx.getStorageSync('score_data_cache_v4') || {};
+    cachedData.logs = newLogs;
+    wx.setStorageSync('score_data_cache_v4', cachedData);
   }
 });

@@ -1,44 +1,207 @@
-page { background-color: #f7f7f7; padding-bottom: 60rpx; }
-.container { padding: 20rpx 30rpx; }
+/* pages/admin/score/score.wxss */
+page { 
+  background-color: #f7f7f7; 
+  padding-bottom: 60rpx; 
+}
 
-/* 通用卡片 */
-.card { background: #fff; border-radius: 16rpx; padding: 40rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.03); }
+.container { 
+  padding: 20rpx 30rpx; 
+}
 
-/* 头部积分 */
-.header-card { display: flex; flex-direction: column; align-items: center; padding: 60rpx 0; }
-.card-title { display: flex; align-items: center; font-size: 28rpx; color: #666; margin-bottom: 20rpx; }
-.card-title .icon { margin-right: 12rpx; font-size: 34rpx; }
-.score-num { font-size: 88rpx; font-weight: bold; color: #e02020; line-height: 1; margin-bottom: 24rpx; font-family: 'DIN', sans-serif; }
-.score-desc { font-size: 24rpx; color: #999; }
+/* 通用卡片样式 */
+.card { 
+  background: #fff; 
+  border-radius: 20rpx; 
+  padding: 40rpx; 
+  margin-bottom: 28rpx; 
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.04); 
+}
 
-/* 说明部分 */
-.card-header { font-size: 30rpx; font-weight: bold; color: #333; margin-bottom: 30rpx; }
-.info-item { display: flex; align-items: center; font-size: 26rpx; color: #666; margin-bottom: 18rpx; }
-.dot { width: 8rpx; height: 8rpx; background: #e02020; border-radius: 50%; margin-right: 16rpx; }
+/* ================= 区域 A：Shiliu 平台积分 (红色风格) ================= */
+.header-card { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  padding: 50rpx 0;
+  border-bottom: 8rpx solid #e02020; /* 底部强调色 */
+}
 
-/* 按钮 */
-.refresh-btn { background: #cd1818; color: #fff; font-size: 34rpx; font-weight: 500; border-radius: 12rpx; margin: 50rpx 0; padding: 24rpx 0; width: 100%; box-shadow: 0 8rpx 20rpx rgba(205, 24, 24, 0.2); }
-.btn-hover { opacity: 0.9; transform: scale(0.99); }
+.card-title { 
+  display: flex; 
+  align-items: center; 
+  font-size: 28rpx; 
+  color: #666; 
+  margin-bottom: 20rpx; 
+}
 
-/* 列表部分 */
-.list-title { font-size: 32rpx; font-weight: bold; color: #333; margin-bottom: 24rpx; padding-left: 10rpx; }
+.card-title .icon { 
+  margin-right: 12rpx; 
+  font-size: 34rpx; 
+}
+
+.score-num { 
+  font-size: 88rpx; 
+  font-weight: bold; 
+  color: #e02020; 
+  line-height: 1; 
+  margin-bottom: 20rpx; 
+  font-family: 'DIN', sans-serif; /* 数字字体 */
+}
+
+.score-desc { 
+  font-size: 24rpx; 
+  color: #999; 
+}
+
+/* ================= 区域 B：商业资产系统 (蓝色风格) ================= */
+.commercial-card { 
+  border-top: 8rpx solid #6366f1; /* 顶部强调色 */
+  background: linear-gradient(to bottom, #ffffff, #fcfdff);
+}
+
+.asset-grid { 
+  display: flex; 
+  width: 100%; 
+  margin-top: 20rpx; 
+}
+
+.asset-item { 
+  flex: 1; 
+  text-align: center; 
+  padding: 15rpx 0; 
+}
+
+.border-end { 
+  border-right: 1rpx solid #f1f5f9; 
+}
+
+.asset-val { 
+  font-size: 44rpx; 
+  font-weight: bold; 
+  color: #1e293b; 
+  margin-bottom: 6rpx; 
+}
+
+.asset-label { 
+  font-size: 22rpx; 
+  color: #94a3b8; 
+  letter-spacing: 1px;
+}
+
+/* ================= 其他公共组件 ================= */
+.card-header { 
+  font-size: 30rpx; 
+  font-weight: bold; 
+  color: #333; 
+  margin-bottom: 24rpx; 
+  display: flex; 
+  align-items: center; 
+}
+
+.info-item { 
+  display: flex; 
+  align-items: center; 
+  font-size: 26rpx; 
+  color: #64748b; 
+  margin-bottom: 18rpx; 
+}
+
+.dot { 
+  width: 10rpx; 
+  height: 10rpx; 
+  background: #e02020; 
+  border-radius: 50%; 
+  margin-right: 16rpx; 
+}
+
+.blue-dot { 
+  background: #6366f1; 
+}
+
+/* 按钮样式 */
+.refresh-btn { 
+  background: #cd1818; 
+  color: #fff; 
+  font-size: 32rpx; 
+  font-weight: 600;
+  border-radius: 14rpx; 
+  margin: 40rpx 0; 
+  padding: 24rpx 0; 
+  width: 100%; 
+  box-shadow: 0 8rpx 25rpx rgba(205, 24, 24, 0.2);
+}
+
+.btn-hover { 
+  opacity: 0.85; 
+  transform: scale(0.98);
+}
+
+/* 列表流水 */
+.list-title { 
+  font-size: 32rpx; 
+  font-weight: bold; 
+  color: #333; 
+  margin: 40rpx 0 20rpx 10rpx; 
+}
 
 .record-card { 
-  background: #fff; border-radius: 16rpx; padding: 30rpx; margin-bottom: 20rpx; 
-  display: flex; align-items: center; justify-content: space-between;
+  background: #fff; 
+  border-radius: 18rpx; 
+  padding: 30rpx; 
+  margin-bottom: 20rpx; 
+  display: flex; 
+  align-items: center; 
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.02);
 }
 
-.record-left { flex: 1; }
-.record-score { font-size: 40rpx; font-weight: bold; color: #e02020; }
-.record-score .unit { font-size: 24rpx; color: #666; font-weight: normal; margin-left: 4rpx; }
+.record-left { 
+  flex: 1; 
+}
 
-.record-center { text-align: right; margin-right: 30rpx; display: flex; flex-direction: column; align-items: flex-end;}
-.record-date { font-size: 24rpx; color: #999; margin-bottom: 6rpx; }
-.record-time { font-size: 20rpx; color: #ccc; }
+.record-score { 
+  font-size: 38rpx; 
+  font-weight: bold; 
+  color: #e02020; 
+}
 
-.record-right { }
+.unit { 
+  font-size: 22rpx; 
+  color: #999; 
+  margin-left: 6rpx; 
+}
+
+.comm-balance { 
+  font-size: 20rpx; 
+  color: #6366f1; 
+  margin-top: 8rpx; 
+  font-weight: 500;
+}
+
+.record-center { 
+  text-align: right; 
+  margin-right: 30rpx; 
+}
+
+.record-date { 
+  font-size: 24rpx; 
+  color: #94a3b8; 
+}
+
+.record-time { 
+  font-size: 20rpx; 
+  color: #cbd5e1; 
+}
+
 .delete-btn { 
-  background: #ff4d4f; color: #fff; font-size: 24rpx; 
-  padding: 12rpx 30rpx; border-radius: 8rpx; 
+  background: #fff1f0; 
+  color: #ff4d4f; 
+  font-size: 24rpx; 
+  padding: 10rpx 24rpx; 
+  border-radius: 10rpx; 
+  border: 1rpx solid #ffa39e;
 }
-.delete-btn:active { background: #d9363e; }
+
+.delete-btn:active { 
+  background: #ff4d4f; 
+  color: #fff; 
+}

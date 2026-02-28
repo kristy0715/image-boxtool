@@ -23,7 +23,9 @@
     "pages/burst/burst",
     "pages/admin/score/score",
     "pages/matting/matting",
-    "pages/restore/restore"
+    "pages/restore/restore",
+    "pages/test/test",
+    "pages/qrcode/qrcode"
   ],
   "window": {
     "backgroundTextStyle": "dark",
