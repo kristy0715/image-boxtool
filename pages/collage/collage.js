@@ -1,13 +1,11 @@
 // pages/collage/collage.js
 const Security = require('../../utils/security.js');
 
-// === 1. 广告配置 ===
 const AD_CONFIG = {
   BANNER_ID: 'adunit-ecfcec4c6a0c871b',
   VIDEO_ID: 'adunit-da175a2014d3443b'
 };
 
-// === 2. 策略配置 ===
 const FREE_COUNT_DAILY = 2; 
 
 Page({
@@ -16,12 +14,12 @@ Page({
     imageInfos: [], 
     
     layoutType: 'grid', 
+    gridCols: 2, // 🌟 新增：默认2列
     spacing: 15, 
     bgColor: '#ffffff',
     bgColors: ['#ffffff', '#000000', '#f5f5f5', '#ffe4e6', '#dbeafe', '#dcfce7', '#fef3c7'],
     showNumber: false,
     
-    // === 修正：将宽度收缩到 670，预留足够安全边距防止截断 ===
     previewWidth: 670,
     previewHeight: 670,
     previewItems: [], 
@@ -214,6 +212,12 @@ Page({
     this.updatePreview();
   },
 
+  // 🌟 新增：监听自定义列数拖动
+  onGridColsChange(e) {
+    this.setData({ gridCols: e.detail.value });
+    this.updatePreview();
+  },
+
   selectBgColor(e) {
     this.setData({ bgColor: e.currentTarget.dataset.color });
   },
@@ -253,7 +257,6 @@ Page({
 
     } else {
         const count = imageInfos.length;
-        const cols = count <= 4 ? 2 : 3; 
         if (count === 1) { 
             const w = baseWidth - spacing * 2;
             const h = w / imageInfos[0].ratio;
@@ -261,24 +264,38 @@ Page({
             totalW = baseWidth;
             totalH = h + spacing * 2;
         } else {
-            const rows = Math.ceil(count / cols);
-            const cellSize = (baseWidth - (cols + 1) * spacing) / cols;
+            // 🌟 接入用户自定义的列数，但最多不超过上传的图片总数
+            const cols = Math.min(count, this.data.gridCols); 
+            const colWidth = (baseWidth - (cols + 1) * spacing) / cols;
+            const colHeights = new Array(cols).fill(spacing); 
+
             for (let i = 0; i < count; i++) {
-                const col = i % cols;
-                const row = Math.floor(i / cols);
-                const x = spacing + col * (cellSize + spacing);
-                const y = spacing + row * (cellSize + spacing);
-                positions.push({ x, y, w: cellSize, h: cellSize, path: imageInfos[i].path });
+                let minColIdx = 0;
+                let minHeight = colHeights[0];
+                for (let j = 1; j < cols; j++) {
+                    if (colHeights[j] < minHeight) {
+                        minHeight = colHeights[j];
+                        minColIdx = j;
+                    }
+                }
+
+                const imgW = colWidth;
+                const imgH = colWidth / imageInfos[i].ratio;
+                const x = spacing + minColIdx * (colWidth + spacing);
+                const y = colHeights[minColIdx];
+
+                positions.push({ x, y, w: imgW, h: imgH, path: imageInfos[i].path });
+                
+                colHeights[minColIdx] += imgH + spacing;
             }
             totalW = baseWidth;
-            totalH = spacing + rows * (cellSize + spacing);
+            totalH = Math.max(...colHeights); 
         }
     }
     return { w: totalW, h: totalH, items: positions };
   },
 
   updatePreview() {
-    // === 修正：基准宽度改为 670 ===
     const layout = this.calculateLayout(this.data.imageInfos, 670, this.data.spacing);
     this.setData({
         previewWidth: layout.w,
@@ -300,39 +317,18 @@ Page({
     try {
         const MAX_SIDE = 4096; 
         let baseSize = 2400; 
-
         const { layoutType, imageInfos, spacing } = this.data;
 
-        if (layoutType === 'horizontal') {
-            const sumRatio = imageInfos.reduce((acc, img) => acc + img.ratio, 0);
-            const estWidth = baseSize * sumRatio;
-            if (estWidth > MAX_SIDE) {
-                baseSize = MAX_SIDE / sumRatio; 
-            }
-            baseSize = Math.min(baseSize, MAX_SIDE);
-
-        } else if (layoutType === 'vertical') {
-            const sumInvRatio = imageInfos.reduce((acc, img) => acc + (1/img.ratio), 0);
-            const estHeight = baseSize * sumInvRatio;
-            if (estHeight > MAX_SIDE) {
-                baseSize = MAX_SIDE / sumInvRatio;
-            }
-            baseSize = Math.min(baseSize, MAX_SIDE);
-        } else {
-            const cols = imageInfos.length <= 4 ? 2 : 3;
-            const rows = Math.ceil(imageInfos.length / cols);
-            const ratio = rows / cols; 
-            if (baseSize * ratio > MAX_SIDE) {
-                baseSize = MAX_SIDE / ratio;
-            }
-        }
-        
-        baseSize = Math.floor(baseSize);
-
-        // === 修正：计算导出比例时使用 670 ===
         const scale = baseSize / 670; 
-        const exportSpacing = spacing * scale;
-        const layout = this.calculateLayout(imageInfos, baseSize, exportSpacing);
+        let exportSpacing = spacing * scale;
+        let layout = this.calculateLayout(imageInfos, baseSize, exportSpacing);
+
+        if (layout.w > MAX_SIDE || layout.h > MAX_SIDE) {
+            const scaleDown = Math.min(MAX_SIDE / layout.w, MAX_SIDE / layout.h);
+            baseSize = baseSize * scaleDown;
+            exportSpacing = spacing * (baseSize / 670);
+            layout = this.calculateLayout(imageInfos, baseSize, exportSpacing);
+        }
 
         const canvas = wx.createOffscreenCanvas({ type: '2d', width: Math.ceil(layout.w), height: Math.ceil(layout.h) });
         const ctx = canvas.getContext('2d');
@@ -345,11 +341,7 @@ Page({
             const img = canvas.createImage();
             await new Promise((resolve) => {
                 img.onload = () => {
-                    if (this.data.layoutType === 'grid' && this.data.imageInfos.length > 1) {
-                        this.drawAspectFill(ctx, img, item.x, item.y, item.w, item.h);
-                    } else {
-                        ctx.drawImage(img, item.x, item.y, item.w, item.h);
-                    }
+                    ctx.drawImage(img, item.x, item.y, item.w, item.h);
                     resolve();
                 };
                 img.onerror = resolve; 
@@ -364,10 +356,9 @@ Page({
         wx.canvasToTempFilePath({
             canvas: canvas,
             fileType: 'jpg',
-            quality: 0.85,
+            quality: 0.9,
             success: (res) => {
                 const tempFilePath = res.tempFilePath;
-                
                 wx.saveImageToPhotosAlbum({
                     filePath: tempFilePath,
                     success: () => {
@@ -398,20 +389,6 @@ Page({
     }
   },
 
-  drawAspectFill(ctx, img, x, y, w, h) {
-      const imgRatio = img.width / img.height;
-      const targetRatio = w / h;
-      let sx, sy, sw, sh;
-      if (imgRatio > targetRatio) {
-          sh = img.height; sw = sh * targetRatio;
-          sy = 0; sx = (img.width - sw) / 2;
-      } else {
-          sw = img.width; sh = sw / targetRatio;
-          sx = 0; sy = (img.height - sh) / 2;
-      }
-      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-  },
-
   drawNumber(ctx, num, x, y, w, h) {
       const size = Math.min(w, h) * 0.2; 
       const fontSize = size * 0.6;
@@ -431,22 +408,19 @@ Page({
       ctx.fillText(String(num), cx, cy + fontSize*0.1); 
   },
 
-  // === 分享配置 ===
   onShareAppMessage() {
-    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
     return {
-      title: '免费拼图神器，支持多图合并、宫格拼图！',
+      title: '免费拼图神器，支持多图无缝网格拼接！',
       path: '/pages/collage/collage',
-      imageUrl: imageUrl
+      imageUrl: '/assets/share-cover.png'
     };
   },
 
   onShareTimeline() {
-    const imageUrl = this.data.resultImage || '/assets/share-cover.png';
     return {
-      title: '免费拼图神器，支持多图合并、宫格拼图！',
+      title: '免费拼图神器，支持多图无缝网格拼接！',
       query: '',
-      imageUrl: imageUrl
+      imageUrl: '/assets/share-cover.png'
     };
   }
 });

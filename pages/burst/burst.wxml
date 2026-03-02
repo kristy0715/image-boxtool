@@ -13,26 +13,37 @@
         <view class="upload-area" bindtap="chooseBgImage">
           <text class="upload-icon">🏞️</text>
           <text class="upload-text">点击选择背景图</text>
-          <text class="upload-hint">自动分割九宫格 · 支持拖拽人物</text>
+          <text class="upload-hint">自动分割九宫格 · 支持拖拽人物和底图</text>
         </view>
       </view>
     </view>
 
     <view class="card edit-card" wx:else>
-      <view class="editor-frame" style="width:{{editorSize}}px; height:{{editorSize}}px;">
-        
-        <view class="fixed-hint">👆 点击九宫格可单独替换底图</view>
+      
+      <view class="fixed-hint" style="position: relative; text-align: center; color: #64748b; font-size: 26rpx; margin-bottom: 20rpx; z-index: 1;">👆 点击九宫格可单独替换底图</view>
 
-        <view class="bg-container">
-          <image src="{{bgPath}}" class="bg-layer" mode="aspectFill"></image>
+      <view class="editor-frame" style="width:{{editorSize}}px; height:{{editorSize}}px; margin: 0 auto;">
+
+        <view class="bg-container" bindtap="onEditorTap">
           
-          <view class="grid-cells-layer">
-            <view class="grid-cell" wx:for="{{gridIndices}}" wx:key="*this" bindtap="chooseCellImage" data-index="{{item}}">
+          <movable-area class="bg-layer">
+            <movable-view 
+              class="bg-img-view"
+              direction="all" out-of-bounds="{{true}}" scale="{{true}}" scale-min="1" scale-max="5.0" scale-value="{{bgScale}}"
+              x="{{bgX}}" y="{{bgY}}" style="width:{{bgImgW}}px; height:{{bgImgH}}px;"
+              bindchange="onBgChange" bindscale="onBgScale"
+            >
+              <image src="{{bgPath}}" style="width:100%; height:100%; display:block;"></image>
+            </movable-view>
+          </movable-area>
+          
+          <view class="grid-cells-layer" style="pointer-events: none;">
+            <view class="grid-cell" wx:for="{{gridIndices}}" wx:key="*this" data-index="{{item}}">
               <image wx:if="{{gridOverrides[item]}}" src="{{gridOverrides[item]}}" class="cell-image" mode="aspectFill"></image>
             </view>
           </view>
 
-          <view class="grid-overlay">
+          <view class="grid-overlay" style="pointer-events: none;">
             <view class="h-line" style="top: 33.33%; height: {{gapSize}}px; margin-top: -{{gapSize/2}}px;"></view>
             <view class="h-line" style="top: 66.66%; height: {{gapSize}}px; margin-top: -{{gapSize/2}}px;"></view>
             <view class="v-line" style="left: 33.33%; width: {{gapSize}}px; margin-left: -{{gapSize/2}}px;"></view>
@@ -40,7 +51,7 @@
           </view>
         </view>
 
-        <movable-area class="fg-area">
+        <movable-area class="fg-area" style="z-index: 100;">
           <movable-view 
             wx:if="{{mattePath}}"
             class="fg-view"
@@ -53,12 +64,13 @@
             y="{{fgY}}"
             bindchange="onFgChange"
             bindscale="onFgScale" 
+            style="pointer-events: auto;"
           >
             <image src="{{mattePath}}" class="fg-image" mode="widthFix"></image>
           </movable-view>
         </movable-area>
 
-        <view class="add-fg-placeholder" wx:if="{{!mattePath}}" bindtap="chooseFgImage">
+        <view class="add-fg-placeholder" wx:if="{{!mattePath}}" bindtap="chooseFgImage" style="z-index: 100;">
           <view class="dashed-box">
             <text class="plus-icon">＋</text>
             <text class="plus-text">添加冲出人物</text>
@@ -66,7 +78,7 @@
         </view>
       </view>
 
-      <view class="tool-header">
+      <view class="tool-header" style="position: relative; z-index: 1;">
         <view class="tool-label">间距</view>
         <slider class="tool-slider" min="0" max="30" value="{{gapSize}}" block-size="18" bindchanging="onGapChange" activeColor="#6366f1" backgroundColor="#e2e8f0"/>
         <view class="reset-btn" bindtap="resetEditor">还原</view>

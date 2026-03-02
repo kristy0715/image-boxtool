@@ -1,7 +1,7 @@
 <view class="container">
   <view class="page-header">
     <text class="page-title">图片拼接</text>
-    <text class="page-subtitle">多图拼接，支持横向/纵向/网格布局</text>
+    <text class="page-subtitle">多图合并，支持横向/纵向/网格布局</text>
   </view>
 
   <view class="card preview-card" wx:if="{{imageList.length === 0}}">
@@ -24,7 +24,7 @@
             <image 
               class="collage-item"
               src="{{item.path}}" 
-              mode="{{layoutType === 'grid' ? 'scaleToFill' : 'aspectFill'}}"
+              mode="scaleToFill"
               style="left: {{item.x}}rpx; top: {{item.y}}rpx; width: {{item.w}}rpx; height: {{item.h}}rpx;"
             ></image>
             <view class="item-number" wx:if="{{showNumber}}" style="left: {{item.x + 10}}rpx; top: {{item.y + 10}}rpx;">
@@ -57,6 +57,14 @@
           <view class="layout-tab {{layoutType === 'vertical' ? 'active' : ''}}" bindtap="selectLayout" data-type="vertical">纵向</view>
           <view class="layout-tab {{layoutType === 'grid' ? 'active' : ''}}" bindtap="selectLayout" data-type="grid">网格</view>
         </view>
+      </view>
+
+      <view class="setting-group" wx:if="{{layoutType === 'grid'}}">
+        <view class="group-header">
+          <text class="group-title">网格列数</text>
+          <text class="group-val">{{gridCols}} 列</text>
+        </view>
+        <slider min="1" max="5" value="{{gridCols}}" activeColor="#6366f1" block-size="20" bindchange="onGridColsChange" bindinput="onGridColsChange"/>
       </view>
 
       <view class="setting-group">

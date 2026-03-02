@@ -20,7 +20,7 @@
             direction="all" 
             out-of-bounds="{{true}}"
             damping="50" friction="2" scale="{{true}}"
-            scale-min="0.5" scale-max="5.0" scale-value="{{scale}}"
+            scale-min="1" scale-max="5.0" scale-value="{{scale}}"
             x="{{x}}" y="{{y}}"
             style="width:{{imgW}}px; height:{{imgH}}px;"
           >

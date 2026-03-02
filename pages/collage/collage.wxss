@@ -13,7 +13,8 @@
   /* 移除左右 padding，防止挤压内容 */
   padding: 40rpx 0; 
   margin-bottom: 24rpx;
-  min-height: 600rpx; /* 增加最小高度 */
+  min-height: 600rpx;
+  /* 增加最小高度 */
 }
 
 /* 初始上传区域 */
@@ -50,14 +51,15 @@
   /* 移除高度限制，让内容自然撑开 */
   /* min-height: 500rpx; */
   display: flex;
-  /* 强制水平居中 */
-  justify-content: center;
+  /* ❌ 修复Bug：移除强制水平居中，防止横向长图左侧被截断无法滚动 */
+  /* justify-content: center; */
   align-items: flex-start; 
 }
 
 .collage-board {
   position: relative;
-  box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.15); /* 加深阴影，更有立体感 */
+  box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.15);
+  /* 加深阴影，更有立体感 */
   transition: all 0.2s ease;
   /* 关键：自动居中 */
   margin: 0 auto; 
@@ -73,7 +75,8 @@
   position: absolute;
   background: rgba(0,0,0,0.6);
   color: #fff;
-  width: 40rpx; height: 40rpx;
+  width: 40rpx;
+  height: 40rpx;
   border-radius: 50%;
   font-size: 24rpx;
   display: flex; align-items: center; justify-content: center;
@@ -92,14 +95,16 @@
   padding: 24rpx;
   margin: 0 24rpx 24rpx; /* 左右留边 */
 }
-.section-title { font-size: 28rpx; font-weight: 600; color: #333; margin-bottom: 20rpx; }
+.section-title { font-size: 28rpx; font-weight: 600; color: #333; margin-bottom: 20rpx;
+}
 
 .manage-scroll { white-space: nowrap; height: 120rpx; }
 .manage-list { display: flex; gap: 20rpx; }
 
 .manage-item {
   position: relative;
-  width: 120rpx; height: 120rpx;
+  width: 120rpx;
+  height: 120rpx;
   border-radius: 12rpx;
   overflow: hidden;
   flex-shrink: 0;
@@ -107,7 +112,8 @@
 .manage-item image { width: 100%; height: 100%; }
 
 .delete-btn {
-  position: absolute; top: 0; right: 0;
+  position: absolute;
+  top: 0; right: 0;
   background: rgba(0,0,0,0.5); color: #fff;
   width: 40rpx; height: 40rpx;
   border-bottom-left-radius: 12rpx;
@@ -127,7 +133,8 @@
   transform: translate(-50%, -50%); border-radius: 4rpx;
 }
 .add-btn::after {
-  content: ''; position: absolute;
+  content: '';
+  position: absolute;
   top: 50%;
   left: 50%; height: 30%; width: 4rpx;
   background-color: #cbd5e1;
@@ -139,12 +146,14 @@
   background: #fff;
   border-radius: 24rpx;
   padding: 30rpx;
-  margin: 0 30rpx 30rpx; /* 左右留边 */
+  margin: 0 30rpx 30rpx;
+  /* 左右留边 */
 }
 
 .setting-group { margin-bottom: 40rpx; }
 .group-header { display: flex; justify-content: space-between; margin-bottom: 10rpx; }
-.group-title { font-size: 28rpx; font-weight: 600; color: #333; }
+.group-title { font-size: 28rpx; font-weight: 600;
+  color: #333; }
 .group-val { font-size: 26rpx; color: #6366f1; }
 
 .layout-tabs {
@@ -156,7 +165,8 @@
   flex: 1;
   text-align: center;
   padding: 16rpx 0; font-size: 28rpx; color: #64748b;
-  border-radius: 12rpx; transition: all 0.2s;
+  border-radius: 12rpx;
+  transition: all 0.2s;
 }
 .layout-tab.active {
   background: #fff;
@@ -172,12 +182,15 @@
   display: flex; align-items: center;
   justify-content: center;
 }
-.color-item.active { border-color: #6366f1; transform: scale(1.1); box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.1); }
+.color-item.active { border-color: #6366f1; transform: scale(1.1);
+  box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.1); }
 .check { color: #999; font-size: 24rpx; font-weight: bold; }
-.color-item[style*="#ffffff"] .check { color: #333; }
+.color-item[style*="#ffffff"] .check { color: #333;
+}
 .color-item[style*="#000000"] .check { color: #fff; }
 
-.setting-row-between { display: flex; justify-content: space-between; align-items: center; }
+.setting-row-between { display: flex; justify-content: space-between; align-items: center;
+}
 
 /* 4. 底部栏 */
 .bottom-bar {

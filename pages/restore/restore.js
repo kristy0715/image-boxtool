@@ -9,6 +9,7 @@ try { LocalAlgo = require('../../utils/local-algo.js'); } catch (e) {}
 // 🔥 测试模式：true = 使用本地算法模拟, false = 正式调用云端API
 const TEST_MODE = false; 
 
+// 请确保这是您最新的云函数地址
 const LAF_RESTORE_URL = 'https://kvpoib63ld.sealosbja.site/image-restore'; 
 
 const AD_CONFIG = {
@@ -183,6 +184,7 @@ Page({
     });
   },
 
+  // === 🔥 核心修改：支持 URL 下载模式 ===
   async startRestoration(path) {
     this.setData({ isProcessing: true, originImage: path, resultImage: '' });
     
@@ -193,7 +195,7 @@ Page({
     ai.count++;
     this.updateQuota('restore_ai_quota', ai);
 
-    // === 🔥 核心修改：测试模式调用本地算法 ===
+    // 测试模式调用本地算法
     if (TEST_MODE) {
         console.log('🧪 [测试模式] 正在调用本地算法...');
         this.runLocalAlgo(path);
@@ -210,7 +212,7 @@ Page({
         wx.request({
           url: LAF_RESTORE_URL, method: 'POST',
           data: { base64: base64 },
-          timeout: 60000,
+          timeout: 60000, // 60秒超时
           success: resolve, fail: reject
         });
       });
@@ -219,18 +221,49 @@ Page({
           throw new Error('Cloud Error: HTML Returned');
       }
 
-      if (res.data?.code === 0 && res.data?.result_base64) {
-        let cleanBase64 = res.data.result_base64;
-        if (cleanBase64.startsWith('data:image')) cleanBase64 = cleanBase64.split('base64,')[1];
-        cleanBase64 = cleanBase64.replace(/[\r\n\s]/g, "");
+      // 成功：后端返回 URL
+      if (res.data?.code === 0) {
+        let resultFilePath = '';
 
-        const localPath = `${wx.env.USER_DATA_PATH}/restore_cloud_${Date.now()}.png`;
-        fs.writeFileSync(localPath, wx.base64ToArrayBuffer(cleanBase64), 'binary');
-        this.setData({ resultImage: localPath, isProcessing: false });
+        // ✅ 情况A：新版后端，返回 type='url'（这部分逻辑是新增的）
+        if (res.data.type === 'url' && res.data.result_url) {
+            console.log('下载图片中...', res.data.result_url);
+            // 下载图片到本地临时文件
+            const downloadRes = await new Promise((resolve, reject) => {
+                wx.downloadFile({
+                    url: res.data.result_url,
+                    success: resolve,
+                    fail: reject
+                });
+            });
+
+            if (downloadRes.statusCode === 200) {
+                resultFilePath = downloadRes.tempFilePath;
+            } else {
+                throw new Error('Download failed: ' + downloadRes.statusCode);
+            }
+        } 
+        // ✅ 情况B：旧版后端兼容 (返回 Base64)
+        else if (res.data.result_base64) {
+            let cleanBase64 = res.data.result_base64;
+            if (cleanBase64.startsWith('data:image')) cleanBase64 = cleanBase64.split('base64,')[1];
+            cleanBase64 = cleanBase64.replace(/[\r\n\s]/g, "");
+
+            const localPath = `${wx.env.USER_DATA_PATH}/restore_cloud_${Date.now()}.png`;
+            fs.writeFileSync(localPath, wx.base64ToArrayBuffer(cleanBase64), 'binary');
+            resultFilePath = localPath;
+        } else {
+            throw new Error(res.data?.msg || 'API Error: No image data');
+        }
+
+        // 设置结果图片路径 (此时 resultFilePath 已经是本地路径了)
+        this.setData({ resultImage: resultFilePath, isProcessing: false });
+
       } else {
         throw new Error(res.data?.msg || 'API Error');
       }
     } catch (err) {
+      console.error('Restoration Failed:', err);
       // 失败自动降级到本地
       if (LocalAlgo) {
          wx.showToast({ title: '网络波动，转本地增强', icon: 'none' });
@@ -299,6 +332,7 @@ Page({
     this.saveImageAndJump(this.data.resultImage);
   },
 
+  // 保存图片 (这里不需要修改，因为 resultImage 已经是本地路径了)
   saveImageAndJump(filePath) {
       wx.showLoading({ title: '保存中...' });
       wx.saveImageToPhotosAlbum({

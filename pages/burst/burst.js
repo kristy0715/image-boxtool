@@ -12,7 +12,6 @@ const AD_CONFIG = {
 
 const FREE_COUNT_DAILY = 2;
 const BASE_HD_SIZE = 2400; 
-// 🔥 新增：Canvas 最大安全尺寸 (防止 buffer exceed error)
 const MAX_CANVAS_DIMENSION = 4096; 
 
 Page({
@@ -21,17 +20,22 @@ Page({
     mattePath: '',    
     editorSize: 300,  
     gapSize: 5,       
+    
+    // 前景拖拽
     fgX: 0, fgY: 0, fgScale: 1,
+    // 底图拖拽
+    bgX: 0, bgY: 0, bgScale: 1, bgImgW: 0, bgImgH: 0, initialBgX: 0, initialBgY: 0,
+
     isProcessing: false,
     loadingText: '处理中...',
     bannerUnitId: AD_CONFIG.BANNER_ID,
     
-    // 格子替换数据
     gridOverrides: {}, 
     gridIndices: [0,1,2,3,4,5,6,7,8] 
   },
 
   _fgX: 0, _fgY: 0, _fgScale: 1,
+  _bgX: undefined, _bgY: undefined, _bgScale: 1,
   _adAction: null, _pendingPath: '', videoAd: null,
 
   onLoad() {
@@ -59,10 +63,12 @@ Page({
     this.setData({
       gapSize: 5,
       fgX: initialPos, fgY: initialPos, fgScale: 1,
+      bgX: this.data.initialBgX, bgY: this.data.initialBgY, bgScale: 1,
       gridOverrides: {}
     });
 
     this._fgX = initialPos; this._fgY = initialPos; this._fgScale = 1;
+    this._bgX = this.data.initialBgX; this._bgY = this.data.initialBgY; this._bgScale = 1;
     wx.showToast({ title: '已还原', icon: 'none' });
   },
 
@@ -89,23 +95,76 @@ Page({
       success: (res) => {
         const path = res.tempFiles[0].tempFilePath;
         Security.checkImage(path).then(isSafe => {
-          if (isSafe) this.setData({ bgPath: path, gridOverrides: {} });
+          if (isSafe) this.initBg(path);
           else wx.showToast({ title: '图片不合规', icon: 'none' });
-        }).catch(() => this.setData({ bgPath: path, gridOverrides: {} }));
+        }).catch(() => this.initBg(path));
       }
     });
   },
 
-  chooseCellImage(e) {
-    const index = e.currentTarget.dataset.index;
-    wx.chooseMedia({
-      count: 1, mediaType: ['image'], sizeType: ['original'],
-      success: (res) => {
-        const path = res.tempFiles[0].tempFilePath;
-        const key = `gridOverrides.${index}`;
-        this.setData({ [key]: path });
-      }
-    });
+  // 初始化底图
+  initBg(path) {
+      wx.showLoading({ title: '加载中...' });
+      wx.getImageInfo({
+          src: path,
+          success: (info) => {
+              const ratio = info.width / info.height;
+              const boxSize = this.data.editorSize;
+              let viewW, viewH;
+              if (ratio > 1) { 
+                  viewH = boxSize; viewW = boxSize * ratio; 
+              } else { 
+                  viewW = boxSize; viewH = boxSize / ratio; 
+              }
+              const cx = (boxSize - viewW) / 2;
+              const cy = (boxSize - viewH) / 2;
+
+              this.setData({ 
+                  bgPath: path, gridOverrides: {},
+                  bgImgW: viewW, bgImgH: viewH,
+                  initialBgX: cx, initialBgY: cy, bgScale: 1
+              }, () => {
+                  setTimeout(() => {
+                      this.setData({ bgX: cx, bgY: cy });
+                      this._bgX = cx; this._bgY = cy; this._bgScale = 1;
+                      wx.hideLoading();
+                  }, 50);
+              });
+          },
+          fail: () => { wx.hideLoading(); wx.showToast({ title: '加载失败', icon: 'none'}); }
+      });
+  },
+
+  // 精确计算点击了哪个格子
+  onEditorTap(e) {
+      if (!this.data.bgPath) return;
+      const query = wx.createSelectorQuery();
+      query.select('.bg-container').boundingClientRect();
+      query.exec((res) => {
+          if (!res || !res[0]) return;
+          const rect = res[0];
+          const clickX = e.touches[0].clientX - rect.left;
+          const clickY = e.touches[0].clientY - rect.top;
+          const cellW = rect.width / 3;
+          const cellH = rect.height / 3;
+          const col = Math.floor(clickX / cellW);
+          const row = Math.floor(clickY / cellH);
+          const index = row * 3 + col;
+          if (index >= 0 && index <= 8) {
+              this.chooseCellImageByIndex(index);
+          }
+      });
+  },
+
+  chooseCellImageByIndex(index) {
+      wx.chooseMedia({
+          count: 1, mediaType: ['image'], sizeType: ['original'],
+          success: (res) => {
+              const path = res.tempFiles[0].tempFilePath;
+              const key = `gridOverrides.${index}`;
+              this.setData({ [key]: path });
+          }
+      });
   },
 
   chooseFgImage() {
@@ -206,6 +265,10 @@ Page({
 
   onFgChange(e) { this._fgX = e.detail.x; this._fgY = e.detail.y; if(e.detail.scale) this._fgScale = e.detail.scale; },
   onFgScale(e) { this._fgScale = e.detail.scale; },
+
+  onBgChange(e) { this._bgX = e.detail.x; this._bgY = e.detail.y; },
+  onBgScale(e) { this._bgScale = e.detail.scale; },
+
   onGapChange(e) { this.setData({ gapSize: e.detail.value }); },
 
   saveToAlbum() {
@@ -239,144 +302,157 @@ Page({
 
   setDailyUnlimited() { wx.setStorageSync('burst_usage_record', { date: new Date().toLocaleDateString(), count: 999, isUnlimited: true }); },
 
-  // === 🔥 修复版：限制最大分辨率，防止崩溃 ===
+  // 🌟 终极渲染算法
   realSaveAction() {
-    this.setData({ isProcessing: true, loadingText: '正在合成...' });
+    this.setData({ isProcessing: true, loadingText: '正在合成高清大图...' });
 
-    const pixelRatio = BASE_HD_SIZE / this.data.editorSize; 
-    const offset = this.data.editorSize * 2; 
-
-    const fgScreenX = (this._fgX || offset) - offset;
-    const fgScreenY = (this._fgY || offset) - offset;
-    const fgScale = (this._fgScale || 1);
-    const baseFgW = this.data.editorSize * 0.5; 
+    // 利用原生选择器获取真实的物理排版边界，彻底消灭偏移量计算失误！
+    const query = wx.createSelectorQuery();
+    query.select('.editor-frame').boundingClientRect();
+    query.select('.bg-img-view').boundingClientRect();
+    if (this.data.mattePath) query.select('.fg-view').boundingClientRect();
     
-    const canvas = wx.createOffscreenCanvas({ type: '2d', width: 100, height: 100 });
-    const imgBg = canvas.createImage();
-    const imgFg = canvas.createImage();
-    
-    const mainTasks = [
-        new Promise((r, j) => { imgBg.onload = r; imgBg.onerror = j; }),
-        new Promise((r, j) => { imgFg.onload = r; imgFg.onerror = j; })
-    ];
-    imgBg.src = this.data.bgPath;
-    imgFg.src = this.data.mattePath;
-
-    const overrides = this.data.gridOverrides;
-    const overrideIndices = Object.keys(overrides);
-    const overrideImages = {};
-    const overrideTasks = overrideIndices.map(idx => {
-        return new Promise((resolve) => {
-            const img = canvas.createImage();
-            img.onload = () => { overrideImages[idx] = img; resolve(); };
-            img.onerror = resolve; 
-            img.src = overrides[idx];
-        });
-    });
-
-    Promise.all([...mainTasks, ...overrideTasks]).then(() => {
-        // 1. 计算理论尺寸
-        const fgRatio = imgFg.height / imgFg.width;
-        const fgCanvasW = baseFgW * fgScale * pixelRatio;
-        const fgCanvasH = fgCanvasW * fgRatio;
-        const fgCanvasX = fgScreenX * pixelRatio;
-        const fgCanvasY = fgScreenY * pixelRatio;
-
-        const overflowLeft = Math.max(0, -fgCanvasX);
-        const overflowRight = Math.max(0, (fgCanvasX + fgCanvasW) - BASE_HD_SIZE);
-        const overflowTop = Math.max(0, -fgCanvasY);
-        const overflowBottom = Math.max(0, (fgCanvasY + fgCanvasH) - BASE_HD_SIZE);
-
-        const marginX = Math.max(overflowLeft, overflowRight);
-        const marginY = Math.max(overflowTop, overflowBottom);
-
-        let targetW = BASE_HD_SIZE + marginX * 2;
-        let targetH = BASE_HD_SIZE + marginY * 2;
-
-        // 🔥 2. 检查尺寸限制，计算缩放比
-        let exportScale = 1;
-        if (targetW > MAX_CANVAS_DIMENSION || targetH > MAX_CANVAS_DIMENSION) {
-            const maxSide = Math.max(targetW, targetH);
-            exportScale = MAX_CANVAS_DIMENSION / maxSide;
-            // 提示用户
-            console.warn(`Canvas尺寸过大(${targetW}x${targetH})，自动缩放 ${exportScale.toFixed(2)}倍`);
+    query.exec((res) => {
+        if (!res || !res[0] || !res[1]) {
+            this.setData({ isProcessing: false });
+            wx.showToast({ title: '画面提取失败', icon: 'none' }); return;
         }
 
-        // 应用缩放后的物理尺寸
+        const frameRect = res[0];
+        const bgRect = res[1];
+        const fgRect = this.data.mattePath ? res[2] : null;
+
+        const pixelRatio = BASE_HD_SIZE / frameRect.width;
+
+        // 🌟 核心修复1：严格计算并集包围盒
+        let minX = 0, minY = 0, maxX = BASE_HD_SIZE, maxY = BASE_HD_SIZE;
+        let fgDrawX = 0, fgDrawY = 0, fgDrawW = 0, fgDrawH = 0;
+
+        if (fgRect) {
+            fgDrawX = (fgRect.left - frameRect.left) * pixelRatio;
+            fgDrawY = (fgRect.top - frameRect.top) * pixelRatio;
+            fgDrawW = fgRect.width * pixelRatio;
+            fgDrawH = fgRect.height * pixelRatio;
+
+            minX = Math.min(0, fgDrawX);
+            minY = Math.min(0, fgDrawY);
+            maxX = Math.max(BASE_HD_SIZE, fgDrawX + fgDrawW);
+            maxY = Math.max(BASE_HD_SIZE, fgDrawY + fgDrawH);
+        }
+
+        const targetW = maxX - minX;
+        const targetH = maxY - minY;
+        
+        // 算出九宫格本身相对于新画布应该偏移的距离
+        const offsetX = -minX;
+        const offsetY = -minY;
+
+        let exportScale = 1;
+        if (targetW > MAX_CANVAS_DIMENSION || targetH > MAX_CANVAS_DIMENSION) {
+            exportScale = MAX_CANVAS_DIMENSION / Math.max(targetW, targetH);
+        }
+
         const finalW = Math.floor(targetW * exportScale);
         const finalH = Math.floor(targetH * exportScale);
 
         const finalCanvas = wx.createOffscreenCanvas({ type: '2d', width: finalW, height: finalH });
         const ctx = finalCanvas.getContext('2d');
         
-        // 🔥 3. 关键：设置全局缩放，后续绘图坐标不需要变，自动缩小
         ctx.scale(exportScale, exportScale);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
-        // 填充背景
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, targetW, targetH); // 注意这里填的是逻辑尺寸，scale会自动处理
+        ctx.fillRect(0, 0, targetW, targetH); 
 
-        const offsetX = marginX;
-        const offsetY = marginY;
+        const imgBg = finalCanvas.createImage();
+        const imgFg = finalCanvas.createImage();
+        
+        const mainTasks = [
+            new Promise(r => { imgBg.onload = r; imgBg.onerror = r; imgBg.src = this.data.bgPath; }),
+            new Promise(r => { imgFg.onload = r; imgFg.onerror = r; imgFg.src = this.data.mattePath; })
+        ];
 
-        // Layer 1: 底图
-        const bgRatio = imgBg.width / imgBg.height;
-        let sWidth, sHeight, sX, sY;
-        if (bgRatio > 1) {
-            sHeight = imgBg.height; sWidth = sHeight; sX = (imgBg.width - sWidth) / 2; sY = 0;
-        } else {
-            sWidth = imgBg.width; sHeight = sWidth; sX = 0; sY = (imgBg.height - sHeight) / 2;
-        }
-        ctx.drawImage(imgBg, sX, sY, sWidth, sHeight, offsetX, offsetY, BASE_HD_SIZE, BASE_HD_SIZE);
-
-        // Layer 2: 替换格子
-        const cellW = BASE_HD_SIZE / 3;
-        const cellH = BASE_HD_SIZE / 3;
-        overrideIndices.forEach(idx => {
-            const img = overrideImages[idx];
-            if (img) {
-                const row = Math.floor(idx / 3);
-                const col = idx % 3;
-                const drawX = offsetX + col * cellW;
-                const drawY = offsetY + row * cellH;
-                const r = img.width / img.height;
-                const tr = cellW / cellH;
-                let sw, sh, sx, sy;
-                if (r > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw)/2; sy = 0; }
-                else { sw = img.width; sh = sw / tr; sx = 0; sy = (img.height - sh)/2; }
-                ctx.drawImage(img, sx, sy, sw, sh, drawX, drawY, cellW, cellH);
-            }
+        const overrides = this.data.gridOverrides;
+        const overrideIndices = Object.keys(overrides);
+        const overrideImages = {};
+        const overrideTasks = overrideIndices.map(idx => {
+            return new Promise((resolve) => {
+                const img = finalCanvas.createImage();
+                img.onload = () => { overrideImages[idx] = img; resolve(); };
+                img.onerror = resolve; 
+                img.src = overrides[idx];
+            });
         });
 
-        // Layer 3: 网格线
-        const gap = this.data.gapSize * pixelRatio;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(offsetX, offsetY + cellH - gap/2, BASE_HD_SIZE, gap);
-        ctx.fillRect(offsetX, offsetY + cellH * 2 - gap/2, BASE_HD_SIZE, gap);
-        ctx.fillRect(offsetX + cellW - gap/2, offsetY, gap, BASE_HD_SIZE);
-        ctx.fillRect(offsetX + cellW * 2 - gap/2, offsetY, gap, BASE_HD_SIZE);
+        Promise.all([...mainTasks, ...overrideTasks]).then(() => {
+            
+            // 🌟 核心修复2：死死裁剪住背景区域，防止溢出污染白线！
+            const bgDrawX = (bgRect.left - frameRect.left) * pixelRatio;
+            const bgDrawY = (bgRect.top - frameRect.top) * pixelRatio;
+            const bgDrawW = bgRect.width * pixelRatio;
+            const bgDrawH = bgRect.height * pixelRatio;
 
-        // Layer 4: 人物
-        ctx.drawImage(imgFg, offsetX + fgCanvasX, offsetY + fgCanvasY, fgCanvasW, fgCanvasH);
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(offsetX, offsetY, BASE_HD_SIZE, BASE_HD_SIZE);
+            ctx.clip(); // 这一行是解决“格子被拉长错觉”的关键！
 
-        // 导出
-        wx.canvasToTempFilePath({
-            canvas: finalCanvas, fileType: 'jpg', quality: 0.9,
-            success: (res) => {
-                this.setData({ isProcessing: false });
-                this.saveImageAndJump(res.tempFilePath);
-            },
-            fail: (err) => {
-                console.error(err);
-                this.setData({ isProcessing: false });
-                wx.showToast({ title: '导出失败', icon: 'none' });
+            ctx.drawImage(imgBg, offsetX + bgDrawX, offsetY + bgDrawY, bgDrawW, bgDrawH);
+
+            // 绘制独立替换的格子
+            const cellW = BASE_HD_SIZE / 3;
+            const cellH = BASE_HD_SIZE / 3;
+            overrideIndices.forEach(idx => {
+                const img = overrideImages[idx];
+                if (img) {
+                    const row = Math.floor(idx / 3);
+                    const col = idx % 3;
+                    const drawX = offsetX + col * cellW;
+                    const drawY = offsetY + row * cellH;
+                    const r = img.width / img.height;
+                    const tr = cellW / cellH;
+                    let sw, sh, sx, sy;
+                    if (r > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw)/2; sy = 0; }
+                    else { sw = img.width; sh = sw / tr; sx = 0; sy = (img.height - sh)/2; }
+                    ctx.drawImage(img, sx, sy, sw, sh, drawX, drawY, cellW, cellH);
+                }
+            });
+            ctx.restore(); // 释放裁剪区
+
+            // 绘制永远完整的九宫格白线
+            const gap = this.data.gapSize * pixelRatio;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(offsetX, offsetY + cellH - gap/2, BASE_HD_SIZE, gap);
+            ctx.fillRect(offsetX, offsetY + cellH * 2 - gap/2, BASE_HD_SIZE, gap);
+            ctx.fillRect(offsetX + cellW - gap/2, offsetY, gap, BASE_HD_SIZE);
+            ctx.fillRect(offsetX + cellW * 2 - gap/2, offsetY, gap, BASE_HD_SIZE);
+
+            // 最后画悬浮人物
+            if (fgRect) {
+                ctx.drawImage(imgFg, offsetX + fgDrawX, offsetY + fgDrawY, fgDrawW, fgDrawH);
             }
-        });
 
-    }).catch(err => {
-        console.error(err);
-        this.setData({ isProcessing: false });
-        wx.showToast({ title: '加载失败', icon: 'none' });
+            // 极清导出
+            wx.canvasToTempFilePath({
+                canvas: finalCanvas, fileType: 'jpg', quality: 1.0,
+                destWidth: finalW, destHeight: finalH,
+                success: (res) => {
+                    this.setData({ isProcessing: false });
+                    this.saveImageAndJump(res.tempFilePath);
+                },
+                fail: (err) => {
+                    console.error(err);
+                    this.setData({ isProcessing: false });
+                    wx.showToast({ title: '导出失败', icon: 'none' });
+                }
+            });
+
+        }).catch(err => {
+            console.error(err);
+            this.setData({ isProcessing: false });
+            wx.showToast({ title: '加载失败', icon: 'none' });
+        });
     });
   },
 
@@ -402,9 +478,7 @@ Page({
       });
   },
 
-  // === 分享配置 ===
   onShareAppMessage() {
-    // 3D特效没有中间结果图变量，优先用底图(bgPath)展示，或者默认封面
     const imageUrl = this.data.bgPath || '/assets/share-cover.png';
     return {
       title: '朋友圈3D冲出九宫格特效，这也太酷了吧！',
