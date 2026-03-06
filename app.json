@@ -25,7 +25,8 @@
     "pages/matting/matting",
     "pages/restore/restore",
     "pages/test/test",
-    "pages/qrcode/qrcode"
+    "pages/qrcode/qrcode",
+    "pages/video/video"
   ],
   "window": {
     "backgroundTextStyle": "dark",
@@ -33,6 +34,26 @@
     "navigationBarTitleText": "就这么图",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#f5f5f7"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#6366f1",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "修图工具",
+        "iconPath": "images/tab_home.png",
+        "selectedIconPath": "images/tab_home_active.png"
+      },
+      {
+        "pagePath": "pages/video/video",
+        "text": "无水印提取",
+        "iconPath": "images/tab_video.png",
+        "selectedIconPath": "images/tab_video_active.png"
+      }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
@@ -44,5 +65,9 @@
     "scope.writePhotosAlbum": {
       "desc": "用于保存处理后的图片到相册"
     }
+  },
+  "networkTimeout": {
+    "request": 60000,
+    "downloadFile": 300000 
   }
 }

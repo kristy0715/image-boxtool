@@ -1,19 +1,19 @@
 <view class="container">
   <view class="mode-tabs">
-    <view class="tab-item {{mode === 'manual' ? 'active' : ''}}" bindtap="switchMode" data-mode="manual">
+    <view class="tab-item {{mode === 'auto' ? 'active' : ''}}" bindtap="switchMode" data-mode="auto">
       <text>{{leftTabTitle}}</text>
     </view>
-    <view class="tab-item {{mode === 'auto' ? 'active' : ''}}" bindtap="switchMode" data-mode="auto">
+    <view class="tab-item {{mode === 'manual' ? 'active' : ''}}" bindtap="switchMode" data-mode="manual">
       <text>{{rightTabTitle}}</text>
     </view>
   </view>
 
   <view class="card editor-card">
-    <view class="feature-tip" wx:if="{{mode === 'manual'}}">
-      <text>⚠️ 纯色背景我最棒</text>
-    </view>
     <view class="feature-tip" wx:if="{{mode === 'auto'}}">
       <text>🚀 AI强力消除支持复杂背景</text>
+    </view>
+    <view class="feature-tip" wx:if="{{mode === 'manual'}}">
+      <text>⚠️ 强力去除纯色背景前水印</text>
     </view>
 
     <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
@@ -49,10 +49,10 @@
           </movable-view>
         </movable-area>
 
-        <view class="loading-mask" wx:if="{{isProcessing}}">
-            <view class="loading-spinner"></view>
-            <text>{{mode === 'auto' ? 'AI去水印中...' : '普通去水印中...'}}</text>
-        </view>
+      <view class="loading-mask" wx:if="{{isProcessing}}">
+          <view class="loading-spinner"></view>
+          <text>{{loadingText || (mode === 'auto' ? 'AI去水印中...' : '纯色去水印中...')}}</text>
+      </view>
       </view>
 
       <view class="toolbar">

@@ -1,0 +1,76 @@
+<view class="container">
+  <top-tips id="topTips"></top-tips>
+
+  <view class="header">
+    <text class="title">全网无水印提取</text>
+    <text class="subtitle">现已经支持大多数主流平台，完美支持抖音、快手、小红书、微博等图文/视频的高清无水印解析 ✨</text>
+  </view>
+
+  <view class="ad-box" wx:if="{{bannerUnitId}}" style="margin-bottom: 30rpx;">
+    <ad unit-id="{{bannerUnitId}}"></ad>
+  </view>
+
+  <view class="card input-card">
+    <view class="feature-tip">
+      <text>🚀 复制各大主流平台分享链接，打开小程序即可自动提取</text>
+    </view>
+    <textarea 
+      class="url-input" 
+      placeholder="请在此处粘贴分享口令或链接..." 
+      value="{{inputValue}}"
+      bindinput="handleInput"
+      maxlength="-1"
+    ></textarea>
+    <view class="action-row">
+      <view class="clear-btn" bindtap="clearInput" wx:if="{{inputValue}}">清空内容</view>
+      <view class="paste-btn" bindtap="pasteFromClipboard" wx:else>粘贴链接</view>
+    </view>
+  </view>
+
+  <button class="parse-btn {{isProcessing ? 'loading' : ''}}" bindtap="startParse">
+    {{isProcessing ? '解析中...' : '立刻提取无水印资源'}}
+  </button>
+
+  <view class="card result-card" wx:if="{{videoData}}">
+    <view class="section-title">
+      <text>🎉 解析完成</text>
+      <text class="video-status">高清无水印</text>
+    </view>
+    
+    <view class="cover-box" wx:if="{{videoData.type === 'video'}}">
+      <video class="main-video" src="{{videoData.url}}" poster="{{videoData.cover}}" controls></video>
+    </view>
+
+    <view class="images-box" wx:if="{{videoData.type === 'images'}}">
+      <scroll-view class="image-scroll {{videoData.images.length === 1 ? 'single-mode' : ''}}" scroll-x="true" enable-flex="true">
+        <view class="image-wrapper" wx:for="{{videoData.images}}" wx:key="index">
+          <image class="gallery-img" src="{{item}}" mode="aspectFill" lazy-load="true" bindtap="previewImage" data-index="{{index}}"></image> 
+        </view>
+      </scroll-view>
+      <view class="image-count-tip">左右滑动查看共 {{videoData.images.length}} 张图片</view>
+    </view>
+
+    <view class="desc-container">
+      <text class="video-desc" selectable="true">{{videoData.title}}</text>
+      <button class="copy-desc-btn" bindtap="copyTitle">📋 复制文案</button>
+    </view>
+  </view>
+
+  <view class="ad-box" wx:if="{{videoData && bannerUnitId}}" style="margin-bottom: 20rpx;">
+    <ad unit-id="{{bannerUnitId}}"></ad>
+  </view>
+
+  <view style="height: 220rpx;"></view>
+
+  <view class="bottom-bar" wx:if="{{videoData}}">
+    <view class="btn-group">
+      <button class="btn-action copy-style" bindtap="copyResourceLink">🔗 复制直链</button>
+      <button class="btn-action save-style" bindtap="saveResource">{{downloadProgressText}}</button>
+    </view>
+  </view>
+
+  <button class="float-share-btn" open-type="share">
+    <text class="icon">✈️</text>
+    <text class="text">分享</text>
+  </button>
+</view>

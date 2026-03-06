@@ -1,0 +1,3 @@
+<view class="top-tips {{show ? 'show' : ''}}">
+  <text class="top-tips-text">{{msg}}</text>
+</view>

@@ -2,7 +2,7 @@
 const Security = require('../../utils/security.js'); 
 
 const SERVER_CONFIG = {
-  PROXY_API_URL: 'https://goodgoodstudy-nb.top/api/v1/wx-proxy/remove-watermark', // 请确保是您的公网IP
+  PROXY_API_URL: 'https://goodgoodstudy-nb.top/api/v1/wx-proxy/remove-watermark', 
   APP_TAG: 'default_app' 
 };
 
@@ -15,18 +15,19 @@ const DAILY_FREE_SAVE_LIMIT = 2;
 const DAILY_FREE_AI_LIMIT = 1;   
 const AD_REWARD_AI_COUNT = 3;    
 
-// 最小堆算法 (本地 Telea 算法必备)
 class MinHeap {
   constructor(){this.heap=[]}push(t){this.heap.push(t),this.bubbleUp(this.heap.length-1)}pop(){if(0===this.heap.length)return null;const t=this.heap[0],e=this.heap.pop();return this.heap.length>0&&(this.heap[0]=e,this.sinkDown(0)),t}bubbleUp(t){for(;t>0;){const e=Math.floor((t-1)/2);if(this.heap[t].dist>=this.heap[e].dist)break;[this.heap[t],this.heap[e]]=[this.heap[e],this.heap[t]],t=e}}sinkDown(t){const e=this.heap.length;for(;;){let s=2*t+1,h=2*t+2,i=null;if(s<e&&this.heap[s].dist<this.heap[t].dist&&(i=s),h<e&&this.heap[h].dist<(null===i?this.heap[t].dist:this.heap[s].dist)&&(i=h),null===i)break;[this.heap[t],this.heap[i]]=[this.heap[i],this.heap[t]],t=i}}size(){return this.heap.length}
 }
 
 Page({
   data: {
-    imagePath: '', resultImage: '', isProcessing: false, mode: 'manual', 
+    imagePath: '', resultImage: '', isProcessing: false, 
+    mode: 'auto', // ⭐ 将默认模式改为 AI (auto)
     brushSize: 35, canvasDisplayWidth: 300, canvasDisplayHeight: 400,
     imageWidth: 0, imageHeight: 0, isComparing: false, bannerUnitId: AD_CONFIG.BANNER_ID,
     isMoveMode: false, moveX: 0, moveY: 0, moveScale: 1,
-    leftTabTitle: '普通去水印', rightTabTitle: 'AI去水印', pendingAdType: '' 
+    leftTabTitle: 'AI去水印', rightTabTitle: '纯色去水印', // ⭐ 对调左右标题
+    pendingAdType: '' 
   },
 
   canvas: null, ctx: null, maskCanvas: null, maskCtx: null, originalImage: null,
@@ -90,7 +91,8 @@ Page({
 
   updateAiTabTitle() {
     const stock = this.getAiStock();
-    this.setData({ rightTabTitle: `AI去水印(余${stock.total})` });
+    // ⭐ 确保余额动态更新到左侧的 AI 标签上
+    this.setData({ leftTabTitle: `AI去水印(余${stock.total})` }); 
   },
 
   checkSaveQuota() {
@@ -111,32 +113,35 @@ Page({
     wx.setStorageSync('watermark_save_record_v12', { date: today, count: 999, isUnlimited: true });
   },
 
-  // ==========================================
-  // 🔥 核心加载与反馈控制
-  // ==========================================
   showDynamicLoading(type) {
+    if (type === 'manual') {
+      wx.showLoading({ title: '消除处理中...', mask: true });
+      return;
+    }
+
     let progress = 0;
     wx.showLoading({ title: '准备中 0%', mask: true });
     
     if (this.loadingTimer) clearInterval(this.loadingTimer);
     
     this.loadingTimer = setInterval(() => {
-      progress += Math.floor(Math.random() * 10) + 3;
-      if (progress >= 99) progress = 99; 
+      let step = Math.floor(Math.random() * 5) + 2; 
+      if (progress > 60) step = Math.floor(Math.random() * 3) + 1;
+      if (progress > 85) step = Math.floor(Math.random() * 2);
+      if (progress >= 98) step = 0;
+      
+      if (progress < 99) progress += step;
+      if (progress > 99) progress = 99;
       
       let text = '准备中';
-      if (progress < 25) {
-        text = '安全检测中';
-      } else if (progress < 50) {
-        text = type === 'ai' ? '智能切片中' : '图像解析中';
-      } else if (progress < 85) {
-        text = type === 'ai' ? 'AI重绘细节' : '本地消除中';
-      } else {
-        text = '合成原画质';
-      }
+      if (progress < 20) text = '🚀 分配云端算力';
+      else if (progress < 40) text = '🛡️ 安全环境检测';
+      else if (progress < 60) text = '✂️ 图像智能切片';
+      else if (progress < 85) text = '🤖 AI 重绘像素中';
+      else text = '✨ 细节画质打磨';
 
       wx.showLoading({ title: `${text} ${progress}%`, mask: true });
-    }, 600); 
+    }, 800); 
   },
 
   hideDynamicLoading() {
@@ -145,11 +150,11 @@ Page({
       this.loadingTimer = null;
     }
     wx.hideLoading();
+    setTimeout(() => {
+      this.setData({ loadingText: '' });
+    }, 300);
   },
 
-  // ==========================================
-  // 🔥 核心重构：统一入口管理
-  // ==========================================
   startProcess() {
     if (!this.data.imagePath) return;
     if (this.data.isProcessing) return;
@@ -199,61 +204,64 @@ Page({
     }
   },
 
-// 核心中转请求函数（正式生产版：移除调试日志，柔化报错文案）
-processWithProxyApi(imgBase64, maskBase64, reqMode) {
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: SERVER_CONFIG.PROXY_API_URL,
-      method: 'POST',
-      data: {
-        app_tag: SERVER_CONFIG.APP_TAG,
-        mode: reqMode, 
-        image: imgBase64,
-        mask: maskBase64 || ""
-      },
-      timeout: 60000,
-      success: (res) => {
-        if (res.statusCode === 200) {
+  processWithProxyApi(imgBase64, maskBase64, reqMode) {
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: SERVER_CONFIG.PROXY_API_URL,
+        method: 'POST',
+        data: {
+          app_tag: SERVER_CONFIG.APP_TAG,
+          mode: reqMode, 
+          image: imgBase64,
+          mask: maskBase64 || ""
+        },
+        timeout: 90000, 
+        success: (res) => {
           let responseData = res.data;
           if (typeof responseData === 'string') {
             try { responseData = JSON.parse(responseData); } catch (e) {}
           }
 
-          // 拦截违规图片
-          if (responseData.code === 403 || responseData.errcode === 403) {
-            return reject(new Error('图片包含违规内容，请更换图片后重试哦'));
+          if (responseData && responseData.code && responseData.code !== 200) {
+            return reject(new Error(`[后端真言] ${responseData.msg || '未知错误'}`));
           }
 
-          if (reqMode === 'ai') {
-            let resultB64 = responseData.data?.image || responseData.image || responseData.data || "";
-            
-            if (!resultB64) {
-              return reject(new Error('生成图片时遇到点小问题，请重新尝试'));
+          if (res.statusCode === 200) {
+            if (responseData.code === 403 || responseData.errcode === 403) {
+              return reject(new Error('图片包含违规内容，请更换后重试'));
             }
-            
-            if (resultB64.startsWith('data:image')) {
-              resultB64 = resultB64.split('base64,')[1];
+
+            if (reqMode === 'ai') {
+              let resultB64 = responseData.data?.image || responseData.image || responseData.data || "";
+              
+              if (!resultB64) {
+                let debugStr = JSON.stringify(responseData).substring(0, 40);
+                return reject(new Error(`返回数据异常: ${debugStr}`));
+              }
+              
+              if (resultB64.startsWith('data:image')) {
+                resultB64 = resultB64.split('base64,')[1];
+              }
+              
+              this.base64ToTempFile(resultB64).then(resolve).catch(reject);
+            } else {
+              resolve(); 
             }
-            
-            this.base64ToTempFile(resultB64).then(resolve).catch((err) => reject(err));
           } else {
-            resolve(); 
+            reject(new Error(`服务器开了个小差 (状态码: ${res.statusCode})`));
           }
-        } else {
-          // 掩盖 Nginx 502/413 等底层错误
-          reject(new Error('当前使用人数较多，服务器正在排队，请稍后再试'));
+        },
+        fail: (err) => {
+          if (err && err.errMsg && err.errMsg.indexOf('timeout') > -1) {
+            reject(new Error('处理超时，建议缩小涂抹区域再试~'));
+          } else {
+            reject(new Error('网络请求失败，请检查网络'));
+          }
         }
-      },
-      fail: () => {
-        reject(new Error('网络似乎开小差了，请检查网络连接后重试'));
-      }
+      });
     });
-  });
-},
+  },
 
-  // ==========================================
-  // 工具与算法实现
-  // ==========================================
   readFileToBase64(filePath) {
     return new Promise((resolve, reject) => {
       wx.getFileSystemManager().readFile({
@@ -558,18 +566,16 @@ processWithProxyApi(imgBase64, maskBase64, reqMode) {
     wx.showToast({ title: '处理成功', icon: 'success' });
   },
 
-// 全局错误捕获（正式生产版：柔和弹窗）
-handleError(err) {
-  this.setData({ isProcessing: false });
-  this.hideDynamicLoading();
-  // 使用上一步传递过来的温和提示语，如果没有则显示保底文案
-  wx.showModal({ 
-    title: '温馨提示', 
-    content: err.message || '系统繁忙，请稍后再试', 
-    showCancel: false,
-    confirmColor: '#6366f1' // 用一个好看的主题色按钮代替默认的绿色
-  });
-},
+  handleError(err) {
+    this.setData({ isProcessing: false });
+    this.hideDynamicLoading();
+    wx.showModal({ 
+      title: '温馨提示', 
+      content: err.message || '系统繁忙，请稍后再试', 
+      showCancel: false,
+      confirmColor: '#6366f1' 
+    });
+  },
 
   getOptimalSize(w, h) {
     const MAX_SIDE = 1536; 
@@ -605,41 +611,39 @@ handleError(err) {
     });
   },
 
-// 本地文件写入与静默清理（正式生产版：隐蔽吸尘器，友好提示内存不足）
-base64ToTempFile(base64Data) {
-  return new Promise((resolve, reject) => {
-    const fs = wx.getFileSystemManager();
-    const basePath = wx.env.USER_DATA_PATH;
-    const fileName = `${basePath}/ai_result_${Date.now()}.jpg`; 
-    
-    try {
-      // 静默清理历史文件，不留下任何报错痕迹
+  base64ToTempFile(base64Data) {
+    return new Promise((resolve, reject) => {
+      const fs = wx.getFileSystemManager();
+      const basePath = wx.env.USER_DATA_PATH;
+      const fileName = `${basePath}/ai_result_${Date.now()}.jpg`; 
+      
       try {
-        const files = fs.readdirSync(basePath);
-        files.forEach(file => {
-          if (file.endsWith('.jpg') || file.includes('res_') || file.includes('ai_result_')) {
-            try { fs.unlinkSync(`${basePath}/${file}`); } catch (e) {}
-          }
+        try {
+          const files = fs.readdirSync(basePath);
+          files.forEach(file => {
+            if (file.endsWith('.jpg') || file.includes('res_') || file.includes('ai_result_')) {
+              try { fs.unlinkSync(`${basePath}/${file}`); } catch (e) {}
+            }
+          });
+        } catch (e) {}
+
+        let cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '')
+                                    .replace(/[\r\n\s]/g, '');
+
+        fs.writeFile({ 
+          filePath: fileName, 
+          data: cleanBase64, 
+          encoding: 'base64', 
+          success: () => resolve(fileName), 
+          fail: () => {
+            reject(new Error('手机存储空间好像不够了，清理一下微信缓存再来吧'));
+          } 
         });
-      } catch (e) {}
-
-      let cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '')
-                                  .replace(/[\r\n\s]/g, '');
-
-      fs.writeFile({ 
-        filePath: fileName, 
-        data: cleanBase64, 
-        encoding: 'base64', 
-        success: () => resolve(fileName), 
-        fail: () => {
-          reject(new Error('手机存储空间好像不够了，清理一下微信缓存再来吧'));
-        } 
-      });
-    } catch (err) {
-      reject(new Error('图片渲染失败，请再试一次'));
-    }
-  });
-},
+      } catch (err) {
+        reject(new Error('图片渲染失败，请再试一次'));
+      }
+    });
+  },
 
   saveImage() {
     if (!this.data.resultImage) return;

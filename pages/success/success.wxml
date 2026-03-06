@@ -4,7 +4,7 @@
       <icon type="success" size="50" color="#07c160"></icon>
     </view>
     <text class="status-title">保存成功</text>
-    <text class="status-desc">图片已保存到系统相册</text>
+    <text class="status-desc">{{type === 'video' ? '视频已保存到系统相册' : '图片已保存到系统相册'}}</text>
   </view>
 
   <view class="preview-area fade-in-delay">
@@ -17,7 +17,7 @@
         show-menu-by-longpress
       ></image>
     </view>
-    <text class="preview-tip">点击图片预览</text>
+    <text class="preview-tip">{{type === 'video' ? '视频封面预览' : '点击图片预览'}}</text>
   </view>
 
   <view class="action-area fade-in-delay-2">
@@ -31,12 +31,13 @@
     
     <view class="secondary-actions">
       <button class="btn-secondary" bindtap="goHome">返回首页</button>
-      <button class="btn-primary-outline" bindtap="makeAnother">再做一张</button>
+      <button class="btn-primary-outline" bindtap="makeAnother">
+        {{type === 'video' ? '继续提取' : '再做一张'}}
+      </button>
     </view>
   </view>
 
   <view class="ad-container fade-in-delay-2" style="width: 100%; margin-top: 40rpx;">
     <ad unit-id="adunit-ecfcec4c6a0c871b"></ad>
   </view>
-
 </view>
