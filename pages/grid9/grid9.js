@@ -97,7 +97,8 @@ Page({
     else if (type === 6) { c=3; r=2; txt='六宫格 (3x2)'; } 
     else { c=3; r=3; txt='标准九宫格 (3x3)'; }
     
-    this.resetLayout(type, c, r, txt, baseSize, baseSize);
+    const boxH = baseSize * (r / c);
+    this.resetLayout(type, c, r, txt, baseSize, boxH);
   },
 
   setMaskType(e) {
@@ -116,9 +117,11 @@ Page({
     let viewW, viewH;
     
     if (ratio > boxRatio) {
-        viewH = boxH; viewW = boxH * ratio;
+        viewH = boxH; 
+        viewW = boxH * ratio;
     } else {
-        viewW = boxW; viewH = boxW / ratio;
+        viewW = boxW; 
+        viewH = boxW / ratio;
     }
 
     const cx = (boxW - viewW) / 2;
@@ -193,11 +196,8 @@ Page({
         const imgRect = res[1];
         const { cols, rows } = this.data;
 
-        // 基础画布宽度 2400
         let canvasW = 2400; 
-        // 动态高度
         let canvasH = (canvasW / cols) * rows;
-        
         const mapScale = canvasW / boxRect.width;
 
         try {
@@ -228,8 +228,8 @@ Page({
 
                         mCtx.globalCompositeOperation = 'destination-out';
                         mCtx.fillStyle = '#000000'; 
+                        // ⭐ 核心改变：我们已经在 drawMaskPath 内部接管了独立的 fill() 操作
                         this.drawMaskPath(mCtx, canvasW, canvasH, this.data.maskType);
-                        mCtx.fill(); 
 
                         ctx.drawImage(maskCanvas, 0, 0, canvasW, canvasH);
                     }
@@ -294,108 +294,83 @@ Page({
     });
   },
 
+  // ⭐ 终极大一统版切割坐标系：1比1严格复刻 CSS 坐标，彻底告别“重叠挖空”和“长得不像”Bug！
   drawMaskPath(ctx, w, h, type) {
-      ctx.beginPath();
-      // 基于 min(w, h) 居中绘制，确保不变形
       const size = Math.min(w, h);
-      const scale = (size / 100) * 0.995; 
-      
+      const scale = size / 100; // 严谨地与 CSS viewBox 的 0~100 完全贴合，抛弃旧版的微小偏移
       const startX = (w - size) / 2;
       const startY = (h - size) / 2;
 
       const t = (x, y) => ({
-          x: startX + (x + 0.25) * scale, 
-          y: startY + (y + 0.25) * scale
+          x: startX + x * scale, 
+          y: startY + y * scale
       });
 
       if (type === 'circle') {
-          const center = t(50, 50);
-          ctx.arc(center.x, center.y, 49.5 * scale, 0, 2 * Math.PI);
+          ctx.beginPath();
+          ctx.arc(t(50, 50).x, t(50, 50).y, 49.5 * scale, 0, 2 * Math.PI);
           ctx.fill();
-      
+          
       } else if (type === 'heart') {
-          // === 最终修正版：仿照参考图 (高瘦 + 直线收缩) ===
-          const pTop = t(50, 30); // 顶部起搏点，V字明显
-          const pBot = t(50, 95); // 底部尖端
-          
-          ctx.moveTo(pTop.x, pTop.y);
-          
-          // 左半边：
-          // 1. 顶部圆弧：从 (50,30) 向上向外，到 (0,40) 最宽
-          // 控制点 (30,0) 拉高，(0,15) 拉宽
-          ctx.bezierCurveTo(t(30, 0).x, t(30, 0).y, t(0, 15).x, t(0, 15).y, t(0, 40).x, t(0, 40).y);
-          
-          // 2. 下部收缩：从 (0,40) 到 (50,95)
-          // 关键：控制点 x 值较小，让线条更直，不向外凸
-          // (0,60) 保持一点弧度，(20,85) 快速对齐到底部
-          ctx.bezierCurveTo(t(0, 60).x, t(0, 60).y, t(20, 85).x, t(20, 85).y, pBot.x, pBot.y);
-          
-          // 右半边 (对称)
-          ctx.bezierCurveTo(t(80, 85).x, t(80, 85).y, t(100, 60).x, t(100, 60).y, t(100, 40).x, t(100, 40).y);
-          ctx.bezierCurveTo(t(100, 15).x, t(100, 15).y, t(70, 0).x, t(70, 0).y, pTop.x, pTop.y);
-          
+          ctx.beginPath();
+          ctx.moveTo(t(50,30).x, t(50,30).y);
+          ctx.bezierCurveTo(t(30,5).x, t(30,5).y, t(0,20).x, t(0,20).y, t(0,50).x, t(0,50).y);
+          ctx.bezierCurveTo(t(0,75).x, t(0,75).y, t(45,90).x, t(45,90).y, t(50,95).x, t(50,95).y);
+          ctx.bezierCurveTo(t(55,90).x, t(55,90).y, t(100,75).x, t(100,75).y, t(100,50).x, t(100,50).y);
+          ctx.bezierCurveTo(t(100,20).x, t(100,20).y, t(70,5).x, t(70,5).y, t(50,30).x, t(50,30).y);
           ctx.fill();
 
       } else if (type === 'star') {
-          const cx = startX + 50 * scale; const cy = startY + 50 * scale;
-          const R = 49 * scale; const r = R * 0.4;
-          const rot = Math.PI / 2 * 3; const step = Math.PI / 5;
-          let x = cx + Math.cos(rot) * R; let y = cy + Math.sin(rot) * R;
-          ctx.moveTo(x, y);
-          for (let i = 1; i < 11; i++) {
-              const currentR = i % 2 === 0 ? R : r;
-              x = cx + Math.cos(rot + i * step) * currentR;
-              y = cy + Math.sin(rot + i * step) * currentR;
-              ctx.lineTo(x, y);
-          }
+          ctx.beginPath();
+          const pts = [[50,0],[63,38],[100,38],[70,60],[82,100],[50,75],[18,100],[30,60],[0,38],[37,38]];
+          ctx.moveTo(t(pts[0][0], pts[0][1]).x, t(pts[0][0], pts[0][1]).y);
+          for(let i=1; i<pts.length; i++) ctx.lineTo(t(pts[i][0], pts[i][1]).x, t(pts[i][0], pts[i][1]).y);
+          ctx.closePath();
           ctx.fill();
 
       } else if (type === 'bear') {
-          const faceC = t(50, 55); const faceR = 40 * scale; 
-          const leftEarC = t(18, 20); const rightEarC = t(82, 20); const earR = 15 * scale; 
-          ctx.beginPath(); ctx.arc(leftEarC.x, leftEarC.y, earR, 0, 2 * Math.PI); ctx.fill();
-          ctx.beginPath(); ctx.arc(rightEarC.x, rightEarC.y, earR, 0, 2 * Math.PI); ctx.fill();
-          ctx.beginPath(); ctx.arc(faceC.x, faceC.y, faceR, 0, 2 * Math.PI); ctx.fill();
+          ctx.beginPath(); ctx.arc(t(20,20).x, t(20,20).y, 15*scale, 0, 2*Math.PI); ctx.fill();
+          ctx.beginPath(); ctx.arc(t(80,20).x, t(80,20).y, 15*scale, 0, 2*Math.PI); ctx.fill();
+          ctx.beginPath(); ctx.arc(t(50,55).x, t(50,55).y, 42*scale, 0, 2*Math.PI); ctx.fill();
+
+      } else if (type === 'cat') {
+          // 左耳、右耳、脸部分别独立 beginPath 和 fill，防止耳朵交界处被掏空缺口
+          ctx.beginPath();
+          ctx.moveTo(t(15,10).x, t(15,10).y); ctx.lineTo(t(35,40).x, t(35,40).y); ctx.lineTo(t(5,45).x, t(5,45).y); ctx.closePath(); 
+          ctx.fill();
+          
+          ctx.beginPath();
+          ctx.moveTo(t(85,10).x, t(85,10).y); ctx.lineTo(t(65,40).x, t(65,40).y); ctx.lineTo(t(95,45).x, t(95,45).y); ctx.closePath(); 
+          ctx.fill();
+          
+          ctx.beginPath();
+          const fc = t(50,55);
+          if(ctx.ellipse) {
+              ctx.ellipse(fc.x, fc.y, 45*scale, 38*scale, 0, 0, 2*Math.PI);
+          } else {
+              ctx.save(); ctx.translate(fc.x, fc.y); ctx.scale(1, 38/45); ctx.arc(0,0, 45*scale, 0, 2*Math.PI); ctx.restore();
+          }
+          ctx.fill();
 
       } else if (type === 'maple') {
-          ctx.moveTo(t(50, 2).x, t(50, 2).y);
-          ctx.lineTo(t(60, 22).x, t(60, 22).y); ctx.lineTo(t(85, 18).x, t(85, 18).y);
-          ctx.lineTo(t(72, 42).x, t(72, 42).y); ctx.lineTo(t(100, 45).x, t(100, 45).y);
-          ctx.lineTo(t(78, 62).x, t(78, 62).y); ctx.lineTo(t(88, 85).x, t(88, 85).y);
-          ctx.lineTo(t(58, 80).x, t(58, 80).y); ctx.lineTo(t(52, 98).x, t(52, 98).y);
-          ctx.lineTo(t(48, 98).x, t(48, 98).y); ctx.lineTo(t(42, 80).x, t(42, 80).y);
-          ctx.lineTo(t(12, 85).x, t(12, 85).y); ctx.lineTo(t(22, 62).x, t(22, 62).y);
-          ctx.lineTo(t(0, 45).x, t(0, 45).y); ctx.lineTo(t(28, 42).x, t(28, 42).y);
-          ctx.lineTo(t(15, 18).x, t(15, 18).y); ctx.lineTo(t(40, 22).x, t(40, 22).y);
-          ctx.lineTo(t(50, 2).x, t(50, 2).y);
+          ctx.beginPath();
+          const mPts = [[50,0],[62,25],[85,20],[72,42],[100,45],[78,62],[88,85],[58,80],[52,100],[48,100],[42,80],[12,85],[22,62],[0,45],[28,42],[15,20],[38,25]];
+          ctx.moveTo(t(mPts[0][0], mPts[0][1]).x, t(mPts[0][0], mPts[0][1]).y);
+          for(let i=1; i<mPts.length; i++) ctx.lineTo(t(mPts[i][0], mPts[i][1]).x, t(mPts[i][0], mPts[i][1]).y);
+          ctx.closePath();
           ctx.fill();
 
       } else if (type === 'flower') {
-          const cx = startX + 50 * scale; const cy = startY + 50 * scale;
-          const petalR = 25 * scale; const spreadR = 25 * scale; 
-          for(let i=0; i<5; i++) {
+          const circles = [[50,25,25], [74,42,25], [65,70,25], [35,70,25], [26,42,25], [50,50,18]];
+          circles.forEach(c => {
               ctx.beginPath();
-              const angle = (Math.PI * 2 * i) / 5 - Math.PI/2;
-              const px = cx + Math.cos(angle) * spreadR; const py = cy + Math.sin(angle) * spreadR;
-              ctx.arc(px, py, petalR, 0, 2 * Math.PI);
+              ctx.arc(t(c[0], c[1]).x, t(c[0], c[1]).y, c[2]*scale, 0, 2*Math.PI);
               ctx.fill();
-          }
-          ctx.beginPath(); ctx.arc(cx, cy, 20*scale, 0, 2 * Math.PI); ctx.fill();
-
-      } else if (type === 'cat') {
-          const p1 = t(15, 5); 
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(t(15, 50).x, t(15, 50).y); ctx.lineTo(t(50, 40).x, t(50, 40).y); 
-          ctx.lineTo(t(85, 50).x, t(85, 50).y); ctx.lineTo(t(85, 5).x, t(85, 5).y); 
-          const faceCx = t(50, 60).x; const faceCy = t(50, 60).y; const faceR = 38 * scale;
-          ctx.moveTo(faceCx + faceR, faceCy); ctx.arc(faceCx, faceCy, faceR, 0, 2*Math.PI);
-          ctx.fill();
+          });
       }
   },
   
- // === 分享配置 ===
  onShareAppMessage() {
-  // 切图模块没有单张结果图，使用原图或默认封面
   const imageUrl = this.data.imagePath || '/assets/share-cover.png';
   return {
     title: '朋友圈九宫格切图神器，心形拼图太好看了！',

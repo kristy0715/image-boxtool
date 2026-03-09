@@ -1,7 +1,7 @@
 <view class="container">
   <view class="page-header">
-    <text class="page-title">添加文字</text>
-    <text class="page-subtitle">多图层 · 无限创意</text>
+    <text class="page-title">全能创作工坊</text>
+    <text class="page-subtitle">自制表情包 · 加字加图 · 贴纸水印</text>
   </view>
 
   <view class="card preview-card">
@@ -10,39 +10,50 @@
       <text class="upload-text">点击选择照片</text>
     </view>
 
-    <view class="preview-wrapper" wx:else style="width:{{viewWidth}}px; height:{{viewHeight}}px;">
+    <view class="preview-wrapper" wx:else style="width:{{viewWidth}}px; height:{{viewHeight}}px;" bindtap="onCanvasTap">
       <image class="bg-image" src="{{imagePath}}" mode="scaleToFill"></image>
 
       <block wx:for="{{elements}}" wx:key="id">
-        
         <view wx:if="{{item.type === 'sticker'}}"
           class="drag-element sticker-element {{activeId === item.id ? 'active' : ''}}"
-          style="left:{{item.x}}px; top:{{item.y}}px; width:{{item.size}}px; height:{{item.size}}px; transform: translate(-50%, -50%) rotate({{item.angle}}deg); z-index: {{activeId === item.id ? 100 : 50}};"
+          style="left:{{item.x}}px; top:{{item.y}}px; width:{{item.size}}px; height:{{item.size}}px; transform: translate(-50%, -50%) rotate({{item.angle || 0}}deg); z-index: {{activeId === item.id ? 100 : 50}};"
           catchtouchstart="onTouchStart" 
           catchtouchmove="onTouchMove" 
           catchtouchend="onTouchEnd"
-          bindtap="activateElement"
           data-id="{{item.id}}"
         >
           <text style="font-size: {{item.size}}px; line-height: 1;">{{item.content}}</text>
           
-          <view class="delete-handle" catchtap="deleteElement" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">×</view>
-          <view class="handle-box" wx:if="{{activeId === item.id}}"></view>
+          <view class="delete-handle" catchtouchstart="deleteElement" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">×</view>
+          <view class="transform-handle" catchtouchstart="onTransformStart" catchtouchmove="onTransformMove" catchtouchend="onTransformEnd" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">⤡</view>
         </view>
 
         <view wx:if="{{item.type === 'text'}}"
           class="drag-element text-element {{activeId === item.id ? 'active' : ''}}"
-          style="left:{{item.x}}px; top:{{item.y}}px; transform: translate(-50%, -50%) rotate({{item.angle}}deg); z-index: {{activeId === item.id ? 100 : 60}};"
+          style="left:{{item.x}}px; top:{{item.y}}px; transform: translate(-50%, -50%) rotate({{item.angle || 0}}deg); z-index: {{activeId === item.id ? 100 : 60}};"
           catchtouchstart="onTouchStart" 
           catchtouchmove="onTouchMove" 
           catchtouchend="onTouchEnd"
-          bindtap="activateElement"
           data-id="{{item.id}}"
         >
-          <text style="font-size:{{item.fontSize}}px; color:{{item.color}}; {{item.hasStroke ? 'text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;' : ''}}">{{item.content}}</text>
+          <text style="font-size:{{item.fontSize}}px; color:{{item.color}}; {{item.hasStroke ? 'text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;' : ''}}">{{item.content || ' '}}</text>
           
-          <view class="delete-handle" catchtap="deleteElement" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">×</view>
-          <view class="handle-box" wx:if="{{activeId === item.id}}"></view>
+          <view class="delete-handle" catchtouchstart="deleteElement" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">×</view>
+          <view class="transform-handle" catchtouchstart="onTransformStart" catchtouchmove="onTransformMove" catchtouchend="onTransformEnd" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">⤡</view>
+        </view>
+
+        <view wx:if="{{item.type === 'image'}}"
+          class="drag-element image-element {{activeId === item.id ? 'active' : ''}}"
+          style="left:{{item.x}}px; top:{{item.y}}px; width:{{item.width}}px; height:{{item.height}}px; transform: translate(-50%, -50%) rotate({{item.angle || 0}}deg); z-index: {{activeId === item.id ? 100 : 40}};"
+          catchtouchstart="onTouchStart" 
+          catchtouchmove="onTouchMove" 
+          catchtouchend="onTouchEnd"
+          data-id="{{item.id}}"
+        >
+          <image src="{{item.path}}" style="width:100%; height:100%; display:block;" mode="scaleToFill"></image>
+          
+          <view class="delete-handle" catchtouchstart="deleteElement" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">×</view>
+          <view class="transform-handle" catchtouchstart="onTransformStart" catchtouchmove="onTransformMove" catchtouchend="onTransformEnd" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">⤡</view>
         </view>
 
       </block>
@@ -54,10 +65,11 @@
   <view class="tab-header" wx:if="{{imagePath}}">
     <view class="tab-item {{currentTab === 'text' ? 'active' : ''}}" bindtap="switchTab" data-tab="text">文字</view>
     <view class="tab-item {{currentTab === 'sticker' ? 'active' : ''}}" bindtap="switchTab" data-tab="sticker">贴纸</view>
+    <view class="tab-item {{currentTab === 'image' ? 'active' : ''}}" bindtap="switchTab" data-tab="image">图片</view>
   </view>
 
   <view class="card no-top-radius" wx:if="{{imagePath && currentTab === 'text'}}">
-    <view class="add-text-btn" bindtap="addNewText" wx:if="{{!activeId || (elements.length > 0 && elements[elements.length-1].id !== activeId)}}">
+    <view class="add-text-btn" bindtap="addNewText">
       ➕ 添加新文字
     </view>
 
@@ -67,7 +79,7 @@
       </view>
       <view class="style-row">
         <text class="style-label">字号</text>
-        <slider class="style-slider" min="20" max="100" value="{{tempFontSize}}" bindchange="onFontSizeChange" activeColor="#6366f1" block-size="20"/>
+        <slider class="style-slider" min="20" max="150" value="{{tempFontSize}}" bindchange="onFontSizeChange" activeColor="#6366f1" block-size="20"/>
       </view>
       <view class="style-row">
         <text class="style-label">颜色</text>
@@ -84,7 +96,6 @@
         <switch checked="{{tempStroke}}" color="#6366f1" bindchange="onStrokeChange"/>
       </view>
     </block>
-    <view class="empty-tip" wx:else>请点击上方按钮添加文字，或选中已有文字进行修改</view>
   </view>
 
   <view class="card no-top-radius" wx:if="{{imagePath && currentTab === 'sticker'}}">
@@ -106,6 +117,13 @@
         <slider class="style-slider" min="40" max="300" value="{{tempStickerSize}}" bindchange="onStickerSizeChange" activeColor="#6366f1" block-size="20"/>
       </view>
     </view>
+  </view>
+
+  <view class="card no-top-radius" wx:if="{{imagePath && currentTab === 'image'}}">
+    <view class="add-text-btn" bindtap="addImageLayer">
+      📸 导入相册图片
+    </view>
+    <view class="empty-tip">提示：选中图片后，拖动右下角手柄可缩放与旋转</view>
   </view>
 
   <view class="ad-container" style="padding: 20rpx 0;">

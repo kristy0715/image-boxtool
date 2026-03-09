@@ -5,38 +5,39 @@ const Audit = require('../../utils/audit.js');
 const app = getApp();
 
 // ============================================================
-// 1. 完整数据源 (所有功能都在这里)
+// 1. 完整数据源 (已全面接入 SEO 热搜词优化)
 // ============================================================
 const ALL_TOOLS = [
-  {id:'idphoto',title:'证件照制作',desc:'一寸 二寸 换底色',icon:'📷',colors:['#6366f1','#8b5cf6']},
-  {id:'idprint',title:'证件照排版',desc:'排版打印省钱',icon:'🖨️',colors:['#8b5cf6','#a78bfa']},
-  {id:'matting',title:'AI智能抠图',desc:'发丝级自动去底',icon:'🦋',colors:['#ec4899','#f472b6']}, // 敏感
-  {id:'restore', title:'AI高清修复', desc:'模糊变清晰 老照片', icon:'💎', colors:['#6366f1', '#8b5cf6']}, // 敏感
-  {id:'watermark',title:'图片去水印',desc:'去水印 去杂物',icon:'✨',colors:['#f59e0b','#fbbf24']}, // 敏感
-  {id:'grid9',title:'九宫格切图',desc:'朋友圈九宫格 心形拼图',icon:'🍱',colors:['#64748b','#94a3b8']},
-  {id:'collage',title:'图片拼接',desc:'多图合并 宫格拼图',icon:'🧩',colors:['#14b8a6','#2dd4bf']},
-  {id:'crop',title:'图片裁剪',desc:'自由裁剪 比例裁剪',icon:'✂️',colors:['#f59e0b','#fbbf24']},
-  {id:'compress',title:'图片压缩',desc:'智能压缩 高清无损',icon:'📦',colors:['#ec4899','#f472b6']},
-  {id:'mosaic',title:'图片马赛克',desc:'隐私打码 模糊处理',icon:'🔲',colors:['#64748b','#94a3b8']},
-  {id:'longpic',title:'长图拼接',desc:'聊天截图拼长图',icon:'📜',colors:['#06b6d4','#22d3ee']},
-  {id:'batchwm',title:'批量加水印',desc:'一键加水印 微商专用',icon:'💧',colors:['#ef4444','#f87171']},
-  //{id:'test',title:'测试去水印',desc:'测试去水印',icon:'💧',colors:['#ef4444','#f87171']},
+  {id:'idphoto',title:'最美证件照',desc:'一寸/二寸 智能抠图换底',icon:'📷',colors:['#6366f1','#8b5cf6']},
+  {id:'idprint',title:'证件照排版',desc:'排版打印神器 超级省钱',icon:'🖨️',colors:['#8b5cf6','#a78bfa']},
+  {id:'matting',title:'AI智能抠图',desc:'发丝级抠图 一键换背景',icon:'🦋',colors:['#ec4899','#f472b6']}, 
+  {id:'restore', title:'AI高清修复', desc:'高糊变清晰 老照片翻新', icon:'💎', colors:['#6366f1', '#8b5cf6']}, 
+  {id:'watermark',title:'魔法消除笔',desc:'无痕去水印 去路人/杂物',icon:'✨',colors:['#f59e0b','#fbbf24']}, 
+  {id:'grid9',title:'九宫格切图',desc:'朋友圈防折叠 心形拼图',icon:'🍱',colors:['#64748b','#94a3b8']},
+  {id:'collage',title:'全能拼图',desc:'多图无缝拼接 宫格海报',icon:'🧩',colors:['#14b8a6','#2dd4bf']},
+  {id:'crop',title:'图片裁剪',desc:'自由缩放 社交头像比例',icon:'✂️',colors:['#f59e0b','#fbbf24']},
+  {id:'compress',title:'图片压缩',desc:'高清无损缩小 突破限制',icon:'📦',colors:['#ec4899','#f472b6']},
+  {id:'mosaic',title:'图片马赛克',desc:'隐私极速打码 局部模糊',icon:'🔲',colors:['#64748b','#94a3b8']},
+  {id:'longpic',title:'长图拼接',desc:'聊天截图/台词 智能拼接',icon:'📜',colors:['#06b6d4','#22d3ee']},
+  {id:'batchwm',title:'批量加水印',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']}
 ];
 
 const ALL_OCR = [
-  {id:'text2img',title:'长文转图片',desc:'文字生成图片防折叠',icon:'📄',colors:['#10b981','#34d399']},
-  {id:'ocr',title:'图片转文字',desc:'拍照取字 OCR文字提取',icon:'🔍',colors:['#3b82f6','#60a5fa']}, // 敏感
-  {id:'text',title:'添加文字',desc:'图片加字 加水印',icon:'✏️',colors:['#8b5cf6','#a78bfa']},
+  {id:'text2img',title:'长文转图',desc:'文字生成图片 朋友圈防折叠',icon:'📄',colors:['#10b981','#34d399']},
+  {id:'ocr',title:'图片转文字',desc:'OCR拍照取字 智能提取',icon:'🔍',colors:['#3b82f6','#60a5fa']}, 
+  // ⭐ 核心入口 1：主打“工具/办公/微商”属性
+  {id:'text',title:'加文字/水印',desc:'图片加字 防盗打码 加Logo',icon:'✏️',colors:['#8b5cf6','#a78bfa']}, 
   {id:'qrcode',title:'二维码生成',desc:'文本/网址极速转码',icon:'🔳',colors:['#6366f1','#8b5cf6']},
 ];
 
 const ALL_FUN = [
-  {id:'burst',title:'3D冲出特效',desc:'人物悬浮九宫格',icon:'🚀',colors:['#ef4444','#f87171']},
-  {id:'retouch',title:'一键精修',desc:'智能美颜 磨皮 提亮',icon:'✨',colors:['#ec4899','#f472b6']}, // 敏感
-  {id:'filter',title:'滤镜效果',desc:'复古 黑白 暖色调',icon:'🎭',colors:['#f43f5e','#fb7185']},
-  {id:'art',title:'艺术风格',desc:'照片变漫画 动漫头像',icon:'🎨',colors:['#ec4899','#f472b6']}, // 敏感
-  {id:'avatar',title:'头像挂件',desc:'节日头像 边框装饰',icon:'🎀',colors:['#f59e0b','#fbbf24']},
-  {id:'meme',title:'表情包制作',desc:'DIY专属表情包 斗图神器',icon:'😂',colors:['#eab308','#facc15']}
+  {id:'burst',title:'3D冲出特效',desc:'人物悬浮跃出 视觉大片',icon:'🚀',colors:['#ef4444','#f87171']},
+  {id:'retouch',title:'一键精修',desc:'智能美颜磨皮 肤质提升',icon:'✨',colors:['#ec4899','#f472b6']}, 
+  {id:'filter',title:'质感滤镜',desc:'复古/胶片/黑白 氛围感',icon:'🎭',colors:['#f43f5e','#fb7185']},
+  {id:'art',title:'动漫手绘脸',desc:'照片一键变漫画 二次元',icon:'🎨',colors:['#ec4899','#f472b6']}, 
+  {id:'avatar',title:'头像挂件',desc:'节日边框 专属头像定制',icon:'🎀',colors:['#f59e0b','#fbbf24']},
+  // ⭐ 核心入口 2：主打“娱乐/年轻群体”属性
+  {id:'text',title:'自制表情包',desc:'DIY恶搞改图 聊天斗图神器',icon:'😂',colors:['#eab308','#facc15']} 
 ];
 
 

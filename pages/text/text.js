@@ -19,29 +19,23 @@ const STICKERS = {
   ]
 };
 
-// 生成唯一ID
 const uuid = () => 'id-' + Math.random().toString(36).substr(2, 9);
 
 Page({
   data: {
     imagePath: '', 
-    viewWidth: 300,
-    viewHeight: 300,
-    rawWidth: 0,
-    rawHeight: 0,
+    viewWidth: 300, viewHeight: 300,
+    rawWidth: 0, rawHeight: 0,
     
-    // === 核心数据结构升级 ===
-    elements: [], // 存放所有元素 {type, content, x, y, size, color, ...}
-    activeId: null, // 当前选中的元素ID
+    elements: [], 
+    activeId: null, 
     
-    // 界面控制
-    currentTab: 'text',   
+    currentTab: 'text',
     stickerTabs: ['表情', '装饰'],
     currentStickerTab: 0,
     currentStickerList: [],
     allStickers: { 0: STICKERS.EMOJI, 1: STICKERS.DECOR },
     
-    // 临时绑定值（用于回显到设置面板）
     tempText: '',
     tempFontSize: 30,
     tempColor: '#ffffff',
@@ -64,7 +58,6 @@ Page({
     this.updateStickerList(); 
   },
 
-  // === 1. 选图逻辑 ===
   chooseImage() {
     wx.chooseMedia({
       count: 1, mediaType: ['image'], sizeType: ['compressed'], sourceType: ['album', 'camera'],
@@ -90,147 +83,123 @@ Page({
         }
 
         this.setData({
-          imagePath: path,
-          viewWidth: vW,
-          viewHeight: vH,
-          rawWidth: info.width,
-          rawHeight: info.height,
-          elements: [], // 清空旧数据
-          activeId: null
+          imagePath: path, viewWidth: vW, viewHeight: vH,
+          rawWidth: info.width, rawHeight: info.height,
+          elements: [], activeId: null
         }, () => wx.hideLoading());
       },
       fail: () => { wx.hideLoading(); wx.showToast({ title: '加载失败', icon: 'none' }); }
     });
   },
 
-  // === 2. 添加元素逻辑 (支持多个) ===
-  
-  // 添加文字
+  // ⭐ 核心工具：智能同步面板数据，绝不丢失状态
+  syncPanelData(item, forceTab = null) {
+    if (!item) return;
+    const targetTab = forceTab || item.type;
+    const updates = { activeId: item.id, currentTab: targetTab };
+
+    if (item.type === 'text') {
+      updates.tempText = item.content;
+      updates.tempFontSize = item.fontSize;
+      updates.tempColor = item.color;
+      updates.tempStroke = item.hasStroke;
+    } else if (item.type === 'sticker') {
+      updates.tempStickerSize = item.size;
+    }
+    this.setData(updates);
+  },
+
+  // === 元素添加逻辑 ===
   addNewText() {
     const id = uuid();
     const newText = {
-      id,
-      type: 'text',
-      content: '双击修改',
-      x: this.data.viewWidth / 2,
-      y: this.data.viewHeight / 2,
-      fontSize: 30,
-      color: '#ffffff',
-      hasStroke: true,
-      angle: 0
+      id, type: 'text', content: '双击修改',
+      x: this.data.viewWidth / 2, y: this.data.viewHeight / 2,
+      fontSize: 30, color: '#ffffff', hasStroke: true, angle: 0
     };
     
-    this.setData({
-      elements: [...this.data.elements, newText],
-      activeId: id,
-      currentTab: 'text',
-      // 同步面板状态
-      tempText: newText.content,
-      tempFontSize: newText.fontSize,
-      tempColor: newText.color,
-      tempStroke: newText.hasStroke
+    this.setData({ elements: [...this.data.elements, newText] }, () => {
+      this.syncPanelData(newText);
     });
   },
 
-  // 添加贴纸
   selectSticker(e) {
     const content = e.currentTarget.dataset.content;
     const id = uuid();
     const newSticker = {
-      id,
-      type: 'sticker',
-      content: content,
-      x: this.data.viewWidth / 2,
-      y: this.data.viewHeight / 2,
-      size: 80,
-      angle: 0
+      id, type: 'sticker', content: content,
+      x: this.data.viewWidth / 2, y: this.data.viewHeight / 2,
+      size: 80, angle: 0
     };
 
-    this.setData({
-      elements: [...this.data.elements, newSticker],
-      activeId: id,
-      currentTab: 'sticker',
-      tempStickerSize: 80
+    this.setData({ elements: [...this.data.elements, newSticker] }, () => {
+      this.syncPanelData(newSticker);
     });
   },
 
-  // === 3. 选中与属性修改 ===
-  
-  // 选中某个元素
-  activateElement(e) {
+  addImageLayer() {
+    wx.chooseMedia({
+      count: 1, mediaType: ['image'], sizeType: ['compressed'],
+      success: (res) => {
+        const path = res.tempFiles[0].tempFilePath;
+        wx.getImageInfo({
+          src: path,
+          success: (info) => {
+            let w = info.width, h = info.height;
+            const maxDim = 120; 
+            if (w > maxDim || h > maxDim) {
+              const r = w / h;
+              if (w > h) { w = maxDim; h = maxDim / r; } else { h = maxDim; w = maxDim * r; }
+            }
+            const id = uuid();
+            const newImg = {
+              id, type: 'image', path,
+              x: this.data.viewWidth / 2, y: this.data.viewHeight / 2,
+              width: w, height: h, angle: 0
+            };
+            this.setData({ elements: [...this.data.elements, newImg] }, () => {
+              this.syncPanelData(newImg);
+            });
+          }
+        });
+      }
+    });
+  },
+
+  // ⭐ 新增：点击画布空白处取消选中
+  onCanvasTap() {
+    this.setData({ activeId: null });
+  },
+
+  deleteElement(e) {
+    const id = e.currentTarget.dataset.id;
+    const newElements = this.data.elements.filter(el => el.id !== id);
+    this.setData({ elements: newElements });
+    if (this.data.activeId === id) this.setData({ activeId: null });
+  },
+
+  updateActiveElement(prop, value) {
+    if (!this.data.activeId) return;
+    const elements = this.data.elements.map(el => el.id === this.data.activeId ? { ...el, [prop]: value } : el);
+    this.setData({ elements });
+  },
+
+  onTextInput(e) { this.setData({ tempText: e.detail.value }); this.updateActiveElement('content', e.detail.value); },
+  onFontSizeChange(e) { this.setData({ tempFontSize: e.detail.value }); this.updateActiveElement('fontSize', e.detail.value); },
+  selectColor(e) { const color = e.currentTarget.dataset.color; this.setData({ tempColor: color }); this.updateActiveElement('color', color); },
+  onStrokeChange(e) { this.setData({ tempStroke: e.detail.value }); this.updateActiveElement('hasStroke', e.detail.value); },
+  onStickerSizeChange(e) { this.setData({ tempStickerSize: e.detail.value }); this.updateActiveElement('size', e.detail.value); },
+
+  // === 拖拽与形变逻辑 ===
+  onTouchStart(e) {
     const id = e.currentTarget.dataset.id;
     const item = this.data.elements.find(el => el.id === id);
     if (!item) return;
 
-    this.setData({
-      activeId: id,
-      currentTab: item.type,
-      // 回显属性到下方面板
-      ...(item.type === 'text' ? {
-        tempText: item.content,
-        tempFontSize: item.fontSize,
-        tempColor: item.color,
-        tempStroke: item.hasStroke
-      } : {
-        tempStickerSize: item.size
-      })
-    });
-  },
+    this.syncPanelData(item);
 
-  // 删除元素 (修复点击无效的问题)
-  deleteElement(e) {
-    const id = e.currentTarget.dataset.id;
-    const newElements = this.data.elements.filter(el => el.id !== id);
-    this.setData({ 
-      elements: newElements,
-      activeId: null // 清除选中状态
-    });
-  },
-
-  // 更新当前选中元素的属性
-  updateActiveElement(prop, value) {
-    if (!this.data.activeId) return;
-    
-    const elements = this.data.elements.map(el => {
-      if (el.id === this.data.activeId) {
-        return { ...el, [prop]: value };
-      }
-      return el;
-    });
-    this.setData({ elements });
-  },
-
-  // 属性绑定函数
-  onTextInput(e) { 
-    this.setData({ tempText: e.detail.value });
-    this.updateActiveElement('content', e.detail.value);
-  },
-  onFontSizeChange(e) {
-    this.setData({ tempFontSize: e.detail.value });
-    this.updateActiveElement('fontSize', e.detail.value);
-  },
-  selectColor(e) {
-    const color = e.currentTarget.dataset.color;
-    this.setData({ tempColor: color });
-    this.updateActiveElement('color', color);
-  },
-  onStrokeChange(e) {
-    this.setData({ tempStroke: e.detail.value });
-    this.updateActiveElement('hasStroke', e.detail.value);
-  },
-  onStickerSizeChange(e) {
-    this.setData({ tempStickerSize: e.detail.value });
-    this.updateActiveElement('size', e.detail.value);
-  },
-
-  // === 4. 拖拽逻辑 (通用) ===
-  onTouchStart(e) {
-    const id = e.currentTarget.dataset.id;
-    this.setData({ activeId: id }); // 拖拽开始即选中
     this.touchStartX = e.touches[0].clientX;
     this.touchStartY = e.touches[0].clientY;
-    
-    const item = this.data.elements.find(el => el.id === id);
     this.eleStartX = item.x;
     this.eleStartY = item.y;
     this.isDragging = true;
@@ -238,52 +207,106 @@ Page({
 
   onTouchMove(e) {
     if (!this.isDragging || !this.data.activeId) return;
-    
     const dx = e.touches[0].clientX - this.touchStartX;
     const dy = e.touches[0].clientY - this.touchStartY;
-    
-    let x = this.eleStartX + dx;
-    let y = this.eleStartY + dy;
-
-    // 边界限制
+    let x = this.eleStartX + dx; let y = this.eleStartY + dy;
     const margin = 20;
     x = Math.max(margin, Math.min(x, this.data.viewWidth - margin));
     y = Math.max(margin, Math.min(y, this.data.viewHeight - margin));
-
-    // 只更新数组中对应 ID 的元素位置
-    const elements = this.data.elements.map(el => {
-      if (el.id === this.data.activeId) {
-        return { ...el, x, y };
-      }
-      return el;
-    });
-    
+    const elements = this.data.elements.map(el => el.id === this.data.activeId ? { ...el, x, y } : el);
     this.setData({ elements });
   },
 
   onTouchEnd() { this.isDragging = false; },
 
-  // === 5. 其他辅助 ===
-  switchTab(e) { this.setData({ currentTab: e.currentTarget.dataset.tab }); },
-  
-  switchStickerTab(e) {
-    this.setData({ currentStickerTab: e.currentTarget.dataset.idx }, () => this.updateStickerList());
-  },
-  
-  updateStickerList() {
-    this.setData({ currentStickerList: this.data.allStickers[this.data.currentStickerTab] });
+  onTransformStart(e) {
+    const id = e.currentTarget.dataset.id;
+    const item = this.data.elements.find(el => el.id === id);
+    if (!item) return;
+    
+    this.syncPanelData(item);
+    
+    wx.createSelectorQuery().select('.preview-wrapper').boundingClientRect(rect => {
+      if (!rect) return;
+      this.tfCenter = { x: rect.left + item.x, y: rect.top + item.y };
+      this.tfInitTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      this.tfInitAngle = item.angle || 0;
+      this.tfInitState = { ...item };
+      this.isTransforming = true;
+    }).exec();
   },
 
-  resetAll() {
-    wx.showModal({
-      title: '清空', content: '确定移除所有内容吗？',
-      success: (r) => { if(r.confirm) this.setData({ elements: [], activeId: null }); }
+  onTransformMove(e) {
+    if (!this.isTransforming || !this.tfCenter) return;
+    const touch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    const dx1 = this.tfInitTouch.x - this.tfCenter.x;
+    const dy1 = this.tfInitTouch.y - this.tfCenter.y;
+    const dx2 = touch.x - this.tfCenter.x;
+    const dy2 = touch.y - this.tfCenter.y;
+
+    const angle1 = Math.atan2(dy1, dx1) * 180 / Math.PI;
+    const angle2 = Math.atan2(dy2, dx2) * 180 / Math.PI;
+    let newAngle = this.tfInitAngle + (angle2 - angle1);
+
+    const dist1 = Math.hypot(dx1, dy1) || 1;
+    const dist2 = Math.hypot(dx2, dy2);
+    const ratio = dist2 / dist1;
+
+    const elements = this.data.elements.map(el => {
+      if (el.id === this.data.activeId) {
+        let updates = { angle: newAngle };
+        if (el.type === 'text') {
+           updates.fontSize = Math.max(10, this.tfInitState.fontSize * ratio);
+           this.setData({ tempFontSize: updates.fontSize });
+        } else if (el.type === 'sticker') {
+           updates.size = Math.max(20, this.tfInitState.size * ratio);
+           this.setData({ tempStickerSize: updates.size });
+        } else if (el.type === 'image') {
+           updates.width = Math.max(20, this.tfInitState.width * ratio);
+           updates.height = Math.max(20, this.tfInitState.height * ratio);
+        }
+        return { ...el, ...updates };
+      }
+      return el;
     });
+    this.setData({ elements });
   },
 
-  // === 6. 保存 ===
+  onTransformEnd() { this.isTransforming = false; },
+
+  // ⭐ 修复面板切换遗失数据的核心
+  switchTab(e) { 
+    const tab = e.currentTarget.dataset.tab;
+    let activeId = this.data.activeId;
+    
+    // 如果当前选中的元素不是目标标签页的类型，先把它取消选中
+    if (activeId) {
+      const item = this.data.elements.find(el => el.id === activeId);
+      if (item && item.type !== tab) activeId = null;
+    }
+    
+    // 智能记忆逻辑：如果没选中东西，自动帮用户选中该面板里最后编辑的元素！
+    if (!activeId) {
+      const sameTypeElements = this.data.elements.filter(el => el.type === tab);
+      if (sameTypeElements.length > 0) {
+        const lastItem = sameTypeElements[sameTypeElements.length - 1];
+        this.syncPanelData(lastItem, tab);
+        return; // syncPanelData 已经做过 setData 了，直接 return
+      }
+    }
+    
+    this.setData({ currentTab: tab, activeId });
+  },
+
+  switchStickerTab(e) { this.setData({ currentStickerTab: e.currentTarget.dataset.idx }, () => this.updateStickerList()); },
+  updateStickerList() { this.setData({ currentStickerList: this.data.allStickers[this.data.currentStickerTab] }); },
+  resetAll() {
+    wx.showModal({ title: '清空', content: '确定移除所有内容吗？', success: (r) => { if(r.confirm) this.setData({ elements: [], activeId: null }); }});
+  },
+
   saveImage() {
     if (this.data.elements.length === 0) return wx.showToast({ title: '没加东西哦', icon: 'none' });
+    this.setData({ activeId: null }); 
     this.checkQuotaAndSave();
   },
 
@@ -321,16 +344,15 @@ Page({
       canvas.width = eW; canvas.height = eH;
       const scale = eW / viewWidth;
 
-      // 绘制背景
       const bgImg = await this.loadImageResource(canvas, this.data.imagePath);
       ctx.drawImage(bgImg, 0, 0, eW, eH);
 
-      // 绘制所有元素
-      this.data.elements.forEach(el => {
+      for (const el of this.data.elements) {
         ctx.save();
         const tx = el.x * scale;
         const ty = el.y * scale;
         ctx.translate(tx, ty);
+        ctx.rotate((el.angle || 0) * Math.PI / 180); 
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
@@ -338,11 +360,9 @@ Page({
           const fs = el.size * scale;
           ctx.font = `${fs}px sans-serif`;
           ctx.fillText(el.content, 0, 0);
-        } else {
+        } else if (el.type === 'text') {
           const fs = el.fontSize * scale;
           ctx.font = `normal normal ${fs}px sans-serif`;
-          
-          // 处理换行
           const lines = el.content.split('\n');
           const lh = fs * 1.2;
           const startY = -((lines.length - 1) * lh) / 2;
@@ -357,12 +377,17 @@ Page({
             ctx.fillStyle = el.color;
             ctx.fillText(line, 0, ly);
           });
+        } else if (el.type === 'image') {
+          const elImg = await this.loadImageResource(canvas, el.path);
+          const w = el.width * scale;
+          const h = el.height * scale;
+          ctx.drawImage(elImg, -w / 2, -h / 2, w, h);
         }
         ctx.restore();
-      });
+      }
 
       wx.canvasToTempFilePath({
-        canvas, fileType: 'jpg', quality: 0.85, destWidth: eW, destHeight: eH,
+        canvas, fileType: 'jpg', quality: 0.9, destWidth: eW, destHeight: eH,
         success: (res) => {
           wx.hideLoading();
           wx.saveImageToPhotosAlbum({
@@ -394,31 +419,19 @@ Page({
       });
     }
   },
-  setDailyUnlimited() {
-    wx.setStorageSync('text_usage_record', { date: new Date().toLocaleDateString(), count: 999, isUnlimited: true });
-  },
+  setDailyUnlimited() { wx.setStorageSync('text_usage_record', { date: new Date().toLocaleDateString(), count: 999, isUnlimited: true }); },
   showAdModal() {
     if (this.videoAd) wx.showModal({ title: '次数不足', content: '看视频解锁无限次', success: r => r.confirm && this.videoAd.show() });
     else this.realSaveProcess();
   },
   onAdError() {},
-// === 分享配置 ===
-onShareAppMessage() {
-  // 优先展示用户上传的底图，或者默认封面
-  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
-  return {
-    title: '图片加字/加水印，支持花样字体和贴纸！',
-    path: '/pages/text/text',
-    imageUrl: imageUrl
-  };
-},
-
-onShareTimeline() {
-  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
-  return {
-    title: '图片加字/加水印，支持花样字体和贴纸！',
-    query: '',
-    imageUrl: imageUrl
-  };
-}
+  
+  onShareAppMessage() {
+    const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+    return { title: '宝藏P图神器！一键自制专属表情包，图片加字加水印超方便！', path: '/pages/text/text', imageUrl: imageUrl };
+  },
+  onShareTimeline() {
+    const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+    return { title: '神仙P图工具：自制表情包 / 图片加字 / 无痕加水印 ✨', query: '', imageUrl: imageUrl };
+  }
 });
