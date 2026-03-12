@@ -48,7 +48,26 @@
     <view class="footer-text-wrapper" bindtap="onSecretTap">
       <text class="footer-text">就这么图 · 让图片处理更简单</text>
     </view>
-  </view>
+
+    <view style="padding: 10rpx 30rpx 40rpx; text-align: center; display: flex; flex-wrap: wrap; justify-content: center; gap: 12rpx; opacity: 0.3;">
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">朋友圈</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">九宫格</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">抖音</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">快手</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">小红书</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">B站</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">微博</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">视频去水印</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">图片去水印</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">无痕消除路人</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">马赛克</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">短视频无水印解析</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">一寸二寸证件照</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">证件照换底色</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">老照片高清修复</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">自制表情包</text>
+    </view>
+    </view>
 
   <canvas type="2d" id="posterCanvas" style="position:fixed; left: -9999px; width: 1080px; height: 1920px;"></canvas>
 
@@ -91,6 +110,7 @@
           <text class="qr-tip-center">长按保存 · 扫码解锁好运</text>
         </view>
       </view>
+    
       <view class="action-bar-fixed">
         <view class="action-side-wrapper left" bindtap="handleChangeBgAd">
           <view class="circle-btn white"><text class="btn-icon">🎬</text></view>
@@ -100,7 +120,7 @@
           <view class="pill-btn">
             <text class="btn-icon">⬇️</text>
             <text class="btn-text-nowrap">保存高清图</text>
-          </view>
+           </view>
         </view>
         <view class="action-side-wrapper right">
           <button class="reset-btn" open-type="share">

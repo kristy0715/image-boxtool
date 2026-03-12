@@ -1,16 +1,13 @@
 // pages/restore/restore.js
 const app = getApp();
-const Security = require('../../utils/security.js');
 
-// 引入本地算法
+// 引入本地算法(兜底)
 let LocalAlgo = null;
 try { LocalAlgo = require('../../utils/local-algo.js'); } catch (e) {}
 
-// 🔥 测试模式：true = 使用本地算法模拟, false = 正式调用云端API
 const TEST_MODE = false; 
-
-// 请确保这是您最新的云函数地址
-const LAF_RESTORE_URL = 'https://kvpoib63ld.sealosbja.site/image-restore'; 
+const BASE_URL = 'https://goodgoodstudy-nb.top/api/v1/wx-proxy'; 
+const APP_TAG = 'default_app'; 
 
 const AD_CONFIG = {
   BANNER_ID: 'adunit-ecfcec4c6a0c871b',
@@ -30,88 +27,55 @@ Page({
     resultImage: '', 
     isProcessing: false,
     sliderValue: 50, 
-    aiLeft: 0,
-    saveLeft: 0,
     bannerUnitId: AD_CONFIG.BANNER_ID,
-    
-    // 核心布局数据 (单位 px)
-    layout: {
-      width: 300,  // 默认值
-      height: 400
-    },
-    
+    layout: { width: 300, height: 400 },
     boxRect: null
   },
 
   videoAd: null,
   pendingAdType: null,
-  
-  // 屏幕限制参数
   maxDisplayWidth: 0,
   maxDisplayHeight: 0,
 
   onLoad() {
     this.initVideoAd();
-    this.updateQuotaDisplay();
-    this.calcMaxDisplay(); // 计算屏幕可用区域
+    this.calcMaxDisplay(); 
   },
 
-  // 1. 计算最大显示区域 (给图片留多少空间)
   calcMaxDisplay() {
     try {
       const sys = wx.getSystemInfoSync();
-      // 宽度：屏幕宽度 - 左右间距 (48rpx ~= 24px)
       this.maxDisplayWidth = sys.windowWidth - (sys.windowWidth / 750 * 60); 
-      // 高度：屏幕高度 * 0.65 (留出底部按钮和标题的空间)
       this.maxDisplayHeight = sys.windowHeight * 0.65;
     } catch (e) {}
   },
 
-  // 2. 根据图片计算完美尺寸 (Fit Algorithm)
   updateImageRatio(path) {
     if (!path) return;
     wx.getImageInfo({
       src: path,
       success: (res) => {
-        const imgW = res.width;
-        const imgH = res.height;
-        const ratio = imgW / imgH;
-
-        // 算法：先尝试撑满宽度
+        const ratio = res.width / res.height;
         let finalW = this.maxDisplayWidth;
         let finalH = finalW / ratio;
-
-        // 如果高度超出了最大高度，则改用高度撑满
         if (finalH > this.maxDisplayHeight) {
           finalH = this.maxDisplayHeight;
           finalW = finalH * ratio;
         }
-
-        // 更新数据，驱动视图渲染
-        this.setData({
-          layout: {
-            width: finalW,
-            height: finalH
-          }
-        });
-        
-        // 延迟更新滑块感应区
+        this.setData({ layout: { width: finalW, height: finalH } });
         setTimeout(() => this.initBoxRect(), 300);
       }
     });
   },
 
   initBoxRect() {
-    const query = wx.createSelectorQuery();
-    query.select('#compareBox').boundingClientRect((rect) => {
+    wx.createSelectorQuery().select('#compareBox').boundingClientRect((rect) => {
       if (rect) this.boxRect = rect;
     }).exec();
   },
 
-  // === 滑块交互 ===
   onTouchStart(e) {
-    const query = wx.createSelectorQuery();
-    query.select('#compareBox').boundingClientRect((rect) => {
+    wx.createSelectorQuery().select('#compareBox').boundingClientRect((rect) => {
       if (rect) {
         this.boxRect = rect;
         this.updateSlider(e.touches[0].clientX);
@@ -119,11 +83,7 @@ Page({
     }).exec();
   },
 
-  onTouchMove(e) {
-    if (e.touches[0] && this.boxRect) {
-      this.updateSlider(e.touches[0].clientX);
-    }
-  },
+  onTouchMove(e) { if (e.touches[0] && this.boxRect) this.updateSlider(e.touches[0].clientX); },
 
   updateSlider(clientX) {
     if (!this.boxRect) return;
@@ -152,15 +112,7 @@ Page({
     return r;
   },
 
-  updateQuota(key, val) { wx.setStorageSync(key, val); this.updateQuotaDisplay(); },
-  
-  updateQuotaDisplay() { 
-      const ai = this.getQuota('restore_ai_quota'); 
-      const save = this.getQuota('restore_save_quota');
-      const aiLeft = (QUOTA_CONFIG.AI_FREE + ai.extra) - ai.count;
-      const saveLeft = save.unlimited ? '无限' : (QUOTA_CONFIG.SAVE_FREE - save.count);
-      this.setData({ aiLeft: Math.max(0, aiLeft), saveLeft: saveLeft });
-  },
+  updateQuota(key, val) { wx.setStorageSync(key, val); },
 
   chooseImage() {
     const ai = this.getQuota('restore_ai_quota');
@@ -176,33 +128,22 @@ Page({
       count: 1, mediaType: ['image'], sizeType: ['original'], 
       success: (res) => {
         const path = res.tempFiles[0].tempFilePath;
-        Security.checkImage(path).then(isSafe => {
-          if (isSafe) this.startRestoration(path);
-          else wx.showToast({ title: '图片不合规', icon: 'none' });
-        });
+        // 🌟 核心优化：彻底删除前端本地安检，直接扔给 9527 服务器接管，速度翻倍！
+        this.startRestoration(path);
       }
     });
   },
 
-  // === 🔥 核心修改：支持 URL 下载模式 ===
   async startRestoration(path) {
     this.setData({ isProcessing: true, originImage: path, resultImage: '' });
-    
-    // 立即计算布局 (确保容器大小正确)
     this.updateImageRatio(path);
 
     const ai = this.getQuota('restore_ai_quota');
     ai.count++;
     this.updateQuota('restore_ai_quota', ai);
 
-    // 测试模式调用本地算法
-    if (TEST_MODE) {
-        console.log('🧪 [测试模式] 正在调用本地算法...');
-        this.runLocalAlgo(path);
-        return;
-    }
+    if (TEST_MODE) { this.runLocalAlgo(path); return; }
 
-    // === 正式模式 ===
     try {
       const compressedPath = await this.compressBeforeUpload(path);
       const fs = wx.getFileSystemManager();
@@ -210,61 +151,27 @@ Page({
       
       const res = await new Promise((resolve, reject) => {
         wx.request({
-          url: LAF_RESTORE_URL, method: 'POST',
-          data: { base64: base64 },
-          timeout: 60000, // 60秒超时
+          url: BASE_URL + '/hd-fix',
+          method: 'POST',
+          data: { app_tag: APP_TAG, image: base64 },
+          timeout: 60000, 
           success: resolve, fail: reject
         });
       });
 
-      if (typeof res.data === 'string' && res.data.trim().startsWith('<')) {
-          throw new Error('Cloud Error: HTML Returned');
-      }
+      if (res.data && res.data.code === 200) {
+        let cleanBase64 = res.data.data.image;
+        if (cleanBase64.startsWith('data:image')) cleanBase64 = cleanBase64.split('base64,')[1];
+        cleanBase64 = cleanBase64.replace(/[\r\n\s]/g, "");
 
-      // 成功：后端返回 URL
-      if (res.data?.code === 0) {
-        let resultFilePath = '';
-
-        // ✅ 情况A：新版后端，返回 type='url'（这部分逻辑是新增的）
-        if (res.data.type === 'url' && res.data.result_url) {
-            console.log('下载图片中...', res.data.result_url);
-            // 下载图片到本地临时文件
-            const downloadRes = await new Promise((resolve, reject) => {
-                wx.downloadFile({
-                    url: res.data.result_url,
-                    success: resolve,
-                    fail: reject
-                });
-            });
-
-            if (downloadRes.statusCode === 200) {
-                resultFilePath = downloadRes.tempFilePath;
-            } else {
-                throw new Error('Download failed: ' + downloadRes.statusCode);
-            }
-        } 
-        // ✅ 情况B：旧版后端兼容 (返回 Base64)
-        else if (res.data.result_base64) {
-            let cleanBase64 = res.data.result_base64;
-            if (cleanBase64.startsWith('data:image')) cleanBase64 = cleanBase64.split('base64,')[1];
-            cleanBase64 = cleanBase64.replace(/[\r\n\s]/g, "");
-
-            const localPath = `${wx.env.USER_DATA_PATH}/restore_cloud_${Date.now()}.png`;
-            fs.writeFileSync(localPath, wx.base64ToArrayBuffer(cleanBase64), 'binary');
-            resultFilePath = localPath;
-        } else {
-            throw new Error(res.data?.msg || 'API Error: No image data');
-        }
-
-        // 设置结果图片路径 (此时 resultFilePath 已经是本地路径了)
-        this.setData({ resultImage: resultFilePath, isProcessing: false });
-
+        const localPath = `${wx.env.USER_DATA_PATH}/restore_cloud_${Date.now()}.png`;
+        fs.writeFileSync(localPath, wx.base64ToArrayBuffer(cleanBase64), 'binary');
+        this.setData({ resultImage: localPath, isProcessing: false });
       } else {
-        throw new Error(res.data?.msg || 'API Error');
+        throw new Error(res.data?.msg || '处理失败，请稍后重试');
       }
     } catch (err) {
       console.error('Restoration Failed:', err);
-      // 失败自动降级到本地
       if (LocalAlgo) {
          wx.showToast({ title: '网络波动，转本地增强', icon: 'none' });
          this.runLocalAlgo(path);
@@ -274,7 +181,6 @@ Page({
     }
   },
 
-  // 运行本地算法
   runLocalAlgo(path) {
       if (LocalAlgo && LocalAlgo.process) {
           wx.getImageInfo({
@@ -296,10 +202,7 @@ Page({
               },
               fail: () => this.fallbackSuccess(path)
           });
-      } else {
-          // 如果没有算法模块，兜底显示原图
-          this.fallbackSuccess(path);
-      }
+      } else { this.fallbackSuccess(path); }
   },
 
   compressBeforeUpload(path) {
@@ -310,8 +213,7 @@ Page({
                   if (res.size / 1024 / 1024 > 1.0) {
                       wx.compressImage({ src: path, quality: 60, success: (c) => resolve(c.tempFilePath), fail: () => resolve(path) });
                   } else { resolve(path); }
-              },
-              fail: () => resolve(path)
+              }, fail: () => resolve(path)
           });
       });
   },
@@ -319,7 +221,7 @@ Page({
   fallbackSuccess(path) {
       setTimeout(() => {
           this.setData({ resultImage: path, isProcessing: false });
-          wx.showToast({ title: '模拟成功', icon: 'none' });
+          wx.showToast({ title: '处理失败或遇到网络异常', icon: 'none' });
       }, 500);
   },
 
@@ -332,17 +234,13 @@ Page({
     this.saveImageAndJump(this.data.resultImage);
   },
 
-  // 保存图片 (这里不需要修改，因为 resultImage 已经是本地路径了)
   saveImageAndJump(filePath) {
       wx.showLoading({ title: '保存中...' });
       wx.saveImageToPhotosAlbum({
           filePath: filePath,
           success: () => {
               const save = this.getQuota('restore_save_quota');
-              if (!save.unlimited) { 
-                  save.count++; 
-                  this.updateQuota('restore_save_quota', save); 
-              }
+              if (!save.unlimited) { save.count++; this.updateQuota('restore_save_quota', save); }
               wx.hideLoading();
               wx.navigateTo({
                   url: `/pages/success/success?path=${encodeURIComponent(filePath)}`,
@@ -351,11 +249,8 @@ Page({
           },
           fail: (err) => {
               wx.hideLoading();
-              if (err.errMsg.includes('auth')) {
-                  wx.showModal({ title: '提示', content: '需开启相册权限', success: r => r.confirm && wx.openSetting() });
-              } else {
-                  wx.showToast({ title: '保存失败', icon: 'none' });
-              }
+              if (err.errMsg.includes('auth')) wx.showModal({ title: '提示', content: '需开启相册权限', success: r => r.confirm && wx.openSetting() });
+              else wx.showToast({ title: '保存失败', icon: 'none' });
           }
       });
   },
@@ -363,19 +258,22 @@ Page({
   showAdModal(type) { 
     const isAi = type === 'ai';
     wx.showModal({
-      title: isAi ? '免费次数已用完' : '免费保存次数已用完',
-      content: isAi ? `观看视频解锁 ${QUOTA_CONFIG.AI_REWARD} 次修复机会` : '观看视频解锁今日无限次保存',
-      confirmText: '去观看',
+      title: isAi ? '处理次数不足' : '保存次数不足',
+      content: isAi ? `观看一段视频，免费解锁 ${QUOTA_CONFIG.AI_REWARD} 次修复机会！` : '观看一段视频，即可解锁今日无限次保存！',
+      confirmText: '看视频',
       confirmColor: '#6366f1',
-      success: (res) => {
-        if (res.confirm && this.videoAd) this.videoAd.show().catch(() => {});
+      success: (res) => { 
+        if (res.confirm && this.videoAd) this.videoAd.show().catch(() => {}); 
       }
     });
   },
 
-  grantAiQuota() { const ai = this.getQuota('restore_ai_quota'); ai.extra += QUOTA_CONFIG.AI_REWARD; this.updateQuota('restore_ai_quota', ai); wx.showToast({ title: '解锁成功', icon: 'none' }); },
+  grantAiQuota() { const ai = this.getQuota('restore_ai_quota'); ai.extra += QUOTA_CONFIG.AI_REWARD; this.updateQuota('restore_ai_quota', ai); wx.showToast({ title: `已获得 ${QUOTA_CONFIG.AI_REWARD} 次机会`, icon: 'none' }); },
   grantSaveQuota() { const s = this.getQuota('restore_save_quota'); s.unlimited = true; this.updateQuota('restore_save_quota', s); this.saveImage(); },
-  onAdError(err) { },
-  onShareAppMessage() { return { title: 'AI画质修复神器', path: '/pages/restore/restore' }; },
-  onShareTimeline() { return { title: 'AI画质修复神器' }; }
+  onAdError(err) { console.log('Banner Ad Error:', err); },
+  
+  onShareAppMessage() { return { title: 'AI画质修复神器，老照片无损翻新！', path: '/pages/restore/restore' }; },
+  onShareTimeline() { return { title: 'AI画质修复神器，老照片无损翻新！' }; },
+
+  goToWatermark() { wx.navigateTo({ url: '/pages/watermark/watermark' }); }
 });
