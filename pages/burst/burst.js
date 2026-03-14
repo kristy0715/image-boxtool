@@ -3,14 +3,21 @@ const app = getApp();
 const Security = require('../../utils/security.js');
 
 const TEST_MODE = false; 
-const LAF_MATTING_URL = 'https://kvpoib63ld.sealosbja.site/idphoto-matting'; 
+const SERVER_MATTING_URL = 'https://goodgoodstudy-nb.top/api/v1/wx-proxy/remove-bg'; 
+const APP_TAG = 'default_app'; 
 
 const AD_CONFIG = {
   BANNER_ID: 'adunit-ecfcec4c6a0c871b',
-  VIDEO_ID: 'adunit-da175a2014d3443b'
+  VIDEO_ID: 'adunit-da175a2014d3443b',
+  INTERSTITIAL_ID: 'adunit-a9556a7e617c27b7' 
 };
 
-const FREE_COUNT_DAILY = 2;
+// 🌟 统一为标准的 QUOTA_CONFIG 格式
+const QUOTA_CONFIG = {
+  SAVE_FREE: 2,    
+  SAVE_REWARD: 5   
+};
+
 const BASE_HD_SIZE = 2400; 
 const MAX_CANVAS_DIMENSION = 4096; 
 
@@ -21,9 +28,7 @@ Page({
     editorSize: 300,  
     gapSize: 5,       
     
-    // 前景拖拽
     fgX: 0, fgY: 0, fgScale: 1,
-    // 底图拖拽
     bgX: 0, bgY: 0, bgScale: 1, bgImgW: 0, bgImgH: 0, initialBgX: 0, initialBgY: 0,
 
     isProcessing: false,
@@ -36,10 +41,11 @@ Page({
 
   _fgX: 0, _fgY: 0, _fgScale: 1,
   _bgX: undefined, _bgY: undefined, _bgScale: 1,
-  _adAction: null, _pendingPath: '', videoAd: null,
+  videoAd: null, 
+  interstitialAd: null, 
 
   onLoad() {
-    this.initVideoAd();
+    this.initAds();
     const sys = wx.getSystemInfoSync();
     const size = sys.windowWidth * 0.94;
     const offset = size * 2; 
@@ -72,21 +78,36 @@ Page({
     wx.showToast({ title: '已还原', icon: 'none' });
   },
 
-  initVideoAd() {
+  initAds() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
       this.videoAd.onError((err) => console.error(err));
       this.videoAd.onClose((res) => {
         if (res && res.isEnded) {
-          if (this._adAction === 'save') this.handleSaveUnlockSuccess();
-          else if (this._adAction === 'matting') this.handleMattingUnlockSuccess();
+          this.handleSaveUnlockSuccess();
         } else {
           wx.showToast({ title: '需完整观看才能解锁', icon: 'none' });
         }
-        this._adAction = null; this._pendingPath = '';
       });
     }
+    if (wx.createInterstitialAd) {
+      this.interstitialAd = wx.createInterstitialAd({ adUnitId: AD_CONFIG.INTERSTITIAL_ID });
+      this.interstitialAd.onLoad(() => console.log('插屏已准备就绪'));
+    }
   },
+
+  // 🌟 统一的配额读取与更新方法
+  getQuota(key) {
+    const today = new Date().toLocaleDateString();
+    let r = wx.getStorageSync(key) || { date: today, count: 0, extra: 0 };
+    if (r.date !== today) r = { date: today, count: 0, extra: 0 };
+    return r;
+  },
+
+  updateQuota(key, val) { 
+    wx.setStorageSync(key, val); 
+  },
+  
   onAdError(err) { console.log(err); },
 
   chooseBgImage() {
@@ -102,7 +123,6 @@ Page({
     });
   },
 
-  // 初始化底图
   initBg(path) {
       wx.showLoading({ title: '加载中...' });
       wx.getImageInfo({
@@ -135,7 +155,6 @@ Page({
       });
   },
 
-  // 精确计算点击了哪个格子
   onEditorTap(e) {
       if (!this.data.bgPath) return;
       const query = wx.createSelectorQuery();
@@ -174,13 +193,13 @@ Page({
         const path = res.tempFiles[0].tempFilePath;
         wx.showModal({
           title: '图片处理方式',
-          content: '是否需要 AI 智能抠图去除背景？\n(抠图功能需观看一次广告)',
+          content: '是否需要 AI 智能抠图去除背景？',
           cancelText: '原图使用',
           cancelColor: '#666666',
           confirmText: 'AI抠图',
           confirmColor: '#6366f1',
           success: (modalRes) => {
-            if (modalRes.confirm) this.triggerMattingAd(path);
+            if (modalRes.confirm) this.startAiMatting(path); 
             else this.setMatteImage(path);
           }
         });
@@ -188,15 +207,23 @@ Page({
     });
   },
 
-  triggerMattingAd(path) {
-      this._adAction = 'matting';
-      this._pendingPath = path;
-      if (this.videoAd) this.videoAd.show().catch(() => this.startAiMatting(path));
-      else this.startAiMatting(path);
+  isUrl(str) {
+    if (!str) return false;
+    let s = String(str).replace(/\\/g, "");
+    if (s.length < 2000) return true; 
+    if (s.startsWith('http') || s.includes('://') || s.startsWith('//')) return true;
+    return false;
   },
 
-  handleMattingUnlockSuccess() {
-      if (this._pendingPath) this.startAiMatting(this._pendingPath);
+  cleanBase64(str) {
+    if (!str) return '';
+    let clean = String(str);
+    if (clean.includes(',')) clean = clean.split(',').pop();
+    try { clean = decodeURIComponent(clean); } catch(e) {}
+    clean = clean.replace(/[^a-zA-Z0-9+/]/g, ""); 
+    const remainder = clean.length % 4;
+    if (remainder > 0) clean += '='.repeat(4 - remainder);
+    return clean;
   },
 
   async startAiMatting(path) {
@@ -204,32 +231,84 @@ Page({
       wx.showToast({ title: '测试模式', icon: 'none' });
       this.setMatteImage(path); return;
     }
+
     this.setData({ isProcessing: true, loadingText: '优化图片中...' });
+    
     try {
       const imgInfo = await new Promise((r, j) => { wx.getImageInfo({ src: path, success: r, fail: j }); });
       const { width, height } = this.getOptimalSize(imgInfo.width, imgInfo.height);
+      
       this.setData({ loadingText: 'AI 智能抠图中...' });
       let base64 = await this.getResizedImageBase64(path, width, height);
       base64 = base64.replace(/^data:image\/\w+;base64,/, '').replace(/[\r\n]/g, '');
-      const res = await new Promise((r, j) => {
-        wx.request({ url: LAF_MATTING_URL, method: 'POST', data: { base64: base64 }, success: r, fail: j });
-      });
-      const aiData = res.data;
-      if (aiData && aiData.code === 0 && aiData.result_base64) {
-        let mattedBase64 = aiData.result_base64;
-        if (mattedBase64.startsWith('data:image')) mattedBase64 = mattedBase64.split('base64,')[1];
-        mattedBase64 = mattedBase64.replace(/[\r\n\s]/g, "");
-        const localPath = `${wx.env.USER_DATA_PATH}/burst_matted_${Date.now()}.png`;
-        await new Promise((r, j) => {
-          const fs = wx.getFileSystemManager();
-          fs.writeFile({ filePath: localPath, data: wx.base64ToArrayBuffer(mattedBase64), encoding: 'binary', success: r, fail: j });
+
+      const res = await new Promise((resolve, reject) => {
+        wx.request({ 
+          url: SERVER_MATTING_URL, 
+          method: 'POST', 
+          data: { image: base64, app_tag: APP_TAG }, 
+          success: resolve, 
+          fail: reject 
         });
+      });
+
+      const aiData = res.data;
+      if (aiData && aiData.code === 200 && aiData.data && aiData.data.image) {
+        
+        let currentImgData = aiData.data.image;
+        const localPath = `${wx.env.USER_DATA_PATH}/burst_matted_${Date.now()}.png`;
+
+        if (this.isUrl(currentImgData)) {
+          let fixedUrl = String(currentImgData).replace(/\\/g, "");
+          if (!fixedUrl.startsWith('http') && !fixedUrl.startsWith('//')) {
+            if (fixedUrl.startsWith('/')) fixedUrl = 'https://goodgoodstudy-nb.top' + fixedUrl;
+            else fixedUrl = 'https://' + fixedUrl;
+          }
+          if (fixedUrl.startsWith('//')) fixedUrl = 'https:' + fixedUrl;
+
+          await new Promise((resolve, reject) => {
+            wx.downloadFile({
+              url: fixedUrl,
+              filePath: localPath, 
+              success: (dlRes) => {
+                if (dlRes.statusCode === 200) resolve();
+                else reject(new Error('云端图片下载失败'));
+              },
+              fail: (err) => {
+                console.error("Download Error:", err);
+                reject(new Error('云端图片请求被拦截，请检查网络配置'));
+              }
+            });
+          });
+
+        } else {
+          let finalBase64 = this.cleanBase64(currentImgData);
+          if (!finalBase64 || finalBase64.length < 100) throw new Error('解析图片数据异常');
+          try {
+            wx.getFileSystemManager().writeFileSync(localPath, finalBase64, 'base64');
+          } catch (writeErr) {
+            let buffer = wx.base64ToArrayBuffer(finalBase64);
+            wx.getFileSystemManager().writeFileSync(localPath, buffer, 'binary');
+          }
+        }
+
         this.setMatteImage(localPath);
-      } else { throw new Error(aiData?.msg || '抠图服务异常'); }
+        
+        if (this.interstitialAd) {
+          this.interstitialAd.show().catch(e => console.warn('插屏展示失败:', e));
+        }
+
+      } else { 
+        throw new Error(aiData?.msg || '抠图服务异常'); 
+      }
     } catch (err) {
       console.error(err);
       this.setData({ isProcessing: false });
-      wx.showModal({ title: '处理失败', content: '是否使用原图继续？', success: (r) => { if (r.confirm) this.setMatteImage(path); } });
+      wx.showModal({ 
+        title: '处理失败', 
+        content: (err.message || '网络或接口异常') + '\n\n是否直接使用原图继续制作？', 
+        success: (r) => { if (r.confirm) this.setMatteImage(path); } 
+      });
     }
   },
 
@@ -276,37 +355,41 @@ Page({
     this.checkQuotaAndSave();
   },
 
+  // 🌟 完全对齐其他模块的 QUOTA 校验逻辑
   checkQuotaAndSave() {
-    const key = 'burst_usage_record';
-    const today = new Date().toLocaleDateString();
-    let record = wx.getStorageSync(key) || { date: today, count: 0, isUnlimited: false };
-    if (record.date !== today) { record = { date: today, count: 0, isUnlimited: false }; wx.setStorageSync(key, record); }
-    if (record.isUnlimited || record.count < FREE_COUNT_DAILY) {
-      if(!record.isUnlimited) { record.count++; wx.setStorageSync(key, record); }
+    const save = this.getQuota('burst_save_quota');
+    if (save.count >= (QUOTA_CONFIG.SAVE_FREE + save.extra)) {
+      this.triggerSaveAd();
+    } else {
       this.realSaveAction();
-    } else { this.triggerSaveAd(); }
+    }
   },
 
   triggerSaveAd() {
       wx.showModal({
-          title: '次数不足', content: '观看视频解锁今日无限保存', 
-          success: (res) => { if (res.confirm) { this._adAction = 'save'; if (this.videoAd) this.videoAd.show().catch(() => this.realSaveAction()); else this.realSaveAction(); } }
+          title: '免费保存次数已用完', 
+          content: `观看一段视频，即可解锁 ${QUOTA_CONFIG.SAVE_REWARD} 次保存机会！`, 
+          confirmText: '看视频',
+          confirmColor: '#6366f1',
+          success: (res) => { 
+            if (res.confirm && this.videoAd) {
+                this.videoAd.show().catch(() => {}); 
+            } 
+          }
       });
   },
 
   handleSaveUnlockSuccess() {
-      this.setDailyUnlimited();
-      wx.showToast({ title: '已解锁', icon: 'success' });
-      this.realSaveAction();
+      const s = this.getQuota('burst_save_quota'); 
+      s.extra += QUOTA_CONFIG.SAVE_REWARD; 
+      this.updateQuota('burst_save_quota', s); 
+      wx.showToast({ title: `成功解锁 ${QUOTA_CONFIG.SAVE_REWARD} 次机会`, icon: 'success' }); 
+      setTimeout(() => { this.realSaveAction(); }, 800); 
   },
 
-  setDailyUnlimited() { wx.setStorageSync('burst_usage_record', { date: new Date().toLocaleDateString(), count: 999, isUnlimited: true }); },
-
-  // 🌟 终极渲染算法
   realSaveAction() {
     this.setData({ isProcessing: true, loadingText: '正在合成高清大图...' });
 
-    // 利用原生选择器获取真实的物理排版边界，彻底消灭偏移量计算失误！
     const query = wx.createSelectorQuery();
     query.select('.editor-frame').boundingClientRect();
     query.select('.bg-img-view').boundingClientRect();
@@ -324,7 +407,6 @@ Page({
 
         const pixelRatio = BASE_HD_SIZE / frameRect.width;
 
-        // 🌟 核心修复1：严格计算并集包围盒
         let minX = 0, minY = 0, maxX = BASE_HD_SIZE, maxY = BASE_HD_SIZE;
         let fgDrawX = 0, fgDrawY = 0, fgDrawW = 0, fgDrawH = 0;
 
@@ -343,7 +425,6 @@ Page({
         const targetW = maxX - minX;
         const targetH = maxY - minY;
         
-        // 算出九宫格本身相对于新画布应该偏移的距离
         const offsetX = -minX;
         const offsetY = -minY;
 
@@ -387,7 +468,6 @@ Page({
 
         Promise.all([...mainTasks, ...overrideTasks]).then(() => {
             
-            // 🌟 核心修复2：死死裁剪住背景区域，防止溢出污染白线！
             const bgDrawX = (bgRect.left - frameRect.left) * pixelRatio;
             const bgDrawY = (bgRect.top - frameRect.top) * pixelRatio;
             const bgDrawW = bgRect.width * pixelRatio;
@@ -396,11 +476,10 @@ Page({
             ctx.save();
             ctx.beginPath();
             ctx.rect(offsetX, offsetY, BASE_HD_SIZE, BASE_HD_SIZE);
-            ctx.clip(); // 这一行是解决“格子被拉长错觉”的关键！
+            ctx.clip(); 
 
             ctx.drawImage(imgBg, offsetX + bgDrawX, offsetY + bgDrawY, bgDrawW, bgDrawH);
 
-            // 绘制独立替换的格子
             const cellW = BASE_HD_SIZE / 3;
             const cellH = BASE_HD_SIZE / 3;
             overrideIndices.forEach(idx => {
@@ -418,9 +497,8 @@ Page({
                     ctx.drawImage(img, sx, sy, sw, sh, drawX, drawY, cellW, cellH);
                 }
             });
-            ctx.restore(); // 释放裁剪区
+            ctx.restore(); 
 
-            // 绘制永远完整的九宫格白线
             const gap = this.data.gapSize * pixelRatio;
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(offsetX, offsetY + cellH - gap/2, BASE_HD_SIZE, gap);
@@ -428,12 +506,10 @@ Page({
             ctx.fillRect(offsetX + cellW - gap/2, offsetY, gap, BASE_HD_SIZE);
             ctx.fillRect(offsetX + cellW * 2 - gap/2, offsetY, gap, BASE_HD_SIZE);
 
-            // 最后画悬浮人物
             if (fgRect) {
                 ctx.drawImage(imgFg, offsetX + fgDrawX, offsetY + fgDrawY, fgDrawW, fgDrawH);
             }
 
-            // 极清导出
             wx.canvasToTempFilePath({
                 canvas: finalCanvas, fileType: 'jpg', quality: 1.0,
                 destWidth: finalW, destHeight: finalH,
@@ -456,10 +532,15 @@ Page({
     });
   },
 
+  // 🌟 真实存相册成功后，才扣除配额
   saveImageAndJump(filePath) {
       wx.saveImageToPhotosAlbum({
           filePath: filePath,
           success: () => {
+              const save = this.getQuota('burst_save_quota');
+              save.count++;
+              this.updateQuota('burst_save_quota', save);
+
               setTimeout(() => {
                   wx.navigateTo({
                       url: `/pages/success/success?path=${encodeURIComponent(filePath)}`,
