@@ -67,10 +67,8 @@ page {
 }
 
 .result-img {
-  height: 500rpx; 
-  /* 宽度自适应 */
+  height: 500rpx;
   min-width: 300rpx;
-  background-color: #f1f5f9;
   border-radius: 4rpx;
   display: block;
 }
@@ -189,4 +187,9 @@ page {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.img-wrapper {
+  border-radius: 4rpx;
+  overflow: hidden;
 }

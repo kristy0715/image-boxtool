@@ -4,18 +4,22 @@
       <icon type="success" size="50" color="#07c160"></icon>
     </view>
     <text class="status-title">保存成功</text>
-    <text class="status-desc">{{type === 'video' ? '视频已保存到系统相册' : '图片已保存到系统相册'}}</text>
+    <text class="status-desc">
+      {{type === 'video' ? '视频已保存到系统相册' : '图片已保存到系统相册'}}
+    </text>
   </view>
 
   <view class="preview-area fade-in-delay">
     <view class="photo-frame">
-      <image 
-        src="{{imagePath}}" 
-        mode="heightFix" 
-        class="result-img" 
-        bindtap="previewImage"
-        show-menu-by-longpress
-      ></image>
+      <view class="img-wrapper">
+        <image
+          src="{{imagePath}}"
+          mode="heightFix"
+          class="result-img"
+          bindtap="previewImage"
+          show-menu-by-longpress
+        ></image>
+      </view>
     </view>
     <text class="preview-tip">{{type === 'video' ? '视频封面预览' : '点击图片预览'}}</text>
   </view>
@@ -28,7 +32,7 @@
       </view>
       <text class="btn-icon">🎁</text>
     </button>
-    
+
     <view class="secondary-actions">
       <button class="btn-secondary" bindtap="goHome">返回首页</button>
       <button class="btn-primary-outline" bindtap="makeAnother">

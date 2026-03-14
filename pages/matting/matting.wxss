@@ -1,6 +1,4 @@
 /* pages/matting/matting.wxss */
-
-/* 复用全局卡片布局 */
 @import "/pages/burst/burst.wxss"; 
 
 /* 🔥 核心修改：覆盖 burst 的固定屏样式，改为滚动布局 */
@@ -15,10 +13,9 @@ page {
   padding: 0 32rpx;
   height: auto !important;
   overflow: visible !important;
-  display: block !important; /* 取消 flex column */
+  display: block !important; 
 }
 
-/* 页面标题微调 */
 .page-header {
   padding: 40rpx 0 30rpx;
   text-align: left;
@@ -31,48 +28,72 @@ page {
   box-sizing: border-box;
   background: #fff;
   border-radius: 32rpx;
-  box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.06); 
+  box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.06);
   display: flex;
   justify-content: center;
   margin-bottom: 24rpx;
+  margin: 0 auto 24rpx auto; /* 保证卡片内居中 */
+}
+
+/* 🌟 透明模式：保持白色卡片，但让内部背景透明 */
+.preview-box.transparent-mode {
+  background: #fff;
+  box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.06);
+  padding: 24rpx;
 }
 
 .canvas-box {
-  width: 100%; 
-  height: 600rpx; 
+  width: 100%;
+  height: 600rpx;
   position: relative;
   border-radius: 20rpx;
   overflow: hidden;
   border: 2rpx solid #f8fafc;
-  display: flex; 
-  align-items: center; 
+  display: flex;
+  align-items: center;
   justify-content: center;
   background-color: #fff;
 }
 
-/* 棋盘格背景 */
+/* 🌟 透明模式下的 canvas-box：去掉白色背景和边框 */
+.transparent-mode .canvas-box {
+  border: 2rpx solid #e5e7eb;
+  background-color: transparent;
+}
+
+/* 🌟 棋盘格背景 */
 .checkerboard {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%);
   background-size: 20rpx 20rpx;
   background-position: 0 0, 0 10rpx, 10rpx -10rpx, -10rpx 0px;
   z-index: 0;
-  opacity: 0.6;
+  opacity: 1;
+}
+
+.custom-bg-img {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
 }
 
 .result-img {
   width: 100%; height: 100%; 
   position: relative; z-index: 10;
+  display: block;
 }
 
-/* === 工具栏 (颜色选择) === */
+/* 商业特效滤镜 */
+.effect-none { filter: none; }
+.effect-stroke { filter: drop-shadow(0px 0px 4px white) drop-shadow(0px 0px 10px white); }
+.effect-shadow { filter: drop-shadow(10px 15px 15px rgba(0,0,0,0.5)); }
+
+/* === 工具栏 === */
 .tool-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* 增加一点底部间距，与广告拉开距离 */
-  margin-bottom: 20rpx; 
+  margin-bottom: 30rpx; 
 }
+.tool-label { font-size: 28rpx; font-weight: bold; color: #1e293b; }
 
 .color-options {
   flex: 1;
@@ -90,27 +111,63 @@ page {
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.1);
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
+  display: flex; align-items: center; justify-content: center;
 }
 
-/* 选中状态 */
 .color-circle.active {
   transform: scale(1.2);
   border: 4rpx solid #6366f1; 
   box-shadow: 0 4rpx 12rpx rgba(99, 102, 241, 0.3);
 }
 
-.color-circle.checker { 
-  background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMCAwSDRWMHw0IDRIN3w4IDhIN3wwIDBINCIgZmlsbD0iI2NjYyIvPjwvc3ZnPg=='); 
+.color-circle.checker {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #ccc 25%, transparent 25%),
+    linear-gradient(-45deg, #ccc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ccc 75%),
+    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+  background-size: 12rpx 12rpx;
+  background-position: 0 0, 0 6rpx, 6rpx -6rpx, -6rpx 0rpx;
 }
 .color-circle.white { background: #ffffff; }
 .color-circle.red { background: #D9241E; }
 .color-circle.blue { background: #438EDB; }
 .color-circle.black { background: #000000; }
+.color-circle.custom-bg { background: #f1f5f9; font-size: 26rpx; border: 2rpx dashed #cbd5e1; color: #475569; }
 
-/* 底部栏样式 (确保固定) */
+/* 特效选项与还原按钮 */
+.effect-options { display: flex; gap: 16rpx; justify-content: flex-end; flex: 1; }
+.effect-pill { padding: 10rpx 24rpx; background: #f1f5f9; border-radius: 100rpx; font-size: 24rpx; color: #64748b; font-weight: 500; transition: all 0.2s; }
+.effect-pill.active { background: #eef2ff; color: #6366f1; font-weight: bold; }
+.reset-btn { font-size: 24rpx; color: #6366f1; background: #eef2ff; padding: 10rpx 24rpx; border-radius: 100rpx; display: flex; align-items: center; font-weight: 600; }
+
+/* 开关样式 */
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 0 10rpx; }
+.setting-info { display: flex; flex-direction: column; gap: 8rpx; }
+.setting-title { font-size: 28rpx; font-weight: bold; color: #1e293b; }
+.setting-desc { font-size: 22rpx; color: #64748b; }
+
+/* 🌟 证件照同款：1:2 黄金比例底部栏按钮 */
 .bottom-bar { 
   position: fixed; bottom: 0; left: 0; right: 0; 
   background: #fff; padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom)); 
   box-shadow: 0 -4rpx 16rpx rgba(0,0,0,0.05); 
   z-index: 200; 
 }
+.action-row { display: flex; gap: 24rpx; }
+.btn-secondary, .btn-primary {
+  margin: 0; border: none; font-size: 32rpx; font-weight: 600;
+  height: 96rpx; line-height: 96rpx; border-radius: 100rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-secondary::after, .btn-primary::after { display: none; }
+.btn-secondary { flex: 1; background: #f1f5f9; color: #475569; }
+.btn-primary { flex: 2.2; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; box-shadow: 0 8rpx 20rpx rgba(99, 102, 241, 0.25); }
+
+/* 全局 Loading (你的原版) */
+.loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); z-index: 999; display: flex; align-items: center; justify-content: center; }
+.loading-box { display: flex; flex-direction: column; align-items: center; }
+.loading-spinner { width: 80rpx; height: 80rpx; border: 6rpx solid #e0e7ff; border-top-color: #6366f1; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20rpx; }
+.loading-text { font-size: 28rpx; color: #6366f1; font-weight: bold; }
+@keyframes spin { to { transform: rotate(360deg); } }

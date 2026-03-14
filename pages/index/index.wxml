@@ -16,11 +16,7 @@
   <template name="tool-section">
     <view class="section-header">
       <text class="section-title">{{title}}</text>
-      
-      <button wx:if="{{showContact}}" class="mini-kefu-btn" open-type="contact">
-        <text class="kefu-icon">🎧</text>
-      </button>
-    </view>
+      </view>
 
     <view class="feature-grid">
       <view class="feature-card" bindtap="goToPage" data-page="{{item.id}}" wx:for="{{list}}" wx:key="id">
@@ -35,8 +31,7 @@
     </view>
   </template>
 
-  <template is="tool-section" data="{{title: '📌 实用工具', list: toolList, showContact: true}}"></template>
-  
+  <template is="tool-section" data="{{title: '📌 实用工具', list: toolList}}"></template>
   <template is="tool-section" data="{{title: '📝 图文转换', list: ocrList}}"></template>
   <template is="tool-section" data="{{title: '🎨 趣味功能', list: funList}}"></template>
 
@@ -62,14 +57,37 @@
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">无痕消除路人</text>
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">马赛克</text>
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">短视频无水印解析</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">链接无水印提取</text>
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">一寸二寸证件照</text>
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">证件照换底色</text>
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">老照片高清修复</text>
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">自制表情包</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">九宫格拼图</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">图片裁剪</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">图片压缩</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">美颜</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">滤镜</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">九宫格冲出特效</text>
     </view>
-    </view>
+  </view>
 
-  <canvas type="2d" id="posterCanvas" style="position:fixed; left: -9999px; width: 1080px; height: 1920px;"></canvas>
+  <canvas type="2d" id="posterCanvas" style="position:fixed; left: -9999px; top: -9999px; width: 1080px; height: 1920px;"></canvas>
+
+  <movable-area class="movable-area">
+    <movable-view 
+      class="movable-view" 
+      x="{{kefuX}}" 
+      y="{{kefuY}}" 
+      direction="all"
+      out-of-bounds="false"
+      animation="true"
+      inertia="true"
+    >
+      <button class="float-kefu-btn" open-type="contact">
+        <image class="float-kefu-img" src="/assets/me.png" mode="aspectFill"></image>
+      </button>
+    </movable-view>
+  </movable-area>
 
   <view class="fortune-entry" bindtap="openFortuneModal">
     <view class="entry-bag">
@@ -120,7 +138,7 @@
           <view class="pill-btn">
             <text class="btn-icon">⬇️</text>
             <text class="btn-text-nowrap">保存高清图</text>
-           </view>
+          </view>
         </view>
         <view class="action-side-wrapper right">
           <button class="reset-btn" open-type="share">

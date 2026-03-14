@@ -8,13 +8,18 @@ const SERVER_CONFIG = {
 
 const AD_CONFIG = {
   BANNER_ID: 'adunit-ecfcec4c6a0c871b',
-  VIDEO_ID: 'adunit-da175a2014d3443b'
+  VIDEO_ID: 'adunit-da175a2014d3443b',
+  // 🌟 使用指定的最新插屏广告 ID
+  INTERSTITIAL_ID: 'adunit-a9556a7e617c27b7'   
 };
 
-const DAILY_FREE_SAVE_LIMIT = 2; 
-const DAILY_FREE_AI_LIMIT = 1;   
-const AD_REWARD_AI_COUNT = 3;    
+// 🌟 核心修改：每日免费 2 次，看视频奖励 5 次
+const QUOTA_CONFIG = {
+  SAVE_FREE: 2,    
+  SAVE_REWARD: 5 
+};
 
+// 本地纯色消除需要用到的优先队列(最小堆)
 class MinHeap {
   constructor(){this.heap=[]}push(t){this.heap.push(t),this.bubbleUp(this.heap.length-1)}pop(){if(0===this.heap.length)return null;const t=this.heap[0],e=this.heap.pop();return this.heap.length>0&&(this.heap[0]=e,this.sinkDown(0)),t}bubbleUp(t){for(;t>0;){const e=Math.floor((t-1)/2);if(this.heap[t].dist>=this.heap[e].dist)break;[this.heap[t],this.heap[e]]=[this.heap[e],this.heap[t]],t=e}}sinkDown(t){const e=this.heap.length;for(;;){let s=2*t+1,h=2*t+2,i=null;if(s<e&&this.heap[s].dist<this.heap[t].dist&&(i=s),h<e&&this.heap[h].dist<(null===i?this.heap[t].dist:this.heap[s].dist)&&(i=h),null===i)break;[this.heap[t],this.heap[i]]=[this.heap[i],this.heap[t]],t=i}}size(){return this.heap.length}
 }
@@ -22,96 +27,51 @@ class MinHeap {
 Page({
   data: {
     imagePath: '', resultImage: '', isProcessing: false, 
-    mode: 'auto', // ⭐ 将默认模式改为 AI (auto)
+    mode: 'auto', 
     brushSize: 35, canvasDisplayWidth: 300, canvasDisplayHeight: 400,
     imageWidth: 0, imageHeight: 0, isComparing: false, bannerUnitId: AD_CONFIG.BANNER_ID,
     isMoveMode: false, moveX: 0, moveY: 0, moveScale: 1,
-    leftTabTitle: 'AI去水印', rightTabTitle: '纯色去水印', // ⭐ 对调左右标题
-    pendingAdType: '' 
+    // 🌟 已去除(余X)等复杂文字，回归纯净标题
+    leftTabTitle: 'AI去水印', rightTabTitle: '纯色去水印'
   },
 
   canvas: null, ctx: null, maskCanvas: null, maskCtx: null, originalImage: null,
-  dpr: 1, videoAd: null, history: [], canvasRect: { left: 0, top: 0 },
+  dpr: 1, videoAd: null, interstitialAd: null, history: [], canvasRect: { left: 0, top: 0 },
 
   onLoad() {
     this.dpr = wx.getSystemInfoSync().pixelRatio;
     this.history = []; this.canvasRect = { left: 0, top: 0 };
-    this.initVideoAd();
+    this.initAds();
   },
 
-  onShow() { this.updateAiTabTitle(); },
-
-  initVideoAd() {
+  initAds() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
-      this.videoAd.onError((err) => console.error('广告加载失败', err));
+      this.videoAd.onError((err) => console.error('激励视频加载失败', err));
       this.videoAd.onClose((res) => {
         if (res && res.isEnded) {
-          if (this.data.pendingAdType === 'ai') {
-            this.addAiBalance(AD_REWARD_AI_COUNT);
-            wx.showToast({ title: `到账 ${AD_REWARD_AI_COUNT} 次`, icon: 'success' });
-            setTimeout(() => this.startProcess(), 500);
-          } else if (this.data.pendingAdType === 'save') {
-            this.setDailyUnlimitedSave();
-            wx.showToast({ title: '保存已解锁', icon: 'success' });
-            setTimeout(() => this.realSaveProcess(), 500);
-          }
+          this.grantSaveQuota();
         } else {
           wx.showModal({ title: '提示', content: '完整观看才能获取奖励哦', confirmText: '继续观看', success: (m) => { if (m.confirm) this.videoAd.show(); } });
         }
       });
     }
-  },
 
-  getAiStock() {
-    const today = new Date().toLocaleDateString();
-    let dailyRecord = wx.getStorageSync('watermark_ai_daily_v12') || { date: today, used: 0 };
-    if (dailyRecord.date !== today) { dailyRecord = { date: today, used: 0 }; wx.setStorageSync('watermark_ai_daily_v12', dailyRecord); }
-    let balance = wx.getStorageSync('watermark_ai_balance_v12') || 0;
-    const freeLeft = Math.max(0, DAILY_FREE_AI_LIMIT - dailyRecord.used);
-    return { total: freeLeft + balance, freeLeft, balance, dailyRecord };
-  },
-
-  consumeAiStock() {
-    const stock = this.getAiStock();
-    if (stock.freeLeft > 0) {
-      stock.dailyRecord.used++;
-      wx.setStorageSync('watermark_ai_daily_v12', stock.dailyRecord);
-    } else if (stock.balance > 0) {
-      wx.setStorageSync('watermark_ai_balance_v12', stock.balance - 1);
+    if (wx.createInterstitialAd) {
+      this.interstitialAd = wx.createInterstitialAd({ adUnitId: AD_CONFIG.INTERSTITIAL_ID });
+      this.interstitialAd.onLoad(() => console.log('插屏广告已准备就绪'));
     }
-    this.updateAiTabTitle();
   },
 
-  addAiBalance(count) {
-    let balance = wx.getStorageSync('watermark_ai_balance_v12') || 0;
-    wx.setStorageSync('watermark_ai_balance_v12', balance + count);
-    this.updateAiTabTitle();
-  },
-
-  updateAiTabTitle() {
-    const stock = this.getAiStock();
-    // ⭐ 确保余额动态更新到左侧的 AI 标签上
-    this.setData({ leftTabTitle: `AI去水印(余${stock.total})` }); 
-  },
-
-  checkSaveQuota() {
+  // 🌟 通用的额度存取器
+  getQuota(key) {
     const today = new Date().toLocaleDateString();
-    const key = 'watermark_save_record_v12';
-    let record = wx.getStorageSync(key) || { date: today, count: 0, isUnlimited: false };
-    if (record.date !== today) { record = { date: today, count: 0, isUnlimited: false }; wx.setStorageSync(key, record); }
-    return record;
+    let r = wx.getStorageSync(key) || { date: today, count: 0, extra: 0 };
+    if (r.date !== today) r = { date: today, count: 0, extra: 0 };
+    return r;
   },
 
-  useSaveQuota() {
-    const record = this.checkSaveQuota();
-    if (!record.isUnlimited) { record.count++; wx.setStorageSync('watermark_save_record_v12', record); }
-  },
-
-  setDailyUnlimitedSave() {
-    const today = new Date().toLocaleDateString();
-    wx.setStorageSync('watermark_save_record_v12', { date: today, count: 999, isUnlimited: true });
-  },
+  updateQuota(key, val) { wx.setStorageSync(key, val); },
 
   showDynamicLoading(type) {
     if (type === 'manual') {
@@ -155,6 +115,7 @@ Page({
     }, 300);
   },
 
+  // 🌟 取消了此处的任何额度阻拦，放开畅玩
   startProcess() {
     if (!this.data.imagePath) return;
     if (this.data.isProcessing) return;
@@ -162,13 +123,7 @@ Page({
     if (this.data.mode === 'manual') {
       this.startManualPipeline(); 
     } else {
-      const stock = this.getAiStock();
-      if (stock.total > 0) {
-        this.startAiPipeline(); 
-      } else {
-        this.setData({ pendingAdType: 'ai' });
-        this.showAdModal('ai');
-      }
+      this.startAiPipeline(); 
     }
   },
 
@@ -177,12 +132,7 @@ Page({
     this.showDynamicLoading('manual'); 
 
     try {
-      const { width, height } = this.getOptimalSize(this.data.imageWidth, this.data.imageHeight);
-      const imgBase64ForCheck = await this.getResizedImageBase64(width, height);
-
-      await this.processWithProxyApi(imgBase64ForCheck, "", "normal");
       this.processTelea(); 
-
     } catch (err) {
       this.handleError(err);
     }
@@ -196,7 +146,6 @@ Page({
       const { imgBase64, maskBase64 } = await this.prepareAiData();
       const filePath = await this.processWithProxyApi(imgBase64, maskBase64, "ai");
       
-      this.consumeAiStock();
       this.handleSuccess(filePath);
 
     } catch (err) {
@@ -235,8 +184,7 @@ Page({
               let resultB64 = responseData.data?.image || responseData.image || responseData.data || "";
               
               if (!resultB64) {
-                let debugStr = JSON.stringify(responseData).substring(0, 40);
-                return reject(new Error(`返回数据异常: ${debugStr}`));
+                return reject(new Error(`返回数据异常，请重试`));
               }
               
               if (resultB64.startsWith('data:image')) {
@@ -342,7 +290,7 @@ Page({
           if (maskCount === 0) {
             this.setData({ isProcessing: false }); 
             this.hideDynamicLoading();
-            return wx.showToast({ title: '请先涂抹', icon: 'none' });
+            return wx.showToast({ title: '请先涂抹需要消除的区域', icon: 'none' });
           }
           this.performTeleaCalculation(width, height, flagMap, distMap, imgData.data);
           imgCtx.putImageData(imgData, 0, 0);
@@ -557,6 +505,7 @@ Page({
     this.setData({ moveX: 0, moveY: 0, moveScale: 1 });
   },
 
+  // 🌟 统一的成功回调（并触发插屏广告）
   handleSuccess(filePath) {
     this.setData({ resultImage: filePath, isProcessing: false });
     this.setData({ moveScale: 1, moveX: 0, moveY: 0, isMoveMode: false });
@@ -564,6 +513,11 @@ Page({
     this.hideDynamicLoading();
     wx.pageScrollTo({ selector: '.result-card', duration: 300 });
     wx.showToast({ title: '处理成功', icon: 'success' });
+
+    // 🌟 在图出来的一瞬间，弹插屏
+    if (this.interstitialAd) {
+      this.interstitialAd.show().catch((err) => console.warn('插屏呼叫失败', err));
+    }
   },
 
   handleError(err) {
@@ -645,33 +599,56 @@ Page({
     });
   },
 
+  // 🌟 统一后置拦截逻辑（只卡保存操作）
   saveImage() {
     if (!this.data.resultImage) return;
-    const record = this.checkSaveQuota();
-    if (record.isUnlimited) { this.realSaveProcess(); return; }
-    if (record.count < DAILY_FREE_SAVE_LIMIT) {
-      this.useSaveQuota();
-      this.realSaveProcess();
+    const save = this.getQuota('watermark_save_quota_new');
+    if (save.count >= (QUOTA_CONFIG.SAVE_FREE + save.extra)) {
+      this.showAdModal();
       return;
     }
-    this.setData({ pendingAdType: 'save' });
-    this.showAdModal('save');
+    this.realSaveProcess();
   },
 
   realSaveProcess() {
+    wx.showLoading({ title: '保存中...' });
     wx.saveImageToPhotosAlbum({
       filePath: this.data.resultImage,
-      success: () => { wx.navigateTo({ url: `/pages/success/success?path=${encodeURIComponent(this.data.resultImage)}` }); },
-      fail: (err) => { if (err.errMsg.includes('auth')) wx.openSetting(); else wx.showToast({ title: '保存失败', icon: 'none' }); }
+      success: () => { 
+        const save = this.getQuota('watermark_save_quota_new');
+        save.count++;
+        this.updateQuota('watermark_save_quota_new', save);
+        wx.hideLoading();
+        wx.navigateTo({ url: `/pages/success/success?path=${encodeURIComponent(this.data.resultImage)}` }); 
+      },
+      fail: (err) => { 
+        wx.hideLoading();
+        if (err.errMsg.includes('auth')) wx.openSetting(); 
+        else wx.showToast({ title: '保存失败', icon: 'none' }); 
+      }
     });
   },
 
-  showAdModal(type) {
-    let title = type === 'ai' ? 'AI 次数不足' : '保存次数不足';
-    let content = type === 'ai' ? `看视频获 ${AD_REWARD_AI_COUNT} 次机会` : '看视频解锁无限保存';
-    if (this.videoAd) {
-      wx.showModal({ title, content, confirmText: '去观看', success: (res) => { if (res.confirm) this.videoAd.show().catch(() => { if(type==='save') this.realSaveProcess(); }); } });
-    } else { if(type==='save') this.realSaveProcess(); }
+  showAdModal() {
+    wx.showModal({ 
+      title: '免费保存次数已用完', 
+      content: `观看一段视频，即可解锁 ${QUOTA_CONFIG.SAVE_REWARD} 次保存机会！`, 
+      confirmText: '看视频', 
+      confirmColor: '#6366f1',
+      success: (res) => { 
+        if (res.confirm && this.videoAd) {
+          this.videoAd.show().catch(() => { this.realSaveProcess(); }); 
+        } 
+      } 
+    });
+  },
+
+  grantSaveQuota() {
+    const s = this.getQuota('watermark_save_quota_new');
+    s.extra += QUOTA_CONFIG.SAVE_REWARD;
+    this.updateQuota('watermark_save_quota_new', s);
+    wx.showToast({ title: `成功解锁 ${QUOTA_CONFIG.SAVE_REWARD} 次机会`, icon: 'success' });
+    setTimeout(() => { this.saveImage(); }, 800);
   },
 
   startCompare() { this.setData({ isComparing: true }); },

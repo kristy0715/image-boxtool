@@ -30,7 +30,7 @@
 
   <view class="card">
     <view class="section-title">样式设置</view>
-    
+  
     <view class="setting-row">
       <text class="setting-label">背景主题</text>
       <scroll-view scroll-x class="color-scroll" enable-flex>
@@ -97,9 +97,9 @@
   <view class="card preview-card" wx:if="{{previewImage}}">
     <view class="section-title">生成结果</view>
     <scroll-view scroll-y class="preview-scroll">
-      <image class="preview-image" src="{{previewImage}}" mode="widthFix" show-menu-by-longpress></image>
+      <image class="preview-image" src="{{previewImage}}" mode="widthFix"></image>
     </scroll-view>
-    <view class="preview-tip">长按图片也可发送给朋友</view>
+    <view class="preview-tip">请点击下方按钮保存，支持高清无损导出</view>
   </view>
 
   <view class="ad-container" style="padding: 20rpx 30rpx;">

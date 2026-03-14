@@ -63,7 +63,7 @@
     </view>
   </view>
 
-  <view class="card" wx:if="{{resultImage}}">
+  <view class="card" id="previewSection" wx:if="{{resultImage}}">
     <view class="section-header">
       <text class="section-title">生成预览</text>
       <text class="text-btn" bindtap="previewResult">全屏查看 ›</text>

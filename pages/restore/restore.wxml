@@ -6,7 +6,7 @@
   </view>
 
   <view class="content-area">
-    <view class="upload-wrapper" wx:if="{{!resultImage}}">
+    <view class="upload-wrapper" wx:if="{{!selectedImage}}">
       
       <view class="hero-card">
         <view class="hero-demo-box">
@@ -20,22 +20,24 @@
              <view class="demo-tag">HD</view>
           </view>
         </view>
-        <view class="hero-text-row">
-          <text class="hero-h1">AI 智能画质重生</text>
-          <text class="hero-p">老照片修复 / 表情包变高清</text>
+        
+        <view class="hero-bottom-row">
+          <view class="hero-text-col">
+            <text class="hero-h1">AI 智能画质重生</text>
+            <text class="hero-p">老照片修复 / 表情包变高清</text>
+          </view>
+          <view class="feature-tags-hero">
+            <view class="tag-item-hero">⚡ 极速</view>
+            <view class="tag-item-hero">🔒 隐私</view>
+          </view>
         </view>
       </view>
 
       <view class="action-card">
         <view class="upload-btn-area" bindtap="chooseImage">
-          <view class="icon-box">📸</view>
+          <view class="icon-box">💎</view>
           <text class="main-text">点击上传图片</text>
           <text class="sub-text">支持 JPG / PNG 格式</text>
-        </view>
-        
-        <view class="feature-tags">
-          <view class="tag-item">⚡️ 极速处理</view>
-          <view class="tag-item">🔒 隐私安全</view>
         </view>
 
         <view class="cross-promote glow-effect" bindtap="goToWatermark">
@@ -48,18 +50,33 @@
       </view>
     </view>
 
-    <view class="compare-wrapper" wx:else>
+    <view class="preview-wrapper" wx:if="{{selectedImage && !resultImage}}">
+      <view class="preview-box" style="width: 100%; display: flex; justify-content: center; background: #fff; padding: 20rpx; border-radius: 32rpx; box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.06); box-sizing: border-box;">
+        <image src="{{selectedImage}}" mode="aspectFit" style="width: {{layout.width}}px; height: {{layout.height}}px; border-radius: 20rpx;"></image>
+      </view>
+      <view class="instruction-bar" style="margin-top:20rpx; text-align:center;"><text style="font-size: 26rpx; color: #64748b;">准备就绪，点击底部按钮开始修复</text></view>
+
+      <view class="cross-promote glow-effect" bindtap="goToWatermark" style="margin-top: 30rpx;">
+        <view class="cp-icon">💡</view>
+        <view class="cp-text">
+          <text class="cp-title">照片有破损、霉斑或水印？</text>
+          <text class="cp-desc">点我先用【AI 消除笔】无痕修补 >></text>
+        </view>
+      </view>
+    </view>
+
+    <view class="compare-wrapper" wx:if="{{resultImage}}">
       <view class="compare-card">
         <view class="compare-box" id="compareBox" 
               style="width: {{layout.width}}px; height: {{layout.height}}px;"
               bindtouchstart="onTouchStart" 
-              bindtouchmove="onTouchMove" 
+              catchtouchmove="onTouchMove" 
               catchtap="return">
           
-          <image class="comp-img full" src="{{resultImage}}"></image>
+          <image class="comp-img full" src="{{resultImage}}" mode="scaleToFill" style="width: {{layout.width}}px; height: {{layout.height}}px;"></image>
           
           <view class="comp-mask" style="{{ 'width:' + sliderValue + '%;' }}">
-            <image class="comp-img clip" src="{{originImage}}" style="width: {{layout.width}}px; height: {{layout.height}}px;"></image>
+            <image class="comp-img clip" src="{{originImage}}" mode="scaleToFill" style="width: {{layout.width}}px; height: {{layout.height}}px;"></image>
             <view class="divider-line"></view>
           </view>
 
@@ -76,17 +93,21 @@
     <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
   </view>
 
-  <view style="height: 220rpx; width: 100%; display: block;"></view>
+  <view style="height: 250rpx; width: 100%; display: block;"></view>
 
-  <view class="bottom-bar" wx:if="{{resultImage}}">
-    <view class="circle-btn" bindtap="chooseImage"><text>🔄</text></view>
-    <button class="save-btn" bindtap="saveImage">保存高清原图</button>
+  <view class="bottom-bar" wx:if="{{selectedImage}}">
+    <view class="action-row">
+      <button class="btn-secondary" bindtap="chooseImage">重新选择</button>
+      <button class="btn-primary" bindtap="startRestoration" wx:if="{{!resultImage}}">开始高清处理</button>
+      <button class="btn-primary" bindtap="saveImage" wx:else>保存到相册</button>
+    </view>
   </view>
 
   <view class="loading-overlay" wx:if="{{isProcessing}}">
     <view class="loading-box">
       <view class="loading-spinner"></view>
-      <text class="loading-text">AI 正在处理中...</text>
+      <text class="loading-text">AI 正在注入像素细节...</text>
+      <text style="font-size:24rpx; color:#94a3b8; margin-top:10rpx;">大概需要 5-15 秒</text>
     </view>
   </view>
 </view>

@@ -270,7 +270,16 @@ Page({
         fileType: 'png', // 长图用 png 质量更好
         quality: 0.9,
         success: (res) => {
-            this.setData({ resultImage: res.tempFilePath, isProcessing: false });
+            // 🌟 核心新增：在 UI 更新之后，加入平滑滚动动画
+            this.setData({ resultImage: res.tempFilePath, isProcessing: false }, () => {
+                // 等待 150ms 确保 DOM 已经渲染完毕
+                setTimeout(() => {
+                    wx.pageScrollTo({
+                        selector: '#previewSection', // 滚动到预览区域和 Banner 广告区域
+                        duration: 400 // 平滑动画 400ms
+                    });
+                }, 150);
+            });
         },
         fail: (err) => {
             console.error(err);

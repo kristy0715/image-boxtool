@@ -1,141 +1,111 @@
-<wxs module="tools">
-  var getStyle = function(w, h, x, y, b, c) {
-    return 'width:' + w + 'px;height:' + h + 'px;transform:translate(' + x + 'px,' + y + 'px);position:absolute;left:0;top:0;filter:brightness(' + b + '%) contrast(' + c + '%);';
-  }
-  module.exports = { getStyle: getStyle };
-</wxs>
-
 <view class="container">
-  <view class="mode-tabs">
-    <view class="tab-item {{mode === 'normal' ? 'active' : ''}}" bindtap="switchMode" data-mode="normal">
-      <text class="tab-icon">📷</text> <text>普通拍摄</text>
-    </view>
-    <view class="tab-item {{mode === 'auto' ? 'active' : ''}}" bindtap="switchMode" data-mode="auto">
-      <text class="tab-icon">🤖</text> 
-      <text>AI 拍摄</text>
-      <text class="quota-tag" wx:if="{{aiQuota >= 0}}">(余{{aiQuota}})</text>
-    </view>
+  <view class="page-header">
+    <text class="page-title">AI 智能证件照</text>
+    <text class="page-subtitle">自动裁剪 · 发丝级换底</text>
   </view>
 
-  <view class="feature-tip" wx:if="{{mode === 'normal'}}">
-    <text>⚠️ 普通模式：仅裁剪，需在纯色背景前拍摄</text>
-  </view>
-  <view class="feature-tip" wx:if="{{mode === 'auto'}}">
-    <text>🚀 AI 智能抠图，一键自动换底色</text>
-  </view>
-
-  <view class="card camera-card" wx:if="{{showCamera}}">
-    <view class="camera-wrapper">
-      <camera class="camera" device-position="{{cameraPosition}}" flash="off" resolution="high" binderror="onCameraError">
-        <view class="guide-overlay">
-          <view class="guide-frame">
-            <view class="guide-head"></view>
-            <view class="guide-shoulder"></view>
-          </view>
-          <text class="guide-tip">请将头部置于框内</text>
-        </view>
-      </camera>
-    </view>
-    <view class="camera-actions">
-      <view class="camera-btn-secondary" bindtap="switchCamera"><text class="btn-icon">🔄</text><text>切换</text></view>
-      <view class="camera-btn-primary" bindtap="takePhoto"><view class="shutter-btn"><view class="shutter-inner"></view></view></view>
-      <view class="camera-btn-secondary" bindtap="chooseFromAlbum"><text class="btn-icon">🖼️</text><text>相册</text></view>
-    </view>
-  </view>
-
-  <view class="card preview-card" wx:if="{{!showCamera}}">
-    <view class="upload-area" bindtap="openCamera" wx:if="{{!rawImagePath}}">
-      <text class="upload-icon-emoji">📸</text>
-      <text class="upload-text">点击拍摄或上传照片</text>
-      <text class="upload-hint">支持自拍、相册上传</text>
+  <view class="preview-card">
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!rawImagePath}}">
+      <text class="upload-icon">📸</text>
+      <text class="upload-text">点击拍摄/上传正面照</text>
+      <text class="upload-hint">无需绿幕，纯净背景效果更佳</text>
     </view>
     
-    <view class="preview-wrapper" wx:else>
-      <view class="preview-box">
-        <view class="preview-container" 
-          style="width: {{previewW}}px; height: {{previewH}}px; background-color: {{selectedColor}};"
-          catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd">
-          
-          <image class="preview-image" 
-            src="{{(mode === 'auto' && transparentImagePath) ? transparentImagePath : rawImagePath}}" 
-            style="{{tools.getStyle(imgWidth, imgHeight, imgX, imgY, brightness, contrast)}}">
-          </image>
-          
-          <view class="crop-mask">
-            <view class="guide-border"></view>
-            <view class="guide-line-head"></view>
-          </view>
-        </view>
-      </view>
-
-      <view class="preview-actions">
-        <view class="action-btn" bindtap="reSelectAction">
-          <text class="action-icon">🔙</text><text>重新拍摄</text>
-        </view>
-        <view class="action-btn" bindtap="resetAction">
-          <text class="action-icon">↺</text><text>还原位置</text>
-        </view>
-      </view>
-
-      <view class="beautify-section">
-        <view class="beautify-title"><text>✨ 美化调节</text></view>
-        <view class="slider-row">
-          <text class="slider-label">亮度</text>
-          <slider class="beautify-slider" min="80" max="150" value="{{brightness}}" activeColor="#6366f1" block-size="16" bindchanging="onBrightnessChange"/>
-        </view>
-        <view class="slider-row">
-          <text class="slider-label">对比</text>
-          <slider class="beautify-slider" min="80" max="150" value="{{contrast}}" activeColor="#6366f1" block-size="16" bindchanging="onContrastChange"/>
-        </view>
-      </view>
-
+    <view class="image-show-area" wx:else>
+      <image class="result-image" src="{{processedImage || rawImagePath}}" mode="aspectFit"></image>
     </view>
   </view>
 
-  <block wx:if="{{!showCamera && rawImagePath}}">
-    <view class="card">
-      <view class="section-title"><text class="section-icon">🎨</text><text>背景颜色</text></view>
-      <view class="color-grid">
-        <view class="color-item {{selectedColor === item.value ? 'active' : ''}}" 
-          wx:for="{{colorList}}" wx:key="value" bindtap="selectColor" 
-          data-value="{{item.value}}" data-name="{{item.name}}"
-          style="background-color: {{item.value}};">
-          <view class="color-check" wx:if="{{selectedColor === item.value}}">✓</view>
-        </view>
+  <view class="control-panel" wx:if="{{rawImagePath}}">
+    
+    <view class="highlight-panel">
+      <view class="settings-text-group">
+        <text class="settings-title">✨ AI 智能美颜精修</text>
+        <text class="settings-desc">一键磨皮亮肤，提升五官立体感</text>
       </view>
+      <switch checked="{{useBeauty}}" bindchange="toggleBeauty" color="#4f46e5"/>
     </view>
 
-    <view class="card">
-      <view class="section-title"><text class="section-icon">📐</text><text>选择尺寸</text></view>
-      <view class="size-grid">
+    <view class="section-title">📐 选择尺寸 <text class="scroll-hint">(左右滑动查看更多)</text></view>
+    <scroll-view scroll-x class="scroll-row" enable-flex>
+      <view class="size-list">
         <view class="size-item {{selectedSize === item.id ? 'active' : ''}}" 
-          wx:for="{{sizeList}}" wx:key="id" bindtap="selectSize" data-id="{{item.id}}">
+          wx:for="{{sizeList}}" wx:key="id" 
+          bindtap="selectSize" data-id="{{item.id}}">
           <text class="size-name">{{item.name}}</text>
           <text class="size-dimension">{{item.dimension}}</text>
         </view>
       </view>
-    </view>
-  </block>
+    </scroll-view>
 
-  <view class="ad-container" wx:if="{{!showCamera}}">
+    <view class="section-title" style="margin-top: 40rpx;">🎨 选择背景色 <text class="scroll-hint">(左右滑动查看更多)</text></view>
+    <scroll-view scroll-x class="scroll-row" enable-flex>
+      <view class="color-list">
+        <view class="color-item" wx:for="{{colorList}}" wx:key="value" bindtap="selectColor" data-value="{{item.value}}">
+          <view class="color-circle {{item.value === '#ffffff' ? 'border-gray' : ''}}" 
+            style="background: {{item.value === 'custom' ? '#f8fafc' : item.value}}; display: flex; align-items: center; justify-content: center;">
+            <text wx:if="{{item.value === 'custom'}}">🎨</text>
+            <view class="color-check" wx:elif="{{selectedColor === item.value && item.value !== '#ffffff'}}">✓</view>
+            <view class="color-check dark" wx:elif="{{selectedColor === item.value && item.value === '#ffffff'}}">✓</view>
+          </view>
+          <text class="color-name {{selectedColor === item.value ? 'active-text' : ''}}">{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+  </view>
+
+  <view class="ad-container" wx:if="{{bannerUnitId}}">
     <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
   </view>
 
-  <view style="height: 220rpx;" wx:if="{{!showCamera}}"></view>
+  <view style="height: 240rpx;"></view>
 
-  <view class="bottom-bar" wx:if="{{!showCamera && rawImagePath}}">
-    <view class="btn-group">
-      <button class="btn-outline" bindtap="onLayoutBtnClick">保存去排版</button>
-      <button class="btn-primary" bindtap="onSaveBtnClick" disabled="{{isProcessing}}">
-        {{isProcessing ? '处理中...' : '保存高清照'}}
-      </button>
+  <view class="bottom-bar" wx:if="{{rawImagePath}}">
+    <button class="btn-icon" bindtap="chooseImage">🔄</button>
+    
+    <button class="btn-secondary" bindtap="goToLayout">🖨️ 去排版</button>
+
+    <block wx:if="{{!processedImage}}">
+      <button class="btn-primary" bindtap="generateIdPhoto">开始制作</button>
+    </block>
+    <block wx:else>
+      <button class="btn-primary" bindtap="saveImage">保存相册</button>
+    </block>
+  </view>
+
+  <view class="modal-mask" wx:if="{{showCustomSizeModal}}">
+    <view class="modal-content">
+      <view class="modal-title">自定义尺寸 (像素)</view>
+      <view class="input-row">
+        <text>宽度：</text>
+        <input type="number" value="{{customW}}" bindinput="onCustomWInput" placeholder="例如: 300" />
+      </view>
+      <view class="input-row">
+        <text>高度：</text>
+        <input type="number" value="{{customH}}" bindinput="onCustomHInput" placeholder="例如: 400" />
+      </view>
+      <view class="modal-actions">
+        <button class="btn-cancel" bindtap="closeCustomSize">取消</button>
+        <button class="btn-confirm" bindtap="confirmCustomSize">确定</button>
+      </view>
     </view>
   </view>
 
-  <view class="loading-overlay" wx:if="{{isProcessing}}">
-    <view class="loading-box">
-      <view class="loading-spinner"></view>
-      <text class="loading-text">处理中...</text>
+  <view class="modal-mask" wx:if="{{showCustomColorModal}}">
+    <view class="modal-content">
+      <view class="modal-title">自定义调色板</view>
+      <view class="color-preview" style="background-color: {{customColorHex}}"></view>
+      <view class="input-row">
+        <text>HEX值：</text>
+        <input type="text" value="{{customColorHex}}" bindinput="onCustomColorInput" placeholder="例如: #ff0000" maxlength="7"/>
+      </view>
+      <text class="color-hint">填入包含 # 的6位十六进制颜色值</text>
+      <view class="modal-actions">
+        <button class="btn-cancel" bindtap="closeCustomColor">取消</button>
+        <button class="btn-confirm" bindtap="confirmCustomColor">确定</button>
+      </view>
     </view>
   </view>
+
 </view>

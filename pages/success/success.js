@@ -5,17 +5,19 @@ const INTERSTITIAL_AD_ID = 'adunit-a9556a7e617c27b7';
 Page({
   data: {
     imagePath: '',
-    type: 'image', // ⭐ 新增：用来区分是图片还是视频
-    nativeAdId: 'adunit-ecfcec4c6a0c871b' 
+    type: 'image',
+    nativeAdId: 'adunit-ecfcec4c6a0c871b'
   },
 
   interstitialAd: null,
 
   onLoad(options) {
     if (options.path) {
+      const filePath = decodeURIComponent(options.path);
+
       this.setData({
-        imagePath: decodeURIComponent(options.path),
-        type: options.type || 'image' // ⭐ 接收 video.js 传过来的 type=video
+        imagePath: filePath,
+        type: options.type || 'image'
       });
     }
 
@@ -28,7 +30,7 @@ Page({
         adUnitId: INTERSTITIAL_AD_ID
       });
       
-      this.interstitialAd.onLoad(() => console.log('插屏广告加载成功'));
+      this.interstitialAd.onLoad(() => {});
       this.interstitialAd.onError((err) => console.error('插屏广告加载失败', err));
       this.interstitialAd.show().catch((err) => console.error('插屏广告显示失败', err));
     }
@@ -37,7 +39,7 @@ Page({
   previewImage() {
     if (this.data.imagePath) {
       wx.previewImage({
-        urls: [this.data.imagePath] 
+        urls: [this.data.imagePath]
       });
     }
   },

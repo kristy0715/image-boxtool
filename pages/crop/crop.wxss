@@ -39,7 +39,7 @@
 .crop-area {
   background: transparent;
   z-index: 10;
-  overflow: hidden; 
+  overflow: hidden;
   /* 超大阴影作为遮罩 */
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.2); 
 }
@@ -68,7 +68,8 @@
 
 /* Loading */
 .loading-mask {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 50;
 }
 .spinner {
@@ -76,22 +77,22 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* === 底部样式 (美化瘦身版) === */
+/* === 底部样式 (美化版) === */
 .section-title { font-size: 26rpx; font-weight: 600; color: #1e293b; margin-bottom: 16rpx; }
 
 /* 紧凑网格布局 (4列) */
 .ratio-grid { 
   display: grid; 
   grid-template-columns: repeat(4, 1fr); 
-  gap: 12rpx; /* 间距缩小 */
+  gap: 12rpx;
 }
 
 .ratio-item { 
   display: flex; 
   flex-direction: column; 
   align-items: center; 
-  padding: 10rpx; /* 内边距缩小 */
-  border-radius: 12rpx; 
+  padding: 10rpx; 
+  border-radius: 12rpx;
   border: 2rpx solid transparent; 
   background: #f8fafc; 
   transition: all 0.2s;
@@ -99,15 +100,14 @@
 
 .ratio-item.active { 
   background: #eff6ff; 
-  border-color: #6366f1; 
+  border-color: #6366f1;
   box-shadow: 0 2rpx 8rpx rgba(99, 102, 241, 0.15);
 }
 
-/* 图标容器缩小 */
 .ratio-icon { 
   width: 50rpx; 
   max-height: 50rpx; 
-  background: #cbd5e1; 
+  background: #cbd5e1;
   border-radius: 8rpx; 
   display: flex; 
   align-items: center; 
@@ -122,11 +122,49 @@
 .ratio-item.active .ratio-name { color: #6366f1; font-weight: 600; }
 
 .bottom-bar { 
-  display: flex !important; align-items: center; justify-content: space-between; gap: 20rpx; 
-  position: fixed; bottom: 0; left: 0; right: 0; background: #fff; 
-  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); 
-  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05); z-index: 100;
+  display: flex !important; 
+  align-items: center; 
+  justify-content: space-between; 
+  gap: 24rpx; /* 增加间距 */
+  position: fixed; 
+  bottom: 0;
+  left: 0; 
+  right: 0; 
+  background: rgba(255, 255, 255, 0.95); /* 毛玻璃背景 */
+  backdrop-filter: blur(20rpx);
+  padding: 24rpx 32rpx calc(24rpx + env(safe-area-inset-bottom)); /* 增加上下内边距 */
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+  z-index: 100;
 }
-.btn-group { display: flex; gap: 16rpx; flex-shrink: 0; }
-.btn-icon { width: 72rpx !important; height: 72rpx !important; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 50%; font-size: 32rpx; color: #333; }
-.btn-primary { flex: 1; height: 72rpx; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; border-radius: 36rpx; font-size: 28rpx; font-weight: 600; margin: 0; }
+
+/* 🌟 放大后的重新选择按钮 */
+.btn-icon { 
+  width: 96rpx !important; 
+  height: 96rpx !important; 
+  padding: 0;
+  margin: 0; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  background: #f1f5f9; 
+  border-radius: 50%; 
+  font-size: 40rpx; /* 图标放大 */
+  color: #475569; 
+  flex-shrink: 0; /* 防止被挤压 */
+}
+
+/* 🌟 放大后的主按钮 */
+.btn-primary { 
+  flex: 1;
+  height: 96rpx; /* 按钮增高 */
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); /* 渐变色 */
+  color: #fff; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  border-radius: 48rpx; /* 药丸形状更圆润 */
+  font-size: 32rpx; /* 字号变大 */
+  font-weight: 600; 
+  margin: 0;
+  box-shadow: 0 8rpx 20rpx rgba(99, 102, 241, 0.25); /* 增加按钮阴影 */
+}

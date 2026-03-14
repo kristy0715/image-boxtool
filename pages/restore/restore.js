@@ -11,20 +11,22 @@ const APP_TAG = 'default_app';
 
 const AD_CONFIG = {
   BANNER_ID: 'adunit-ecfcec4c6a0c871b',
-  VIDEO_ID: 'adunit-da175a2014d3443b'
+  VIDEO_ID: 'adunit-da175a2014d3443b',
+  // 🌟 使用你指定的最新插屏广告 ID
+  INTERSTITIAL_ID: 'adunit-a9556a7e617c27b7'   
 };
 
+// 🌟 核心修改：每日免费 1 次，看视频奖励 3 次
 const QUOTA_CONFIG = {
-  AI_FREE: 1,      
-  AI_REWARD: 3,    
   SAVE_FREE: 2,    
-  SAVE_REWARD: 999 
+  SAVE_REWARD: 5 
 };
 
 Page({
   data: {
-    originImage: '', 
-    resultImage: '', 
+    selectedImage: '', // 用户选中的原图（待处理状态）
+    originImage: '',   // 用于滑块对比的底图
+    resultImage: '',   // 处理后的结果图
     isProcessing: false,
     sliderValue: 50, 
     bannerUnitId: AD_CONFIG.BANNER_ID,
@@ -33,12 +35,12 @@ Page({
   },
 
   videoAd: null,
-  pendingAdType: null,
+  interstitialAd: null,
   maxDisplayWidth: 0,
   maxDisplayHeight: 0,
 
   onLoad() {
-    this.initVideoAd();
+    this.initAds(); 
     this.calcMaxDisplay(); 
   },
 
@@ -93,54 +95,57 @@ Page({
     this.setData({ sliderValue: percent });
   },
 
-  initVideoAd() {
+  initAds() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
+      this.videoAd.onError(err => console.error('激励视频加载失败', err));
       this.videoAd.onClose(res => {
         if (res && res.isEnded) {
-          if (this.pendingAdType === 'ai') this.grantAiQuota();
-          if (this.pendingAdType === 'save') this.grantSaveQuota();
+          this.grantSaveQuota();
+        } else {
+          wx.showToast({ title: '需完整观看才能解锁保存', icon: 'none' });
         }
       });
+    }
+
+    if (wx.createInterstitialAd) {
+      this.interstitialAd = wx.createInterstitialAd({ adUnitId: AD_CONFIG.INTERSTITIAL_ID });
+      this.interstitialAd.onLoad(() => console.log('插屏广告已准备就绪'));
+      this.interstitialAd.onError(err => console.error('插屏广告加载出错', err));
     }
   },
 
   getQuota(key) {
     const today = new Date().toLocaleDateString();
-    let r = wx.getStorageSync(key) || { date: today, count: 0, extra: 0, unlimited: false };
-    if (r.date !== today) r = { date: today, count: 0, extra: 0, unlimited: false };
+    let r = wx.getStorageSync(key) || { date: today, count: 0, extra: 0 };
+    if (r.date !== today) r = { date: today, count: 0, extra: 0 };
     return r;
   },
 
   updateQuota(key, val) { wx.setStorageSync(key, val); },
 
+  // 选择照片时不再检测任何次数，直接进入“待处理”状态
   chooseImage() {
-    const ai = this.getQuota('restore_ai_quota');
-    const limit = QUOTA_CONFIG.AI_FREE + ai.extra;
-    
-    if (ai.count >= limit) {
-      this.pendingAdType = 'ai'; 
-      this.showAdModal('ai'); 
-      return;
-    }
-
     wx.chooseMedia({
-      count: 1, mediaType: ['image'], sizeType: ['original'], 
+      count: 1, mediaType: ['image'], sizeType: ['compressed'], 
       success: (res) => {
         const path = res.tempFiles[0].tempFilePath;
-        // 🌟 核心优化：彻底删除前端本地安检，直接扔给 9527 服务器接管，速度翻倍！
-        this.startRestoration(path);
+        this.setData({
+          selectedImage: path,
+          originImage: path,
+          resultImage: '',
+          sliderValue: 50
+        });
+        this.updateImageRatio(path);
       }
     });
   },
 
-  async startRestoration(path) {
-    this.setData({ isProcessing: true, originImage: path, resultImage: '' });
-    this.updateImageRatio(path);
-
-    const ai = this.getQuota('restore_ai_quota');
-    ai.count++;
-    this.updateQuota('restore_ai_quota', ai);
+  // 点击“开始高清处理”按钮后触发，前端不拦截次数
+  async startRestoration() {
+    if (!this.data.selectedImage) return;
+    const path = this.data.selectedImage;
+    this.setData({ isProcessing: true });
 
     if (TEST_MODE) { this.runLocalAlgo(path); return; }
 
@@ -166,7 +171,15 @@ Page({
 
         const localPath = `${wx.env.USER_DATA_PATH}/restore_cloud_${Date.now()}.png`;
         fs.writeFileSync(localPath, wx.base64ToArrayBuffer(cleanBase64), 'binary');
-        this.setData({ resultImage: localPath, isProcessing: false });
+        
+        // 处理成功出图时，立刻弹出插屏广告
+        this.setData({ resultImage: localPath, isProcessing: false }, () => {
+            if (this.interstitialAd) {
+              this.interstitialAd.show().catch((err) => {
+                console.warn('插屏广告呼叫失败:', err);
+              });
+            }
+        });
       } else {
         throw new Error(res.data?.msg || '处理失败，请稍后重试');
       }
@@ -192,8 +205,13 @@ Page({
                   img.onload = () => {
                       LocalAlgo.process(canvas, ctx, img, imgInfo.width, imgInfo.height, 2)
                           .then(resPath => {
-                              this.setData({ resultImage: resPath, isProcessing: false });
-                              wx.showToast({ title: '本地增强完成', icon: 'success' });
+                              // 本地兜底成功同样弹出插屏
+                              this.setData({ resultImage: resPath, isProcessing: false }, () => {
+                                  wx.showToast({ title: '本地增强完成', icon: 'success' });
+                                  if (this.interstitialAd) {
+                                      this.interstitialAd.show().catch((err) => console.warn('插屏失败', err));
+                                  }
+                              });
                           })
                           .catch(() => this.fallbackSuccess(path));
                   };
@@ -225,11 +243,13 @@ Page({
       }, 500);
   },
 
+  // 🌟 修改点：只在点击保存时，检测剩余次数 (每日1次，之后看广告得3次)
   saveImage() {
     if (!this.data.resultImage) return;
     const save = this.getQuota('restore_save_quota');
-    if (!save.unlimited && save.count >= QUOTA_CONFIG.SAVE_FREE) {
-      this.pendingAdType = 'save'; this.showAdModal('save'); return;
+    if (save.count >= (QUOTA_CONFIG.SAVE_FREE + save.extra)) {
+      this.showAdModal(); 
+      return;
     }
     this.saveImageAndJump(this.data.resultImage);
   },
@@ -240,7 +260,8 @@ Page({
           filePath: filePath,
           success: () => {
               const save = this.getQuota('restore_save_quota');
-              if (!save.unlimited) { save.count++; this.updateQuota('restore_save_quota', save); }
+              save.count++; 
+              this.updateQuota('restore_save_quota', save); 
               wx.hideLoading();
               wx.navigateTo({
                   url: `/pages/success/success?path=${encodeURIComponent(filePath)}`,
@@ -255,11 +276,10 @@ Page({
       });
   },
 
-  showAdModal(type) { 
-    const isAi = type === 'ai';
+  showAdModal() { 
     wx.showModal({
-      title: isAi ? '处理次数不足' : '保存次数不足',
-      content: isAi ? `观看一段视频，免费解锁 ${QUOTA_CONFIG.AI_REWARD} 次修复机会！` : '观看一段视频，即可解锁今日无限次保存！',
+      title: '免费保存次数已用完',
+      content: `观看一段视频，即可解锁 ${QUOTA_CONFIG.SAVE_REWARD} 次保存机会！`,
       confirmText: '看视频',
       confirmColor: '#6366f1',
       success: (res) => { 
@@ -268,8 +288,14 @@ Page({
     });
   },
 
-  grantAiQuota() { const ai = this.getQuota('restore_ai_quota'); ai.extra += QUOTA_CONFIG.AI_REWARD; this.updateQuota('restore_ai_quota', ai); wx.showToast({ title: `已获得 ${QUOTA_CONFIG.AI_REWARD} 次机会`, icon: 'none' }); },
-  grantSaveQuota() { const s = this.getQuota('restore_save_quota'); s.unlimited = true; this.updateQuota('restore_save_quota', s); this.saveImage(); },
+  grantSaveQuota() { 
+      const s = this.getQuota('restore_save_quota'); 
+      s.extra += QUOTA_CONFIG.SAVE_REWARD; 
+      this.updateQuota('restore_save_quota', s); 
+      wx.showToast({ title: `成功解锁 ${QUOTA_CONFIG.SAVE_REWARD} 次机会`, icon: 'success' }); 
+      setTimeout(() => { this.saveImage(); }, 800); 
+  },
+  
   onAdError(err) { console.log('Banner Ad Error:', err); },
   
   onShareAppMessage() { return { title: 'AI画质修复神器，老照片无损翻新！', path: '/pages/restore/restore' }; },

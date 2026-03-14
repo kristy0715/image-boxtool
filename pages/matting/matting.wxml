@@ -2,47 +2,80 @@
   
   <view class="page-header">
     <text class="page-title">AI 智能抠图</text>
-    <text class="page-subtitle">自动识别主体 · 剩余次数: {{aiLeft}}</text>
+    <text class="page-subtitle">自动识别主体 · 万物皆可抠</text>
   </view>
 
   <view class="content-area">
     
-    <view class="card editor-card" wx:if="{{!resultImage}}">
-      <view class="feature-tip">
-        <text>📅 每日免费 1 次，看广告领 3 次</text>
-      </view>
-
+    <view class="card editor-card" wx:if="{{!selectedImage}}">
       <view class="upload-container">
         <view class="upload-area" bindtap="chooseImage">
           <text class="upload-icon">🦋</text>
           <text class="upload-text">点击上传图片</text>
-          <text class="upload-hint">自动去底 · 预览满意再解锁</text> 
+          <text class="upload-hint">一键自动去除复杂背景</text> 
         </view>
       </view>
     </view>
 
-    <view class="card edit-card" wx:else>
-      
+    <view class="card edit-card" wx:if="{{selectedImage && !resultImage}}">
       <view class="preview-box">
-        <view class="canvas-box" style="background: {{previewBgColor}};">
-          <view class="checkerboard" wx:if="{{previewBgColor === 'transparent'}}"></view>
-          <image class="result-img" src="{{resultImage}}" mode="aspectFit"></image>
+        <view class="canvas-box" style="height: auto; min-height: 400rpx; border-color: transparent;">
+          <image class="result-img" src="{{selectedImage}}" mode="widthFix" style="border-radius: 20rpx; width: 100%; display: block;"></image>
         </view>
+      </view>
+
+      <view class="setting-row">
+        <view class="setting-info">
+          <view class="setting-title">纯净人像模式</view>
+          <text class="setting-desc">智能过滤椅子、包包等周边杂物</text>
+        </view>
+        <switch checked="{{onlyHuman}}" bindchange="toggleOnlyHuman" color="#6366f1"/>
+      </view>
+    </view>
+
+    <view class="card edit-card" wx:if="{{resultImage}}">
+
+      <view class="preview-box {{previewBgColor === 'transparent' ? 'transparent-mode' : ''}}">
+        <movable-area class="canvas-box" style="height: {{boxHeight ? boxHeight + 'px' : '600rpx'}}; background-color: {{previewBgColor === 'custom' || previewBgColor === 'transparent' ? 'transparent' : previewBgColor}};">
+          
+          <view class="checkerboard" wx:if="{{previewBgColor === 'transparent'}}"></view>
+          
+          <image class="custom-bg-img" src="{{customBgImage}}" mode="scaleToFill" wx:if="{{previewBgColor === 'custom' && customBgImage}}"></image>
+
+          <movable-view 
+            direction="all" scale="{{true}}" scale-min="0.1" scale-max="5"
+            x="{{currentX}}" y="{{currentY}}"
+            bindchange="onSubjectMove" bindscale="onSubjectScale"
+            style="width: 2px; height: 2px; z-index: 10; overflow: visible;">
+            
+            <image class="effect-{{currentEffect}}" src="{{resultImage}}" 
+                   style="width: {{subjectBaseW}}px; height: {{subjectBaseH}}px; position: absolute; left: -{{subjectBaseW/2}}px; top: -{{subjectBaseH/2}}px; display: block; max-width: none;">
+            </image>
+            
+          </movable-view>
+
+        </movable-area>
       </view>
 
       <view class="tool-header">
         <view class="tool-label">背景填充</view>
         <view class="color-options">
-          <view class="color-circle checker {{previewBgColor === 'transparent' ? 'active' : ''}}" 
-                bindtap="changeBg" data-color="transparent"></view>
-          <view class="color-circle white {{previewBgColor === '#ffffff' ? 'active' : ''}}" 
-                bindtap="changeBg" data-color="#ffffff"></view>
-          <view class="color-circle red {{previewBgColor === '#D9241E' ? 'active' : ''}}" 
-                bindtap="changeBg" data-color="#D9241E"></view>
-          <view class="color-circle blue {{previewBgColor === '#438EDB' ? 'active' : ''}}" 
-                bindtap="changeBg" data-color="#438EDB"></view>
-          <view class="color-circle black {{previewBgColor === '#000000' ? 'active' : ''}}" 
-                bindtap="changeBg" data-color="#000000"></view>
+          <view class="color-circle checker {{previewBgColor === 'transparent' ? 'active' : ''}}" bindtap="changeBg" data-color="transparent"></view>
+          <view class="color-circle white {{previewBgColor === '#ffffff' ? 'active' : ''}}" bindtap="changeBg" data-color="#ffffff"></view>
+          <view class="color-circle red {{previewBgColor === '#D9241E' ? 'active' : ''}}" bindtap="changeBg" data-color="#D9241E"></view>
+          <view class="color-circle blue {{previewBgColor === '#438EDB' ? 'active' : ''}}" bindtap="changeBg" data-color="#438EDB"></view>
+          <view class="color-circle black {{previewBgColor === '#000000' ? 'active' : ''}}" bindtap="changeBg" data-color="#000000"></view>
+          <view class="color-circle custom-bg {{previewBgColor === 'custom' ? 'active' : ''}}" bindtap="chooseCustomBg">📷</view>
+        </view>
+      </view>
+
+      <view class="tool-header" style="margin-bottom: 0;">
+        <view class="tool-label">商业特效</view>
+        <view class="effect-options">
+          <view class="effect-pill {{currentEffect === 'none' ? 'active' : ''}}" bindtap="changeEffect" data-effect="none">无</view>
+          <view class="effect-pill {{currentEffect === 'stroke' ? 'active' : ''}}" bindtap="changeEffect" data-effect="stroke">白边</view>
+          <view class="effect-pill {{currentEffect === 'shadow' ? 'active' : ''}}" bindtap="changeEffect" data-effect="shadow">投影</view>
+          <view class="reset-btn" bindtap="resetLayout">↺ 还原</view>
         </view>
       </view>
 
@@ -55,22 +88,21 @@
 
   <view style="height: 250rpx;"></view>
 
-  <view class="bottom-bar" wx:if="{{resultImage}}">
+  <view class="bottom-bar" wx:if="{{selectedImage}}">
     <view class="action-row">
-      <view class="circle-btn" bindtap="chooseImage">
-        <text>🔄</text>
-        <text class="btn-label">重选</text>
-      </view>
-      <button class="save-btn" bindtap="saveImage">
-        保存到相册
-      </button>
+      <button class="btn-secondary" bindtap="chooseImage">重新选择</button>
+      <button class="btn-primary" bindtap="startMatting" wx:if="{{!resultImage}}">开始抠图</button>
+      <button class="btn-primary" bindtap="saveImage" wx:else>合成并保存</button>
     </view>
   </view>
 
   <view class="loading-overlay" wx:if="{{isProcessing}}">
     <view class="loading-box">
       <view class="loading-spinner"></view>
-      <text class="loading-text">AI 正在抠图中...</text>
+      <text class="loading-text">AI 极速剥离中...</text>
     </view>
   </view>
+
+  <canvas type="2d" id="exportCanvas" style="position: fixed; left: -9999px; top: -9999px; width: 1000px; height: 1000px; z-index: -1;"></canvas>
+
 </view>

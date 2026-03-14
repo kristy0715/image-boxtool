@@ -4,7 +4,11 @@ const AD_CONFIG = {
   INTERSTITIAL_ID: 'adunit-a9556a7e617c27b7' 
 };
 
-const DAILY_FREE_SAVE_LIMIT = 2; 
+const QUOTA_CONFIG = {
+  SAVE_FREE: 2,    
+  SAVE_REWARD: 5 
+};
+
 let isGlobalDownloading = false; 
 
 Page({
@@ -30,8 +34,7 @@ Page({
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
       this.videoAd.onClose((res) => {
         if (res && res.isEnded) {
-          this.setDailyUnlimitedSave();
-          this.realSaveProcess(); 
+          this.grantSaveQuota(); 
         } else {
           this.showCustomToast('需看完视频才能解锁保存哦');
         }
@@ -44,6 +47,15 @@ Page({
       this.interstitialAd = wx.createInterstitialAd({ adUnitId: AD_CONFIG.INTERSTITIAL_ID });
     }
   },
+
+  getQuota(key) {
+    const today = new Date().toLocaleDateString();
+    let r = wx.getStorageSync(key) || { date: today, count: 0, extra: 0 };
+    if (r.date !== today) r = { date: today, count: 0, extra: 0 };
+    return r;
+  },
+
+  updateQuota(key, val) { wx.setStorageSync(key, val); },
 
   showCustomToast(msg) {
     wx.hideToast();
@@ -111,6 +123,7 @@ Page({
             }
           });
           this.showCustomToast(`解析成功 🎉`);
+          
           if (this.interstitialAd) this.interstitialAd.show().catch(() => {});
           
           setTimeout(() => {
@@ -132,27 +145,36 @@ Page({
 
   saveResource() {
     if (!this.data.videoData) return;
-    const today = new Date().toLocaleDateString();
-    const record = wx.getStorageSync('video_save_record') || { date: today, count: 0, isUnlimited: false };
     
-    if (record.date !== today) {
-      record.date = today; record.count = 0; record.isUnlimited = false;
+    const save = this.getQuota('video_save_quota');
+    if (save.count >= (QUOTA_CONFIG.SAVE_FREE + save.extra)) {
+      this.showAdModal(); 
+      return;
     }
-
-    if (record.isUnlimited || record.count < DAILY_FREE_SAVE_LIMIT) {
-      this.realSaveProcess();
-    } else {
-      if (this.videoAd) {
-        this.videoAd.show().catch(() => this.realSaveProcess());
-      } else {
-        this.realSaveProcess();
-      }
-    }
+    
+    this.realSaveProcess();
   },
 
-  setDailyUnlimitedSave() {
-    const today = new Date().toLocaleDateString();
-    wx.setStorageSync('video_save_record', { date: today, count: 99, isUnlimited: true });
+  showAdModal() {
+    wx.showModal({ 
+      title: '免费保存次数已用完', 
+      content: `观看一段视频，即可解锁 ${QUOTA_CONFIG.SAVE_REWARD} 次保存机会！`, 
+      confirmText: '看视频', 
+      confirmColor: '#6366f1',
+      success: (res) => { 
+        if (res.confirm && this.videoAd) {
+          this.videoAd.show().catch(() => { this.realSaveProcess(); }); 
+        } 
+      } 
+    });
+  },
+
+  grantSaveQuota() {
+    const s = this.getQuota('video_save_quota');
+    s.extra += QUOTA_CONFIG.SAVE_REWARD;
+    this.updateQuota('video_save_quota', s);
+    this.showCustomToast(`成功解锁 ${QUOTA_CONFIG.SAVE_REWARD} 次机会 🎉`);
+    setTimeout(() => { this.realSaveProcess(); }, 800);
   },
 
   realSaveProcess() {
@@ -222,6 +244,22 @@ Page({
     });
   },
 
+  // 🌟 统一兜底提示框：白名单拦截转直链下载
+  showWhitelistFallbackModal(typeText, urlData) {
+    wx.showModal({
+      title: '微信安全策略拦截',
+      content: `受限于微信域名白名单，该${typeText}无法直接保存到相册。\n\n请点击【复制直链】，去手机浏览器粘贴即可下载。`,
+      confirmText: '复制直链',
+      confirmColor: '#6366f1',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          wx.setClipboardData({ data: urlData });
+        }
+      }
+    });
+  },
+
   downloadVideo(isRetry = false) {
     isGlobalDownloading = true; 
     this.setData({ isDownloading: true, downloadProgressText: '📥 建立连接...' });
@@ -243,8 +281,10 @@ Page({
                 success: () => {
                   this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
                   wx.navigateTo({ url: `/pages/success/success?type=video&path=${encodeURIComponent(this.data.videoData.cover)}` });
-                  const record = wx.getStorageSync('video_save_record') || { count: 0 };
-                  record.count++; wx.setStorageSync('video_save_record', record);
+                  
+                  const record = this.getQuota('video_save_quota');
+                  record.count++; 
+                  this.updateQuota('video_save_quota', record);
                 },
                 fail: (err) => {
                   this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
@@ -262,7 +302,8 @@ Page({
           if (res.statusCode === 403 && !isRetry) { this.silentParseAndDownload(); } 
           else {
             this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-            wx.showModal({ title: '下载受限', content: `服务器拒绝(状态码${res.statusCode})`, showCancel: false });
+            // 🌟 触发白名单/防盗链拦截兜底
+            this.showWhitelistFallbackModal('视频', this.data.videoData.url);
           }
         }
       },
@@ -271,7 +312,8 @@ Page({
         if (!isRetry) { this.silentParseAndDownload(); } 
         else {
           this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-          wx.showModal({ title: '网络下载失败', content: err.errMsg, showCancel: false });
+          // 🌟 触发白名单拦截兜底 (通常 fail errMsg 里包含 url not in domain list)
+          this.showWhitelistFallbackModal('视频', this.data.videoData.url);
         }
       }
     });
@@ -288,7 +330,7 @@ Page({
     
     let successCount = 0;
     let needRetry = false; 
-    let lastError = ''; // ⭐ 记录最后一次的具体报错
+    let lastError = ''; 
 
     const fs = wx.getFileSystemManager();
 
@@ -348,18 +390,17 @@ Page({
     this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
     
     if (successCount > 0) {
-      // 哪怕只成功了 1 张，也算成功
+      const record = this.getQuota('video_save_quota');
+      record.count++; 
+      this.updateQuota('video_save_quota', record);
+
       wx.navigateTo({ url: `/pages/success/success?type=image&path=${encodeURIComponent(images[0])}` });
       if (successCount < images.length) {
         this.showCustomToast(`成功保存${successCount}张，失败${images.length - successCount}张`);
       }
     } else if (isRetry || !needRetry) {
-      // ⭐ 如果全部失败，弹窗告诉你到底是什么原因！
-      wx.showModal({
-        title: '下载失败诊断',
-        content: lastError || '未知错误',
-        showCancel: false
-      });
+      // 🌟 如果图片全部失败，触发图集版的白名单拦截兜底
+      this.showWhitelistFallbackModal('图集', images.join('\n'));
     }
   },
 

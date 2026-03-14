@@ -12,7 +12,7 @@ const ALL_TOOLS = [
   {id:'idprint',title:'证件照排版',desc:'排版打印神器 超级省钱',icon:'🖨️',colors:['#8b5cf6','#a78bfa']},
   {id:'matting',title:'AI智能抠图',desc:'发丝级抠图 一键换背景',icon:'🦋',colors:['#ec4899','#f472b6']}, 
   {id:'restore', title:'AI高清修复', desc:'高糊变清晰 老照片翻新', icon:'💎', colors:['#6366f1', '#8b5cf6']}, 
-  {id:'watermark',title:'魔法消除笔',desc:'无痕去水印 去路人/杂物',icon:'✨',colors:['#f59e0b','#fbbf24']}, 
+  {id:'watermark',title:'图片去水印',desc:'无痕去水印 去路人/杂物',icon:'✨',colors:['#f59e0b','#fbbf24']}, 
   {id:'grid9',title:'九宫格切图',desc:'朋友圈防折叠 心形拼图',icon:'🍱',colors:['#64748b','#94a3b8']},
   {id:'collage',title:'全能拼图',desc:'多图无缝拼接 宫格海报',icon:'🧩',colors:['#14b8a6','#2dd4bf']},
   {id:'crop',title:'图片裁剪',desc:'自由缩放 社交头像比例',icon:'✂️',colors:['#f59e0b','#fbbf24']},
@@ -58,12 +58,25 @@ Page({
     // 初始列表 (建议先只放绝对安全的兜底，防止接口慢时显示敏感图标)
     toolList: [],
     ocrList: [],
-    funList: []
+    funList: [],
+
+    // 🌟 客服悬浮按钮默认坐标
+    kefuX: 300,
+    kefuY: 500
   },
 
   onLoad() {
     this.initNavBar();
     
+    // 🌟 动态计算初始位置：距离右侧 15px，高度在屏幕的 65% 处（避开下面的每日一签）
+    try {
+      const sysInfo = wx.getSystemInfoSync();
+      this.setData({
+        kefuX: sysInfo.windowWidth - 70, 
+        kefuY: sysInfo.windowHeight * 0.65 
+      });
+    } catch (e) {}
+
     // 🔥 核心：检查审核状态
     this.checkAuditStatus();
 
