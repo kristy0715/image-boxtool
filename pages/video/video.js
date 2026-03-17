@@ -135,10 +135,15 @@ Page({
           }, 350);
 
         } else {
-          this.showCustomToast('解析失败，请重新解析或换个链接');
+          // 🌟 接口报错时，触发个人主体的专属拦截弹窗
+          const errorMsg = (res.data && res.data.msg) ? res.data.msg : '解析失败，请重新解析或换个链接';
+          this.showParseFailWebviewModal(errorMsg);
         }
       },
-      fail: () => this.showCustomToast('网络请求失败，请稍后再试'),
+      fail: () => {
+        // 🌟 网络崩了的时候，触发个人主体的专属拦截弹窗
+        this.showParseFailWebviewModal('网络请求异常，请稍后再试');
+      },
       complete: () => { this.setData({ isProcessing: false }); }
     });
   },
@@ -212,6 +217,13 @@ Page({
 
   silentParseAndDownload() {
     const realUrl = this.extractUrl(this.data.inputValue);
+    
+    // 🛡️ 新增防御判断：防止用户在静默下载瞬间清空了输入框导致报错
+    if (!realUrl) {
+      this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
+      return; 
+    }
+    
     wx.request({
       url: 'https://goodgoodstudy-nb.top/api/parse-video',
       method: 'POST',
@@ -244,7 +256,34 @@ Page({
     });
   },
 
-  // 🌟 统一兜底提示框：白名单拦截转直链下载
+  // 🌟 个人主体专属兜底提示框：引导用户去手机浏览器打开网页版
+  showParseFailWebviewModal(errorMsg) {
+    wx.showModal({
+      title: '温馨提示',
+      content: `${errorMsg}\n\n由于微信个人小程序限制，无法直接在此打开备用网页。\n\n请点击【复制网址】，前往手机自带浏览器（如Safari、夸克等）粘贴打开，体验备用极速通道！`,
+      confirmText: '复制网址',
+      confirmColor: '#10b981',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 将你的网页版地址复制到用户的剪贴板
+          wx.setClipboardData({
+            data: 'https://goodgoodstudy-nb.top/seo/parse.html',
+            success: () => {
+              // 复制成功后给个贴心的提示
+              wx.showToast({
+                title: '网址已复制，请去浏览器粘贴打开',
+                icon: 'none',
+                duration: 4000
+              });
+            }
+          });
+        }
+      }
+    });
+  },
+
+  // 统一兜底提示框：白名单拦截转直链下载
   showWhitelistFallbackModal(typeText, urlData) {
     wx.showModal({
       title: '微信安全策略拦截',
@@ -302,7 +341,6 @@ Page({
           if (res.statusCode === 403 && !isRetry) { this.silentParseAndDownload(); } 
           else {
             this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-            // 🌟 触发白名单/防盗链拦截兜底
             this.showWhitelistFallbackModal('视频', this.data.videoData.url);
           }
         }
@@ -312,7 +350,6 @@ Page({
         if (!isRetry) { this.silentParseAndDownload(); } 
         else {
           this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-          // 🌟 触发白名单拦截兜底 (通常 fail errMsg 里包含 url not in domain list)
           this.showWhitelistFallbackModal('视频', this.data.videoData.url);
         }
       }
@@ -399,7 +436,6 @@ Page({
         this.showCustomToast(`成功保存${successCount}张，失败${images.length - successCount}张`);
       }
     } else if (isRetry || !needRetry) {
-      // 🌟 如果图片全部失败，触发图集版的白名单拦截兜底
       this.showWhitelistFallbackModal('图集', images.join('\n'));
     }
   },

@@ -32,7 +32,8 @@ Page({
     imageWidth: 0, imageHeight: 0, isComparing: false, bannerUnitId: AD_CONFIG.BANNER_ID,
     isMoveMode: false, moveX: 0, moveY: 0, moveScale: 1,
     // 🌟 已去除(余X)等复杂文字，回归纯净标题
-    leftTabTitle: 'AI去水印', rightTabTitle: '纯色去水印'
+    leftTabTitle: 'AI去水印', rightTabTitle: '纯色去水印',
+    hasMovedOnce: false // 🌟 新增：用于控制气泡引导显示状态
   },
 
   canvas: null, ctx: null, maskCanvas: null, maskCtx: null, originalImage: null,
@@ -395,7 +396,8 @@ Page({
   loadImage(path) {
     wx.showLoading({ title: '加载中...' });
     this.history = []; 
-    this.setData({ moveScale: 1, moveX: 0, moveY: 0, isMoveMode: false, resultImage: '' });
+    // 🌟 每次新传图片，重置所有状态，包括气泡提醒
+    this.setData({ moveScale: 1, moveX: 0, moveY: 0, isMoveMode: false, hasMovedOnce: false, resultImage: '' });
     wx.getImageInfo({
       src: path,
       success: (info) => {
@@ -443,8 +445,21 @@ Page({
     this.ctx.restore();
   },
 
-  toggleMoveMode() { this.setData({ isMoveMode: !this.data.isMoveMode }); },
-  onScaleChange(e) { this.data.moveScale = e.detail.scale; },
+  // 🌟 优化：增加交互引导和气泡隐藏逻辑
+  toggleMoveMode() { 
+    const target = !this.data.isMoveMode;
+    this.setData({ isMoveMode: target, hasMovedOnce: true });
+    if (target) {
+      wx.showToast({ title: '双指缩放 / 单指移动', icon: 'none' });
+    } else if (this.data.moveScale > 1.05) {
+      wx.showToast({ title: '区域已锁定，请开始涂抹', icon: 'none' });
+    }
+  },
+
+  // 🌟 优化：使用 setData 同步通知 WXML 更新右上角角标
+  onScaleChange(e) { 
+    this.setData({ moveScale: Number(e.detail.scale).toFixed(1) }); 
+  },
   
   onTouchStart(e) {
     if (this.data.isMoveMode || !this.ctx) return;
@@ -462,6 +477,7 @@ Page({
     this.drawMaskLine(this.lastX, this.lastY, x, y);
     this.lastX = x; this.lastY = y;
   },
+  
   onTouchEnd() { this.isDrawing = false; },
 
   drawMaskLine(x1, y1, x2, y2) {
@@ -486,17 +502,20 @@ Page({
   },
   
   setBrushSize(e) { this.setData({ brushSize: parseInt(e.currentTarget.dataset.size) }); },
+  
   saveHistory() {
     if (!this.maskCtx) return;
     if (!this.history) this.history = [];
     if (this.history.length > 5) this.history.shift();
     this.history.push(this.maskCtx.getImageData(0, 0, this.maskCanvas.width, this.maskCanvas.height));
   },
+  
   undoAction() {
     if (!this.history || !this.history.length) return wx.showToast({ title: '已是最初状态', icon: 'none' });
     this.maskCtx.putImageData(this.history.pop(), 0, 0);
     this.drawCanvas();
   },
+  
   clearMask() {
     if (!this.maskCtx) return;
     this.saveHistory();

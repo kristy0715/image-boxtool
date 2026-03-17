@@ -8,6 +8,13 @@
     </view>
   </view>
 
+  <view class="guide-banner" wx:if="{{imagePath && !resultImage}}">
+    <view class="guide-content">
+      <text class="guide-icon">💡</text>
+      <text class="guide-text">提示：放大局部区域后再涂抹，消除效果更完美</text>
+    </view>
+  </view>
+
   <view class="card editor-card">
     <view class="feature-tip" wx:if="{{mode === 'auto'}}">
       <text>🚀 AI强力消除支持复杂背景</text>
@@ -24,6 +31,11 @@
 
     <view class="editor-wrapper" wx:else>
       <view class="canvas-container">
+        
+        <view class="zoom-badge" wx:if="{{moveScale > 1.05}}">
+          <text>🔍 {{moveScale}}x 局部编辑中</text>
+        </view>
+
         <movable-area class="move-area" style="width: {{canvasDisplayWidth}}px; height: {{canvasDisplayHeight}}px;">
           <movable-view 
             class="move-view" 
@@ -59,8 +71,14 @@
           <view class="tool-group">
               <view class="tool-btn" bindtap="undoAction"><text>↩️ 撤销</text></view>
               <view class="tool-btn" bindtap="clearMask"><text>🗑️ 重置</text></view>
-              <view class="tool-btn {{isMoveMode ? 'active-tool' : ''}}" bindtap="toggleMoveMode">
-                <text>{{isMoveMode ? '👌 完成' : '✋ 移动'}}</text>
+              
+              <view class="tool-btn-wrapper">
+                <view class="guide-popover" wx:if="{{!isMoveMode && !hasMovedOnce}}">
+                  🔍 放大局部涂抹
+                </view>
+                <view class="tool-btn {{isMoveMode ? 'active-tool' : ''}}" bindtap="toggleMoveMode">
+                  <text>{{isMoveMode ? '👌 完成' : '✋ 移动'}}</text>
+                </view>
               </view>
           </view>
           <view class="brush-indicator">

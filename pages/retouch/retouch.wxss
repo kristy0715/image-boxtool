@@ -245,3 +245,10 @@ page {
   font-size: 24rpx; color: #999; margin-top: 10rpx;
 }
 progress { width: 100%; }
+
+/* 🌟 新增极简调色面板样式 */
+.edit-card { margin-top: 10rpx; }
+.panel-title {
+  font-size: 30rpx; font-weight: bold; color: #333; margin-bottom: 30rpx;
+}
+.slider-group { padding: 0 10rpx; }
