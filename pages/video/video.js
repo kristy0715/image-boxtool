@@ -9,8 +9,6 @@ const QUOTA_CONFIG = {
   SAVE_REWARD: 5 
 };
 
-let isGlobalDownloading = false; 
-
 Page({
   data: {
     inputValue: '',
@@ -23,12 +21,18 @@ Page({
 
   videoAd: null,
   interstitialAd: null,
+  isGlobalDownloading: false,
 
   onLoad() {
     this.initVideoAd();
     this.initInterstitialAd();
   },
 
+  onUnload() {
+    // 👈 页面退出时强制重置，防止死锁
+    this.isGlobalDownloading = false; 
+  },
+  
   initVideoAd() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
@@ -97,54 +101,86 @@ Page({
     return match ? match[0] : null;
   },
 
-  startParse() {
-    if (!this.data.inputValue) return this.showCustomToast('请粘贴链接 ⚠️');
-    const realUrl = this.extractUrl(this.data.inputValue);
-    if (!realUrl) return this.showCustomToast('解析失败，请检查链接格式');
+// 🌟 解析逻辑：加入最多 3 次的静默自动重试机制
+startParse(e, retryCount = 0) {
+  // 👈 新增这一行：如果是用户主动点击（retryCount为0），且已经在处理中，直接拦截！
+  if (retryCount === 0 && this.data.isProcessing) return;   
+  if (retryCount === 0 && !this.data.inputValue) return this.showCustomToast('请粘贴链接 ⚠️');
+  const realUrl = this.extractUrl(this.data.inputValue);
+  if (!realUrl) return this.showCustomToast('解析失败，请检查链接格式');
 
+  // 只有第一次点击时才开启 loading 状态，后面的静默重试不改变 UI
+  if (retryCount === 0) {
     this.setData({ isProcessing: true });
+  }
 
-    wx.request({
-      url: 'https://goodgoodstudy-nb.top/api/parse-video',
-      method: 'POST',
-      header: { 'x-api-key': 'sk-ucGynTYiVxxw3_nclVtepg' },
-      data: { url: realUrl }, 
-      success: (res) => {
-        if (res.data && res.data.code === 200) {
-          const data = res.data.data;
-          let dataType = data.type === 'image' ? 'images' : data.type;
-          this.setData({
-            videoData: {
-              type: dataType,
-              title: data.title || '精美内容',
-              cover: (data.cover || '').replace('http://', 'https://'), 
-              url: (data.url || '').replace('http://', 'https://'), 
-              images: (data.images || []).map(img => img.replace('http://', 'https://'))
-            }
-          });
-          this.showCustomToast(`解析成功 🎉`);
-          
-          if (this.interstitialAd) this.interstitialAd.show().catch(() => {});
-          
-          setTimeout(() => {
-            wx.createSelectorQuery()
-              .select('.result-card')
-              .boundingClientRect((rect) => {
-                if (rect) { wx.pageScrollTo({ scrollTop: rect.top - 20, duration: 400 }); }
-              }).exec();
-          }, 350);
+  const MAX_RETRIES = 3; // 最大静默重试次数（总共会请求 4 次）
 
-        } else {
-          // 🌟 接口报错时，触发个人主体的专属拦截弹窗
-          const errorMsg = (res.data && res.data.msg) ? res.data.msg : '解析失败，请重新解析或换个链接';
-          this.showParseFailWebviewModal(errorMsg);
-        }
-      },
-      fail: () => {
-        // 🌟 网络崩了的时候，触发个人主体的专属拦截弹窗
-        this.showParseFailWebviewModal('网络请求异常，请稍后再试');
-      },
-      complete: () => { this.setData({ isProcessing: false }); }
+  wx.request({
+    url: 'https://goodgoodstudy-nb.top/api/parse-video',
+    method: 'POST',
+    header: { 'x-api-key': 'sk-ucGynTYiVxxw3_nclVtepg' },
+    data: { url: realUrl }, 
+    success: (res) => {
+      if (res.data && res.data.code === 200) {
+        const data = res.data.data;
+        let dataType = data.type === 'image' ? 'images' : data.type;
+        this.setData({
+          videoData: {
+            type: dataType,
+            title: data.title || '精美内容',
+            cover: (data.cover || '').replace('http://', 'https://'), 
+            url: (data.url || '').replace('http://', 'https://'), 
+            images: (data.images || []).map(img => img.replace('http://', 'https://'))
+          },
+          isProcessing: false // 成功后立刻关闭 loading
+        });
+        this.showCustomToast(`解析成功 🎉`);
+        
+        if (this.interstitialAd) this.interstitialAd.show().catch(() => {});
+        
+        setTimeout(() => {
+          wx.createSelectorQuery()
+            .select('.result-card')
+            .boundingClientRect((rect) => {
+              if (rect) { wx.pageScrollTo({ scrollTop: rect.top - 20, duration: 400 }); }
+            }).exec();
+        }, 350);
+
+      } else {
+        // 业务报错：走重试逻辑
+        this.handleParseRetry(retryCount, MAX_RETRIES);
+      }
+    },
+    fail: () => {
+      // 网络报错：走重试逻辑
+      this.handleParseRetry(retryCount, MAX_RETRIES);
+    }
+  });
+},
+
+// 🌟 辅助函数：处理静默重试延迟
+handleParseRetry(currentRetry, maxRetries) {
+  if (currentRetry < maxRetries) {
+    console.log(`[静默重试] 第 ${currentRetry + 1} 次尝试重新解析...`);
+    // 延迟 1.5 秒后再次发起请求，避开临时的拥堵或网络抖动
+    setTimeout(() => {
+      this.startParse(null, currentRetry + 1);
+    }, 1500);
+  } else {
+    // 所有的重试机会都用光了，再给用户弹排队提示
+    this.setData({ isProcessing: false });
+    this.showParseFailModal();
+  }
+},
+
+  showParseFailModal() {
+    wx.showModal({
+      title: '温馨提示',
+      content: '当前服务器解析排队人数较多 🏃\n\n建议您稍作等待，或多点击几次【立刻提取】试试看！',
+      confirmText: '我知道了',
+      confirmColor: '#10b981',
+      showCancel: false
     });
   },
 
@@ -156,7 +192,6 @@ Page({
       this.showAdModal(); 
       return;
     }
-    
     this.realSaveProcess();
   },
 
@@ -182,125 +217,76 @@ Page({
     setTimeout(() => { this.realSaveProcess(); }, 800);
   },
 
+  // ================= 👑 终极权限守护逻辑 =================
   realSaveProcess() {
-    if (this.data.isDownloading || isGlobalDownloading) return this.showCustomToast('任务正在下载中，请稍候'); 
+    if (this.data.isDownloading || this.isGlobalDownloading) return this.showCustomToast('任务正在下载中，请稍候'); 
     
     wx.getSetting({
       success: (res) => {
+        // 1. 用户曾明确拒绝过授权
         if (res.authSetting['scope.writePhotosAlbum'] === false) {
           wx.showModal({
             title: '需要相册权限',
-            content: '保存无水印资源需要开启相册权限',
+            content: '保存无水印资源到手机，需要您开启相册权限哦。',
             confirmText: '去开启',
-            success: (modalRes) => {
-              if (modalRes.confirm) wx.openSetting();
+            confirmColor: '#6366f1',
+            success: (modalRes) => { 
+              if (modalRes.confirm) {
+                wx.openSetting({
+                  success: (settingRes) => {
+                    // 如果用户在设置里打开了开关，回来直接无缝开始下载！
+                    if (settingRes.authSetting['scope.writePhotosAlbum']) {
+                      this.executeDownload();
+                    }
+                  }
+                });
+              } 
             }
           });
-        } else if (res.authSetting['scope.writePhotosAlbum'] === undefined) {
+        } 
+        // 2. 第一次请求授权
+        else if (res.authSetting['scope.writePhotosAlbum'] === undefined) {
           wx.authorize({
             scope: 'scope.writePhotosAlbum',
-            success: () => { setTimeout(() => { this.executeDownload(); }, 500); },
-            fail: () => { this.showCustomToast('您取消了授权，无法保存'); }
+            success: () => { 
+              setTimeout(() => { this.executeDownload(); }, 300); 
+            },
+            fail: () => { 
+              this.showCustomToast('您取消了授权，无法保存'); 
+            }
           });
-        } else {
+        } 
+        // 3. 已经有权限，直接冲
+        else {
           this.executeDownload();
         }
       },
-      fail: () => { this.executeDownload(); }
+      fail: () => { 
+        this.executeDownload(); // 接口故障兜底
+      }
     });
   },
 
   executeDownload() {
-    if (this.data.videoData.type === 'video') { this.downloadVideo(false); } 
-    else { this.downloadImages(false); }
+    if (this.data.videoData.type === 'video') { this.downloadVideo(); } 
+    else { this.downloadImages(); }
   },
 
-  silentParseAndDownload() {
-    const realUrl = this.extractUrl(this.data.inputValue);
-    
-    // 🛡️ 新增防御判断：防止用户在静默下载瞬间清空了输入框导致报错
-    if (!realUrl) {
-      this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-      return; 
-    }
-    
-    wx.request({
-      url: 'https://goodgoodstudy-nb.top/api/parse-video',
-      method: 'POST',
-      header: { 'x-api-key': 'sk-ucGynTYiVxxw3_nclVtepg' },
-      data: { url: realUrl },
-      success: (res) => {
-        if (res.data && res.data.code === 200) {
-          const data = res.data.data;
-          let dataType = data.type === 'image' ? 'images' : data.type;
-          this.setData({
-            videoData: {
-              type: dataType,
-              title: data.title || '精美内容',
-              cover: (data.cover || '').replace('http://', 'https://'),
-              url: (data.url || '').replace('http://', 'https://'),
-              images: (data.images || []).map(img => img.replace('http://', 'https://'))
-            }
-          });
-          if (dataType === 'video') this.downloadVideo(true);
-          else this.downloadImages(true);
-        } else {
-          this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-          this.showCustomToast('原链接可能已失效，请重新复制');
-        }
-      },
-      fail: () => {
-        this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-        this.showCustomToast('网络状况不佳，请重试');
-      }
-    });
-  },
-
-  // 🌟 个人主体专属兜底提示框：引导用户去手机浏览器打开网页版
-  showParseFailWebviewModal(errorMsg) {
+  showDownloadFailModal(urlData) {
     wx.showModal({
       title: '温馨提示',
-      content: `${errorMsg}\n\n由于微信个人小程序限制，无法直接在此打开备用网页。\n\n请点击【复制网址】，前往手机自带浏览器（如Safari、夸克等）粘贴打开，体验备用极速通道！`,
-      confirmText: '复制网址',
-      confirmColor: '#10b981',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) {
-          // 将你的网页版地址复制到用户的剪贴板
-          wx.setClipboardData({
-            data: 'https://goodgoodstudy-nb.top/seo/parse.html',
-            success: () => {
-              // 复制成功后给个贴心的提示
-              wx.showToast({
-                title: '网址已复制，请去浏览器粘贴打开',
-                icon: 'none',
-                duration: 4000
-              });
-            }
-          });
-        }
-      }
-    });
-  },
-
-  // 统一兜底提示框：白名单拦截转直链下载
-  showWhitelistFallbackModal(typeText, urlData) {
-    wx.showModal({
-      title: '微信安全策略拦截',
-      content: `受限于微信域名白名单，该${typeText}无法直接保存到相册。\n\n请点击【复制直链】，去手机浏览器粘贴即可下载。`,
+      content: `当前下载通道拥挤，部分网络被拦截 🏃\n\n建议您重新点击【立刻提取】刷新通道后再试！\n\n(您也可以点击下方复制直链，去浏览器中直接下载)`,
       confirmText: '复制直链',
       confirmColor: '#6366f1',
-      cancelText: '取消',
+      cancelText: '我知道了',
       success: (res) => {
-        if (res.confirm) {
-          wx.setClipboardData({ data: urlData });
-        }
+        if (res.confirm) wx.setClipboardData({ data: urlData });
       }
     });
   },
 
-  downloadVideo(isRetry = false) {
-    isGlobalDownloading = true; 
+  downloadVideo() {
+    this.isGlobalDownloading = true; 
     this.setData({ isDownloading: true, downloadProgressText: '📥 建立连接...' });
 
     const fs = wx.getFileSystemManager();
@@ -309,7 +295,7 @@ Page({
     const downloadTask = wx.downloadFile({
       url: this.data.videoData.url, 
       success: (res) => {
-        isGlobalDownloading = false; 
+        this.isGlobalDownloading = false; 
         if (res.statusCode === 200) {
           fs.copyFile({
             srcPath: res.tempFilePath,
@@ -327,31 +313,28 @@ Page({
                 },
                 fail: (err) => {
                   this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-                  wx.showModal({ title: '保存失败', content: '相册保存被拒: ' + err.errMsg, showCancel: false });
+                  // 👑 修复点：精准区分“用户点取消”和“真的失败了”
+                  if (err.errMsg.indexOf('cancel') === -1) {
+                    wx.showModal({ title: '保存失败', content: '相册保存被拒绝或存储空间不足，请清理手机空间后重试。', showCancel: false });
+                  }
                 },
                 complete: () => { fs.unlink({ filePath: localFilePath, success: () => {} }); }
               });
             },
             fail: (err) => {
               this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-              wx.showModal({ title: '文件转存失败', content: err.errMsg, showCancel: false });
+              wx.showModal({ title: '温馨提示', content: '文件处理失败，请重试。', showCancel: false });
             }
           });
         } else {
-          if (res.statusCode === 403 && !isRetry) { this.silentParseAndDownload(); } 
-          else {
-            this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-            this.showWhitelistFallbackModal('视频', this.data.videoData.url);
-          }
+          this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
+          this.showDownloadFailModal(this.data.videoData.url);
         }
       },
       fail: (err) => {
-        isGlobalDownloading = false; 
-        if (!isRetry) { this.silentParseAndDownload(); } 
-        else {
-          this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
-          this.showWhitelistFallbackModal('视频', this.data.videoData.url);
-        }
+        this.isGlobalDownloading = false; 
+        this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
+        this.showDownloadFailModal(this.data.videoData.url);
       }
     });
 
@@ -360,14 +343,13 @@ Page({
     });
   },
 
-  async downloadImages(isRetry = false) {
-    isGlobalDownloading = true; 
+  async downloadImages() {
+    this.isGlobalDownloading = true; 
     const images = this.data.videoData.images;
     this.setData({ isDownloading: true });
     
     let successCount = 0;
     let needRetry = false; 
-    let lastError = ''; 
 
     const fs = wx.getFileSystemManager();
 
@@ -387,27 +369,19 @@ Page({
                   wx.saveImageToPhotosAlbum({ 
                     filePath: localFilePath, 
                     success: () => resolve(true), 
-                    fail: (err) => {
-                      lastError = "相册保存被拒: " + err.errMsg;
-                      resolve(false);
-                    },
+                    fail: (err) => resolve(false),
                     complete: () => { fs.unlink({ filePath: localFilePath, success: () => {} }); }
                   });
                 },
-                fail: (err) => {
-                  lastError = "文件转存失败: " + err.errMsg;
-                  resolve(false);
-                }
+                fail: (err) => resolve(false)
               });
             } else {
-              if (res.statusCode === 403 && !isRetry) { needRetry = true; }
-              lastError = `HTTP异常(状态码${res.statusCode})`;
+              needRetry = true;
               resolve(false); 
             }
           },
           fail: (err) => {
-            if (!isRetry) needRetry = true;
-            lastError = "网络拦截: " + err.errMsg;
+            needRetry = true;
             resolve(false);
           }
         });
@@ -417,13 +391,7 @@ Page({
       if (isSuccess) successCount++;
     }
 
-    isGlobalDownloading = false; 
-
-    if (needRetry && !isRetry) {
-      this.silentParseAndDownload();
-      return; 
-    }
-
+    this.isGlobalDownloading = false; 
     this.setData({ isDownloading: false, downloadProgressText: '📥 保存到相册' });
     
     if (successCount > 0) {
@@ -433,10 +401,10 @@ Page({
 
       wx.navigateTo({ url: `/pages/success/success?type=image&path=${encodeURIComponent(images[0])}` });
       if (successCount < images.length) {
-        this.showCustomToast(`成功保存${successCount}张，失败${images.length - successCount}张`);
+        this.showCustomToast(`成功保存${successCount}张，部分图片可能因网络原因遗漏`);
       }
-    } else if (isRetry || !needRetry) {
-      this.showWhitelistFallbackModal('图集', images.join('\n'));
+    } else if (needRetry) {
+      this.showDownloadFailModal(images.join('\n'));
     }
   },
 

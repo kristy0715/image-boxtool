@@ -66,7 +66,7 @@
       <view class="spinner"></view>
       <text>{{processingText}}</text>
       <view class="progress-bar" wx:if="{{progress > 0}}">
-        <view class="progress-inner" style="width: {{progress}}%"></view>
+        <view class="progress-inner" style="width: {{progress + '%'}};"></view>
       </view>
     </view>
   </view>

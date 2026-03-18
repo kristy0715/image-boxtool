@@ -30,7 +30,7 @@
   <button class="parse-btn {{isProcessing ? 'loading' : ''}}" bindtap="startParse">
     {{isProcessing ? '解析中...' : '立刻提取无水印资源'}}
   </button>
-
+  <view class="retry-hint">💡 小提示：如遇解析或下载失败，请多尝试点击几次提取</view>
   <view class="card result-card" wx:if="{{videoData}}">
     <view class="section-title">
       <text>🎉 解析完成</text>
