@@ -8,7 +8,7 @@ const APP_TAG = 'default_app';
 const AUDIT_URL = `https://goodgoodstudy-nb.top/api/check-config?app_tag=${APP_TAG}`;
 
 // 兜底的黑名单（当服务器网络异常时，默认隐藏这些最容易被拒的 AI 功能保平安）
-const DEFAULT_BLOCK_LIST = ['matting', 'restore', 'art'];
+const DEFAULT_BLOCK_LIST = ['art'];
 
 /**
  * 🛡️ 路由守卫 (供子页面使用)

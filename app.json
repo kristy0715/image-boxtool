@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/video/video",
     "pages/index/index",
     "pages/idphoto/idphoto",
     "pages/compress/compress",
@@ -26,7 +27,7 @@
     "pages/restore/restore",
     "pages/test/test",
     "pages/qrcode/qrcode",
-    "pages/video/video"
+    "pages/docscan/docscan"
   ],
   "window": {
     "backgroundTextStyle": "dark",
@@ -36,38 +37,20 @@
     "backgroundColor": "#f5f5f7"
   },
   "tabBar": {
+    "custom": true,
     "color": "#999999",
     "selectedColor": "#6366f1",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {
-        "pagePath": "pages/index/index",
-        "text": "修图工具",
-        "iconPath": "images/tab_home.png",
-        "selectedIconPath": "images/tab_home_active.png"
+        "pagePath": "pages/video/video",
+        "text": "无水印提取"
       },
       {
-        "pagePath": "pages/video/video",
-        "text": "无水印提取",
-        "iconPath": "images/tab_video.png",
-        "selectedIconPath": "images/tab_video_active.png"
+        "pagePath": "pages/index/index",
+        "text": "修图工具"
       }
     ]
-  },
-  "style": "v2",
-  "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents",
-  "permission": {
-    "scope.camera": {
-      "desc": "用于拍摄证件照"
-    },
-    "scope.writePhotosAlbum": {
-      "desc": "用于保存处理后的图片到相册"
-    }
-  },
-  "networkTimeout": {
-    "request": 60000,
-    "downloadFile": 300000 
   }
 }

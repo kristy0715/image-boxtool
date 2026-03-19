@@ -8,18 +8,20 @@ const app = getApp();
 // 1. 完整数据源 (已全面接入 SEO 热搜词优化)
 // ============================================================
 const ALL_TOOLS = [
+  {id:'video',title:'短视频去水印',desc:'全网无水印解析保存',icon:'🎬',colors:['#3b82f6','#8b5cf6']},
+  {id:'watermark',title:'图片去水印',desc:'无痕去水印 去路人/杂物',icon:'✨',colors:['#f59e0b','#fbbf24']}, 
   {id:'idphoto',title:'最美证件照',desc:'一寸/二寸 智能抠图换底',icon:'📷',colors:['#6366f1','#8b5cf6']},
   {id:'idprint',title:'证件照排版',desc:'排版打印神器 超级省钱',icon:'🖨️',colors:['#8b5cf6','#a78bfa']},
   {id:'matting',title:'AI智能抠图',desc:'发丝级抠图 一键换背景',icon:'🦋',colors:['#ec4899','#f472b6']}, 
   {id:'restore', title:'AI高清修复', desc:'高糊变清晰 老照片翻新', icon:'💎', colors:['#6366f1', '#8b5cf6']}, 
-  {id:'watermark',title:'图片去水印',desc:'无痕去水印 去路人/杂物',icon:'✨',colors:['#f59e0b','#fbbf24']}, 
   {id:'grid9',title:'九宫格切图',desc:'朋友圈防折叠 心形拼图',icon:'🍱',colors:['#64748b','#94a3b8']},
   {id:'collage',title:'全能拼图',desc:'多图无缝拼接 宫格海报',icon:'🧩',colors:['#14b8a6','#2dd4bf']},
   {id:'crop',title:'图片裁剪',desc:'自由缩放 社交头像比例',icon:'✂️',colors:['#f59e0b','#fbbf24']},
   {id:'compress',title:'图片压缩',desc:'高清无损缩小 突破限制',icon:'📦',colors:['#ec4899','#f472b6']},
   {id:'mosaic',title:'图片马赛克',desc:'隐私极速打码 局部模糊',icon:'🔲',colors:['#64748b','#94a3b8']},
   {id:'longpic',title:'长图拼接',desc:'聊天截图/台词 智能拼接',icon:'📜',colors:['#06b6d4','#22d3ee']},
-  {id:'batchwm',title:'批量加水印',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']}
+  {id:'batchwm',title:'批量加水印',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']},
+  //{id:'docscan',title:'修复卷纸',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']}
 ];
 
 const ALL_OCR = [
@@ -154,11 +156,36 @@ Page({
     } catch (e) {}
   },
 
+  onShow() {
+    // 点亮第 2 个 Tab (索引为 1)
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 1 });
+    }
+  },
+  
   onAdError(err) { console.log('Banner fail', err); },
 
   goToPage(e) {
     const page = e.currentTarget.dataset.page;
-    if (page) wx.navigateTo({ url: `/pages/${page}/${page}`, fail: () => wx.showToast({ title: '功能升级中', icon: 'none' }) });
+    
+    // ==========================================
+    // 🚀 拦截视频去水印卡片，使用特殊的 switchTab 跳转
+    // ==========================================
+    if (page === 'video') {
+      wx.switchTab({ 
+        url: '/pages/video/video',
+        fail: (err) => console.log('跳转Tab失败', err)
+      });
+      return;
+    }
+
+    // 其他普通页面的跳转
+    if (page) {
+      wx.navigateTo({ 
+        url: `/pages/${page}/${page}`, 
+        fail: () => wx.showToast({ title: '功能升级中', icon: 'none' }) 
+      });
+    }
   },
 
   // === 每日一签逻辑 ===

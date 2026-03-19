@@ -69,6 +69,10 @@ Page({
   },
 
   onShow() {
+    // 点亮第 1 个 Tab (索引为 0)
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 0 });
+    }
     wx.getClipboardData({
       success: (res) => {
         if (res.data && res.data.includes('http')) {
