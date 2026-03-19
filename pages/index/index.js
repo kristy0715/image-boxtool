@@ -20,16 +20,14 @@ const ALL_TOOLS = [
   {id:'compress',title:'图片压缩',desc:'高清无损缩小 突破限制',icon:'📦',colors:['#ec4899','#f472b6']},
   {id:'mosaic',title:'图片马赛克',desc:'隐私极速打码 局部模糊',icon:'🔲',colors:['#64748b','#94a3b8']},
   {id:'longpic',title:'长图拼接',desc:'聊天截图/台词 智能拼接',icon:'📜',colors:['#06b6d4','#22d3ee']},
-  {id:'batchwm',title:'批量加水印',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']},
-  //{id:'docscan',title:'修复卷纸',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']}
+  {id:'batchwm',title:'批量加水印',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']}
 ];
 
 const ALL_OCR = [
   {id:'text2img',title:'长文转图',desc:'文字生成图片 朋友圈防折叠',icon:'📄',colors:['#10b981','#34d399']},
   {id:'ocr',title:'图片转文字',desc:'OCR拍照取字 智能提取',icon:'🔍',colors:['#3b82f6','#60a5fa']}, 
-  // ⭐ 核心入口 1：主打“工具/办公/微商”属性
-  {id:'text',title:'加文字/水印',desc:'图片加字 防盗打码 加Logo',icon:'✏️',colors:['#8b5cf6','#a78bfa']}, 
-  {id:'qrcode',title:'二维码生成',desc:'文本/网址极速转码',icon:'🔳',colors:['#6366f1','#8b5cf6']},
+  {id:'text',title:'加文字 加水印',desc:'图片加字 防盗打码 加Logo',icon:'✏️',colors:['#8b5cf6','#a78bfa']}, 
+  {id:'qrcode',title:'二维码生成',desc:'文本/网址极速转码',icon:'🔳',colors:['#6366f1','#8b5cf6']}
 ];
 
 const ALL_FUN = [
@@ -38,10 +36,8 @@ const ALL_FUN = [
   {id:'filter',title:'质感滤镜',desc:'复古/胶片/黑白 氛围感',icon:'🎭',colors:['#f43f5e','#fb7185']},
   {id:'art',title:'动漫手绘脸',desc:'照片一键变漫画 二次元',icon:'🎨',colors:['#ec4899','#f472b6']}, 
   {id:'avatar',title:'头像挂件',desc:'节日边框 专属头像定制',icon:'🎀',colors:['#f59e0b','#fbbf24']},
-  // ⭐ 核心入口 2：主打“娱乐/年轻群体”属性
   {id:'text',title:'自制表情包',desc:'DIY恶搞改图 聊天斗图神器',icon:'😂',colors:['#eab308','#facc15']} 
 ];
-
 
 let videoAd = null;
 let interstitialAd = null;
@@ -56,21 +52,15 @@ Page({
     showFortuneModal: false,
     todayFortune: null,
     bannerUnitId: 'adunit-ecfcec4c6a0c871b',
-
-    // 初始列表 (建议先只放绝对安全的兜底，防止接口慢时显示敏感图标)
     toolList: [],
     ocrList: [],
     funList: [],
-
-    // 🌟 客服悬浮按钮默认坐标
     kefuX: 300,
     kefuY: 500
   },
 
   onLoad() {
     this.initNavBar();
-    
-    // 🌟 动态计算初始位置：距离右侧 15px，高度在屏幕的 65% 处（避开下面的每日一签）
     try {
       const sysInfo = wx.getSystemInfoSync();
       this.setData({
@@ -78,41 +68,39 @@ Page({
         kefuY: sysInfo.windowHeight * 0.65 
       });
     } catch (e) {}
-
-    // 🔥 核心：检查审核状态
     this.checkAuditStatus();
-
     this.initFortune();
     this.initVideoAd();
     this.initInterstitialAd();
   },
 
-  // 🔥 请求云端开关
-  checkAuditStatus() {
-    // 1. 先显示安全的兜底列表（防止白屏）
-    const safeIds = [
-      //'matting',    // AI智能抠图
-      //'restore',    // AI高清修复
-      'watermark',  // 图片去水印 (建议隐藏)
-      'ocr',        // 图片转文字 (建议隐藏)
-      'retouch',    // 一键精修
-      //'art',      // 艺术风格/动漫脸 (重灾区)
-      'burst',      // 3D特效
-      'text2img',   // 长文转图
-      'batchwm',    // 批量水印 (微商属性，有时敏感)
+  onShow() {
+    // 🌟 核心：每次进入首页，主动点亮底部 TabBar 第 2 个按钮
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 1 });
+    }
+  },
 
-      // =========== 🟢 基础安全功能 (建议注释掉 -> 显示) ===========
-       'idphoto',   // 证件照制作 (通常安全)
-       'idprint',   // 证件照排版 (通常安全)
-       'grid9',     // 九宫格
-       'collage',   // 拼图
-       'crop',      // 裁剪
-       'compress',  // 压缩
-       'mosaic',    // 马赛克
-       'longpic',   // 长图拼接
-       'text',      // 添加文字
-       'avatar',    // 头像挂件
-       'meme',      // 表情包
+  checkAuditStatus() {
+    const safeIds = [
+       'video',     // 🌟 核心：确保审核期也有兜底的短视频入口
+       'watermark', 
+       'ocr',       
+       'retouch',   
+       'burst',     
+       'text2img',  
+       'batchwm',   
+       'idphoto',   
+       'idprint',   
+       'grid9',     
+       'collage',   
+       'crop',      
+       'compress',  
+       'mosaic',    
+       'longpic',   
+       'text',      
+       'avatar',    
+       'meme',      
     ];
     this.setData({
         toolList: ALL_TOOLS.filter(i => safeIds.includes(i.id)),
@@ -120,31 +108,19 @@ Page({
         funList: ALL_FUN.filter(i => safeIds.includes(i.id))
     });
 
-    // 2. 调用通用模块获取配置
     Audit.getConfig()
       .then(({ isAudit, blockList }) => {
-        console.log('配置模式:', isAudit ? '🔒等待中' : '🔓已开放');
-        
         if (isAudit) {
-          // 过滤黑名单
           this.setData({
             toolList: ALL_TOOLS.filter(item => !blockList.includes(item.id)),
             ocrList: ALL_OCR.filter(item => !blockList.includes(item.id)),
             funList: ALL_FUN.filter(item => !blockList.includes(item.id))
           });
         } else {
-          // 正式模式：全量显示
-          this.setData({
-            toolList: ALL_TOOLS,
-            ocrList: ALL_OCR,
-            funList: ALL_FUN
-          });
+          this.setData({ toolList: ALL_TOOLS, ocrList: ALL_OCR, funList: ALL_FUN });
         }
       })
-      .catch((err) => {
-        console.error('配置拉取失败，维持安全模式', err);
-        // 失败时什么都不用做，因为第1步已经设置了安全兜底
-      });
+      .catch((err) => { console.error('配置拉取失败', err); });
   },
 
   initNavBar() {
@@ -156,39 +132,18 @@ Page({
     } catch (e) {}
   },
 
-  onShow() {
-    // 点亮第 2 个 Tab (索引为 1)
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1 });
-    }
-  },
-  
   onAdError(err) { console.log('Banner fail', err); },
 
   goToPage(e) {
     const page = e.currentTarget.dataset.page;
-    
-    // ==========================================
-    // 🚀 拦截视频去水印卡片，使用特殊的 switchTab 跳转
-    // ==========================================
+    // 🌟 核心：如果是点视频卡片，必须用 switchTab 拦截跳转！
     if (page === 'video') {
-      wx.switchTab({ 
-        url: '/pages/video/video',
-        fail: (err) => console.log('跳转Tab失败', err)
-      });
+      wx.switchTab({ url: '/pages/video/video' });
       return;
     }
-
-    // 其他普通页面的跳转
-    if (page) {
-      wx.navigateTo({ 
-        url: `/pages/${page}/${page}`, 
-        fail: () => wx.showToast({ title: '功能升级中', icon: 'none' }) 
-      });
-    }
+    if (page) wx.navigateTo({ url: `/pages/${page}/${page}`, fail: () => wx.showToast({ title: '功能升级中', icon: 'none' }) });
   },
 
-  // === 每日一签逻辑 ===
   initFortune() {
     const data = fortuneService.getTodayFortune();
     const d = new Date();
@@ -227,8 +182,6 @@ Page({
   initInterstitialAd() {
     if (wx.createInterstitialAd) {
       interstitialAd = wx.createInterstitialAd({ adUnitId: 'adunit-a9556a7e617c27b7' });
-      interstitialAd.onLoad(() => console.log('插屏加载成功'));
-      interstitialAd.onError(e => console.error(e));
     }
   },
 
@@ -375,7 +328,6 @@ Page({
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   },
 
-  // 🔥 确保保留分享功能！🔥
   onShareAppMessage(res) {
     const f = this.data.todayFortune;
     return { 

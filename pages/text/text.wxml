@@ -30,7 +30,7 @@
 
         <view wx:if="{{item.type === 'text'}}"
           class="drag-element text-element {{activeId === item.id ? 'active' : ''}}"
-          style="left:{{item.x}}px; top:{{item.y}}px; transform: translate(-50%, -50%) rotate({{item.angle || 0}}deg); z-index: {{activeId === item.id ? 100 : 60}};"
+          style="left:{{item.x}}px; top:{{item.y}}px; transform: translate(-50%, -50%) rotate({{item.angle || 0}}deg); z-index: {{activeId === item.id ? 100 : 60}}; background-color: {{item.bgColor || 'transparent'}};"
           catchtouchstart="onTouchStart" 
           catchtouchmove="onTouchMove" 
           catchtouchend="onTouchEnd"
@@ -82,15 +82,27 @@
         <slider class="style-slider" min="20" max="150" value="{{tempFontSize}}" bindchange="onFontSizeChange" activeColor="#6366f1" block-size="20"/>
       </view>
       <view class="style-row">
-        <text class="style-label">颜色</text>
+        <text class="style-label">字色</text>
         <scroll-view scroll-x class="color-scroll" enable-flex>
           <view class="color-list">
             <view class="color-item" wx:for="{{colorList}}" wx:key="color" style="background: {{item.color}};" bindtap="selectColor" data-color="{{item.color}}">
-              <view wx:if="{{tempColor === item.color}}" class="check-mark">✓</view>
+              <view wx:if="{{tempColor === item.color}}" class="check-mark {{(item.color==='#ffffff') ? 'dark-check' : ''}}">✓</view>
             </view>
           </view>
         </scroll-view>
       </view>
+      
+      <view class="style-row">
+        <text class="style-label">背景</text>
+        <scroll-view scroll-x class="color-scroll" enable-flex>
+          <view class="color-list">
+            <view class="color-item {{item.color === 'transparent' ? 'transparent-bg' : ''}}" wx:for="{{bgColorList}}" wx:key="color" style="background: {{item.color}};" bindtap="selectBgColor" data-color="{{item.color}}">
+              <view wx:if="{{tempBgColor === item.color}}" class="check-mark {{(item.color==='#ffffff' || item.color==='transparent' || item.color==='rgba(255,255,255,0.7)') ? 'dark-check' : ''}}">✓</view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
       <view class="style-row">
         <text class="style-label">描边</text>
         <switch checked="{{tempStroke}}" color="#6366f1" bindchange="onStrokeChange"/>

@@ -40,11 +40,21 @@ Page({
     tempFontSize: 30,
     tempColor: '#ffffff',
     tempStroke: true,
+    tempBgColor: 'transparent', // 🌟 新增：当前选中的文字背景色
     tempStickerSize: 80,
 
     bannerUnitId: AD_CONFIG.BANNER_ID,
     colorList: [
       { color: '#ffffff', name: '白' }, { color: '#000000', name: '黑' },
+      { color: '#ef4444', name: '红' }, { color: '#f59e0b', name: '黄' },
+      { color: '#10b981', name: '绿' }, { color: '#3b82f6', name: '蓝' },
+      { color: '#6366f1', name: '紫' }, { color: '#ec4899', name: '粉' }
+    ],
+    // 🌟 新增：文字背景色列表（加入透明和半透明黑白选项）
+    bgColorList: [
+      { color: 'transparent', name: '无' },
+      { color: '#000000', name: '纯黑' }, { color: 'rgba(0,0,0,0.5)', name: '半透黑' },
+      { color: '#ffffff', name: '纯白' }, { color: 'rgba(255,255,255,0.7)', name: '半透白' },
       { color: '#ef4444', name: '红' }, { color: '#f59e0b', name: '黄' },
       { color: '#10b981', name: '绿' }, { color: '#3b82f6', name: '蓝' },
       { color: '#6366f1', name: '紫' }, { color: '#ec4899', name: '粉' }
@@ -103,6 +113,7 @@ Page({
       updates.tempFontSize = item.fontSize;
       updates.tempColor = item.color;
       updates.tempStroke = item.hasStroke;
+      updates.tempBgColor = item.bgColor || 'transparent'; // 🌟 补充同步背景色
     } else if (item.type === 'sticker') {
       updates.tempStickerSize = item.size;
     }
@@ -115,7 +126,8 @@ Page({
     const newText = {
       id, type: 'text', content: '双击修改',
       x: this.data.viewWidth / 2, y: this.data.viewHeight / 2,
-      fontSize: 30, color: '#ffffff', hasStroke: true, angle: 0
+      fontSize: 30, color: '#ffffff', hasStroke: true, angle: 0,
+      bgColor: 'transparent' // 🌟 默认无背景
     };
     
     this.setData({ elements: [...this.data.elements, newText] }, () => {
@@ -166,7 +178,6 @@ Page({
     });
   },
 
-  // ⭐ 新增：点击画布空白处取消选中
   onCanvasTap() {
     this.setData({ activeId: null });
   },
@@ -187,6 +198,12 @@ Page({
   onTextInput(e) { this.setData({ tempText: e.detail.value }); this.updateActiveElement('content', e.detail.value); },
   onFontSizeChange(e) { this.setData({ tempFontSize: e.detail.value }); this.updateActiveElement('fontSize', e.detail.value); },
   selectColor(e) { const color = e.currentTarget.dataset.color; this.setData({ tempColor: color }); this.updateActiveElement('color', color); },
+  // 🌟 新增：背景色选择事件
+  selectBgColor(e) { 
+    const color = e.currentTarget.dataset.color; 
+    this.setData({ tempBgColor: color }); 
+    this.updateActiveElement('bgColor', color); 
+  },
   onStrokeChange(e) { this.setData({ tempStroke: e.detail.value }); this.updateActiveElement('hasStroke', e.detail.value); },
   onStickerSizeChange(e) { this.setData({ tempStickerSize: e.detail.value }); this.updateActiveElement('size', e.detail.value); },
 
@@ -274,24 +291,21 @@ Page({
 
   onTransformEnd() { this.isTransforming = false; },
 
-  // ⭐ 修复面板切换遗失数据的核心
   switchTab(e) { 
     const tab = e.currentTarget.dataset.tab;
     let activeId = this.data.activeId;
     
-    // 如果当前选中的元素不是目标标签页的类型，先把它取消选中
     if (activeId) {
       const item = this.data.elements.find(el => el.id === activeId);
       if (item && item.type !== tab) activeId = null;
     }
     
-    // 智能记忆逻辑：如果没选中东西，自动帮用户选中该面板里最后编辑的元素！
     if (!activeId) {
       const sameTypeElements = this.data.elements.filter(el => el.type === tab);
       if (sameTypeElements.length > 0) {
         const lastItem = sameTypeElements[sameTypeElements.length - 1];
         this.syncPanelData(lastItem, tab);
-        return; // syncPanelData 已经做过 setData 了，直接 return
+        return; 
       }
     }
     
@@ -365,8 +379,42 @@ Page({
           ctx.font = `normal normal ${fs}px sans-serif`;
           const lines = el.content.split('\n');
           const lh = fs * 1.2;
-          const startY = -((lines.length - 1) * lh) / 2;
+          
+          // 🌟 核心：如果有背景色，先画背景圆角矩形
+          if (el.bgColor && el.bgColor !== 'transparent') {
+            const textHeight = lines.length * lh;
+            let maxLineWidth = 0;
+            lines.forEach(line => {
+              const w = ctx.measureText(line).width;
+              if (w > maxLineWidth) maxLineWidth = w;
+            });
+            
+            // 计算背景框的大小（加入动态内边距）
+            const padX = fs * 0.7; 
+            const padY = fs * 0.4;
+            const bgW = maxLineWidth + padX * 2;
+            const bgH = textHeight + padY * 2;
+            const bgX = -bgW / 2;
+            const bgY = -bgH / 2;
+            const radius = fs * 0.3; // 圆角弧度
+            
+            ctx.fillStyle = el.bgColor;
+            ctx.beginPath();
+            ctx.moveTo(bgX + radius, bgY);
+            ctx.lineTo(bgX + bgW - radius, bgY);
+            ctx.arcTo(bgX + bgW, bgY, bgX + bgW, bgY + bgH, radius);
+            ctx.lineTo(bgX + bgW, bgY + bgH - radius);
+            ctx.arcTo(bgX + bgW, bgY + bgH, bgX, bgY + bgH, radius);
+            ctx.lineTo(bgX + radius, bgY + bgH);
+            ctx.arcTo(bgX, bgY + bgH, bgX, bgY, radius);
+            ctx.lineTo(bgX, bgY + radius);
+            ctx.arcTo(bgX, bgY, bgX + radius, bgY, radius);
+            ctx.closePath();
+            ctx.fill();
+          }
 
+          // 画字
+          const startY = -((lines.length - 1) * lh) / 2;
           lines.forEach((line, i) => {
             const ly = startY + i * lh;
             if (el.hasStroke) {

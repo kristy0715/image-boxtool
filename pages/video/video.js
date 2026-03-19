@@ -28,6 +28,16 @@ Page({
     this.initInterstitialAd();
   },
 
+  // 👇 把它插在 onLoad 和 onUnload 之间就行
+  // ==========================================
+  // 🌟 核心补漏：每次进入视频提取页，主动点亮底部第 1 个图标
+  // ==========================================
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 0 });
+    }
+  },
+  
   onUnload() {
     // 👈 页面退出时强制重置，防止死锁
     this.isGlobalDownloading = false; 

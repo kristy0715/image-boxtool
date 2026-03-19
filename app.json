@@ -45,12 +45,31 @@
     "list": [
       {
         "pagePath": "pages/video/video",
-        "text": "无水印提取"
+        "text": "无水印提取",
+        "iconPath": "images/tab_video.png",
+        "selectedIconPath": "images/tab_video_active.png"
       },
       {
         "pagePath": "pages/index/index",
-        "text": "修图工具"
+        "text": "修图工具",
+        "iconPath": "images/tab_home.png",
+        "selectedIconPath": "images/tab_home_active.png"
       }
     ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "permission": {
+    "scope.camera": {
+      "desc": "用于拍摄证件照"
+    },
+    "scope.writePhotosAlbum": {
+      "desc": "用于保存处理后的图片到相册"
+    }
+  },
+  "networkTimeout": {
+    "request": 60000,
+    "downloadFile": 300000
   }
 }
