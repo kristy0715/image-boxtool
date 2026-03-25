@@ -34,6 +34,7 @@
             <view class="line-container-h">
                 <view class="grid-line-h" wx:for="{{rows-1}}" wx:key="*this"></view>
             </view>
+  
             <view class="line-container-v">
                 <view class="grid-line-v" wx:for="{{cols-1}}" wx:key="*this"></view>
             </view>
@@ -46,7 +47,12 @@
   </view>
 
   <view class="card" wx:if="{{imagePath}}">
-    <view class="section-title">选择形状</view>
+    
+    <view class="title-row">
+      <view class="section-title">选择形状</view>
+      <view class="swipe-hint">👈 左右滑动选取更多</view>
+    </view>
+
     <scroll-view class="shape-scroll" scroll-x="true">
         <view class="shape-item {{maskType==='none'?'active':''}}" bindtap="setMaskType" data-type="none">
             <view class="s-icon s-square"></view><text>原图</text>
@@ -88,7 +94,17 @@
             <view class="cut-icon grid-6"><view class="mini-cell" wx:for="{{6}}" wx:key="*this"></view></view>
             <text class="cut-name">六宫格</text>
         </view>
+        <view class="cut-item {{gridType === 'custom' ? 'active' : ''}}" bindtap="showCustomGridModal">
+            <view class="cut-icon grid-custom"><text style="font-size:36rpx; line-height:1;">📐</text></view>
+            <text class="cut-name">自定义</text>
+        </view>
     </view>
+
+    <view class="jump-banner" bindtap="goToOutGrid">
+      <text>🚀 发圈神器：冲出九宫格</text>
+      <text class="arrow">去体验 ></text>
+    </view>
+
   </view>
 
   <view class="ad-container" style="padding: 20rpx 30rpx;">
@@ -102,6 +118,24 @@
   </view>
 
   <view style="height: 200rpx;" wx:if="{{imagePath}}"></view>
+
+  <view class="custom-modal-mask" wx:if="{{showCustomModal}}" catchtouchmove="true">
+    <view class="custom-modal">
+      <view class="modal-title">自定义宫格</view>
+      <view class="input-group">
+        <text>行数 (Row)</text>
+        <input type="number" value="{{tempRows}}" bindinput="onRowInput" maxlength="1" placeholder="1-9" />
+      </view>
+      <view class="input-group">
+        <text>列数 (Col)</text>
+        <input type="number" value="{{tempCols}}" bindinput="onColInput" maxlength="1" placeholder="1-9" />
+      </view>
+      <view class="modal-btns">
+        <button class="modal-btn cancel" bindtap="cancelCustomGrid">取消</button>
+        <button class="modal-btn confirm" bindtap="confirmCustomGrid">确定</button>
+      </view>
+    </view>
+  </view>
 
   <view class="loading-overlay" wx:if="{{isProcessing}}">
     <view class="loading-box">

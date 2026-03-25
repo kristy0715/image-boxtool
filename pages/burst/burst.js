@@ -12,7 +12,6 @@ const AD_CONFIG = {
   INTERSTITIAL_ID: 'adunit-a9556a7e617c27b7' 
 };
 
-// 🌟 统一为标准的 QUOTA_CONFIG 格式
 const QUOTA_CONFIG = {
   SAVE_FREE: 2,    
   SAVE_REWARD: 5   
@@ -96,7 +95,6 @@ Page({
     }
   },
 
-  // 🌟 统一的配额读取与更新方法
   getQuota(key) {
     const today = new Date().toLocaleDateString();
     let r = wx.getStorageSync(key) || { date: today, count: 0, extra: 0 };
@@ -188,7 +186,7 @@ Page({
 
   chooseFgImage() {
     wx.chooseMedia({
-      count: 1, mediaType: ['image'], sizeType: ['original'],
+      count: 1, mediaType: ['image'], sizeType: ['compressed'],
       success: (res) => {
         const path = res.tempFiles[0].tempFilePath;
         wx.showModal({
@@ -350,12 +348,26 @@ Page({
 
   onGapChange(e) { this.setData({ gapSize: e.detail.value }); },
 
+  tuneFgMove(e) {
+    const dir = e.currentTarget.dataset.dir;
+    let step = 0.5; 
+    let x = this._fgX !== undefined ? this._fgX : this.data.fgX;
+    let y = this._fgY !== undefined ? this._fgY : this.data.fgY;
+
+    if (dir === 'up') y -= step;
+    if (dir === 'down') y += step;
+    if (dir === 'left') x -= step;
+    if (dir === 'right') x += step;
+
+    this._fgX = x; this._fgY = y;
+    this.setData({ fgX: x, fgY: y });
+  },
+
   saveToAlbum() {
     if (!this.data.bgPath || !this.data.mattePath) return;
     this.checkQuotaAndSave();
   },
 
-  // 🌟 完全对齐其他模块的 QUOTA 校验逻辑
   checkQuotaAndSave() {
     const save = this.getQuota('burst_save_quota');
     if (save.count >= (QUOTA_CONFIG.SAVE_FREE + save.extra)) {
@@ -388,7 +400,7 @@ Page({
   },
 
   realSaveAction() {
-    this.setData({ isProcessing: true, loadingText: '正在合成高清大图...' });
+    this.setData({ isProcessing: true, loadingText: '正在生成高清大图...' });
 
     const query = wx.createSelectorQuery();
     query.select('.editor-frame').boundingClientRect();
@@ -421,6 +433,15 @@ Page({
             maxX = Math.max(BASE_HD_SIZE, fgDrawX + fgDrawW);
             maxY = Math.max(BASE_HD_SIZE, fgDrawY + fgDrawH);
         }
+
+        // ================= 🌟 核心算法修复：只让左右对称，拒绝无脑加白边 =================
+        // 为了保证朋友圈九宫格的物理重心在中间，仅强行对齐 X 轴（左右扩展量一致）
+        let maxPadX = Math.max(0 - minX, maxX - BASE_HD_SIZE);
+        minX = -maxPadX;
+        maxX = BASE_HD_SIZE + maxPadX;
+
+        // Y 轴（上下）保留最真实的截断边界！头和脚不再强制加出多余的白边，防止图片变得很小！
+        // ====================================================================
 
         const targetW = maxX - minX;
         const targetH = maxY - minY;
@@ -510,6 +531,7 @@ Page({
                 ctx.drawImage(imgFg, offsetX + fgDrawX, offsetY + fgDrawY, fgDrawW, fgDrawH);
             }
 
+            // 🌟 导出为【一张】完美中心对齐的完整大图
             wx.canvasToTempFilePath({
                 canvas: finalCanvas, fileType: 'jpg', quality: 1.0,
                 destWidth: finalW, destHeight: finalH,

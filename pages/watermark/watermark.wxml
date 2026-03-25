@@ -32,8 +32,8 @@
     <view class="editor-wrapper" wx:else>
       <view class="canvas-container">
         
-        <view class="zoom-badge" wx:if="{{moveScale > 1.05}}">
-          <text>🔍 {{moveScale}}x 局部编辑中</text>
+        <view class="zoom-badge" wx:if="{{displayScale > 1.05}}">
+          <text>🔍 {{displayScale}}x 局部编辑中</text>
         </view>
 
         <movable-area class="move-area" style="width: {{canvasDisplayWidth}}px; height: {{canvasDisplayHeight}}px;">

@@ -20,7 +20,12 @@ Page({
     initialX: 0, initialY: 0,
     isProcessing: false,
     loadingText: '处理中...',
-    bannerUnitId: AD_CONFIG.BANNER_ID
+    bannerUnitId: AD_CONFIG.BANNER_ID,
+    
+    // 🌟 新增：自定义弹窗数据
+    showCustomModal: false,
+    tempRows: 3,
+    tempCols: 3
   },
 
   _pixelRatio: 1, 
@@ -95,11 +100,48 @@ Page({
     if (type === 9) { c=3; r=3; txt='标准九宫格 (3x3)'; }
     else if (type === 4) { c=2; r=2; txt='四宫格 (2x2)'; }
     else if (type === 6) { c=3; r=2; txt='六宫格 (3x2)'; } 
-    else { c=3; r=3; txt='标准九宫格 (3x3)'; }
+    else { return; } 
     
     const boxH = baseSize * (r / c);
     this.resetLayout(type, c, r, txt, baseSize, boxH);
   },
+
+  // ================= 🌟 新增：自定义宫格逻辑 =================
+  showCustomGridModal() {
+    this.setData({
+      showCustomModal: true,
+      tempRows: this.data.rows,
+      tempCols: this.data.cols
+    });
+  },
+
+  cancelCustomGrid() {
+    this.setData({ showCustomModal: false });
+  },
+
+  onRowInput(e) {
+    this.setData({ tempRows: parseInt(e.detail.value) || '' });
+  },
+
+  onColInput(e) {
+    this.setData({ tempCols: parseInt(e.detail.value) || '' });
+  },
+
+  confirmCustomGrid() {
+    let r = parseInt(this.data.tempRows);
+    let c = parseInt(this.data.tempCols);
+
+    if (!r || r < 1 || r > 9 || !c || c < 1 || c > 9) {
+        return wx.showToast({ title: '请输入 1~9 的数字', icon: 'none' });
+    }
+
+    this.setData({ showCustomModal: false });
+
+    const baseSize = 600 * this._pixelRatio;
+    const boxH = baseSize * (r / c);
+    this.resetLayout('custom', c, r, `自定义宫格 (${r}行${c}列)`, baseSize, boxH);
+  },
+  // =========================================================
 
   setMaskType(e) {
       const type = e.currentTarget.dataset.type;
@@ -228,7 +270,6 @@ Page({
 
                         mCtx.globalCompositeOperation = 'destination-out';
                         mCtx.fillStyle = '#000000'; 
-                        // ⭐ 核心改变：我们已经在 drawMaskPath 内部接管了独立的 fill() 操作
                         this.drawMaskPath(mCtx, canvasW, canvasH, this.data.maskType);
 
                         ctx.drawImage(maskCanvas, 0, 0, canvasW, canvasH);
@@ -294,10 +335,9 @@ Page({
     });
   },
 
-  // ⭐ 终极大一统版切割坐标系：1比1严格复刻 CSS 坐标，彻底告别“重叠挖空”和“长得不像”Bug！
   drawMaskPath(ctx, w, h, type) {
       const size = Math.min(w, h);
-      const scale = size / 100; // 严谨地与 CSS viewBox 的 0~100 完全贴合，抛弃旧版的微小偏移
+      const scale = size / 100; 
       const startX = (w - size) / 2;
       const startY = (h - size) / 2;
 
@@ -334,7 +374,6 @@ Page({
           ctx.beginPath(); ctx.arc(t(50,55).x, t(50,55).y, 42*scale, 0, 2*Math.PI); ctx.fill();
 
       } else if (type === 'cat') {
-          // 左耳、右耳、脸部分别独立 beginPath 和 fill，防止耳朵交界处被掏空缺口
           ctx.beginPath();
           ctx.moveTo(t(15,10).x, t(15,10).y); ctx.lineTo(t(35,40).x, t(35,40).y); ctx.lineTo(t(5,45).x, t(5,45).y); ctx.closePath(); 
           ctx.fill();
@@ -369,22 +408,28 @@ Page({
           });
       }
   },
-  
- onShareAppMessage() {
-  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
-  return {
-    title: '朋友圈九宫格切图神器，心形拼图太好看了！',
-    path: '/pages/grid9/grid9',
-    imageUrl: imageUrl
-  };
-},
 
-onShareTimeline() {
-  const imageUrl = this.data.imagePath || '/assets/share-cover.png';
-  return {
-    title: '朋友圈九宫格切图神器，心形拼图太好看了！',
-    query: '',
-    imageUrl: imageUrl
-  };
-}
+  goToOutGrid() {
+    wx.navigateTo({
+      url: '/pages/burst/burst' 
+    });
+  },
+  
+  onShareAppMessage() {
+    const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+    return {
+      title: '朋友圈九宫格切图神器，心形拼图太好看了！',
+      path: '/pages/grid9/grid9',
+      imageUrl: imageUrl
+    };
+  },
+
+  onShareTimeline() {
+    const imageUrl = this.data.imagePath || '/assets/share-cover.png';
+    return {
+      title: '朋友圈九宫格切图神器，心形拼图太好看了！',
+      query: '',
+      imageUrl: imageUrl
+    };
+  }
 });

@@ -1,7 +1,8 @@
 {
-  "navigationBarTitleText": "视频去水印",
-  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTitleText": "短视频图文无水印提取",
+  "navigationBarBackgroundColor": "#FFFFFF",
   "navigationBarTextStyle": "black",
+  "backgroundColor": "#F5F7FA",
   "usingComponents": {
     "top-tips": "/components/top-tips/top-tips"
   }

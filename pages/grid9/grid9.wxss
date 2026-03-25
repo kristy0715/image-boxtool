@@ -151,3 +151,93 @@
 .loading-spinner { width: 64rpx; height: 64rpx; border: 4rpx solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
 .loading-text { margin-top: 24rpx; font-size: 28rpx; color: #666; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* 新增：跳转入口样式 */
+.jump-banner {
+  margin-top: 40rpx;
+  background: linear-gradient(90deg, #eef2ff, #e0e7ff);
+  border-radius: 16rpx;
+  padding: 24rpx 30rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #4f46e5;
+  font-size: 28rpx;
+  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(99, 102, 241, 0.1);
+  transition: 0.2s;
+}
+.jump-banner:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+.jump-banner .arrow {
+  font-size: 24rpx;
+  color: #6366f1;
+}
+
+/* ================= 🌟 新增：滑动提示与自定义弹窗样式 ================= */
+
+/* 标题行与滑动提示 */
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24rpx;
+}
+.title-row .section-title {
+  margin-bottom: 0 !important;
+}
+.swipe-hint {
+  font-size: 24rpx;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  animation: swipeHint 2s infinite;
+}
+@keyframes swipeHint {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-8rpx); }
+}
+
+/* 自定义网格按钮图标 */
+.grid-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 自定义弹窗 */
+.custom-modal-mask {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); z-index: 999;
+  display: flex; align-items: center; justify-content: center;
+}
+.custom-modal {
+  width: 560rpx; background: #fff; border-radius: 24rpx;
+  padding: 50rpx 40rpx; box-sizing: border-box;
+}
+.modal-title {
+  font-size: 34rpx; font-weight: bold; text-align: center;
+  margin-bottom: 40rpx; color: #333;
+}
+.input-group {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 30rpx; padding: 0 20rpx;
+}
+.input-group text {
+  font-size: 28rpx; color: #555; font-weight: 500;
+}
+.input-group input {
+  width: 180rpx; height: 70rpx; background: #f1f5f9;
+  border-radius: 12rpx; text-align: center; font-size: 30rpx; color: #333;
+}
+.modal-btns {
+  display: flex; justify-content: space-between; margin-top: 50rpx; gap: 30rpx;
+}
+.modal-btn {
+  flex: 1; height: 80rpx; line-height: 80rpx; text-align: center;
+  border-radius: 40rpx; font-size: 30rpx; margin: 0; padding: 0; font-weight: bold;
+}
+.modal-btn.cancel { background: #f1f5f9; color: #64748b; }
+.modal-btn.confirm { background: #6366f1; color: #fff; }

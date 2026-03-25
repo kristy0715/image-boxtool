@@ -1,4 +1,3 @@
-// pages/watermark/watermark.js
 const Security = require('../../utils/security.js'); 
 
 const SERVER_CONFIG = {
@@ -9,17 +8,14 @@ const SERVER_CONFIG = {
 const AD_CONFIG = {
   BANNER_ID: 'adunit-ecfcec4c6a0c871b',
   VIDEO_ID: 'adunit-da175a2014d3443b',
-  // 🌟 使用指定的最新插屏广告 ID
   INTERSTITIAL_ID: 'adunit-a9556a7e617c27b7'   
 };
 
-// 🌟 核心修改：每日免费 2 次，看视频奖励 5 次
 const QUOTA_CONFIG = {
   SAVE_FREE: 2,    
   SAVE_REWARD: 5 
 };
 
-// 本地纯色消除需要用到的优先队列(最小堆)
 class MinHeap {
   constructor(){this.heap=[]}push(t){this.heap.push(t),this.bubbleUp(this.heap.length-1)}pop(){if(0===this.heap.length)return null;const t=this.heap[0],e=this.heap.pop();return this.heap.length>0&&(this.heap[0]=e,this.sinkDown(0)),t}bubbleUp(t){for(;t>0;){const e=Math.floor((t-1)/2);if(this.heap[t].dist>=this.heap[e].dist)break;[this.heap[t],this.heap[e]]=[this.heap[e],this.heap[t]],t=e}}sinkDown(t){const e=this.heap.length;for(;;){let s=2*t+1,h=2*t+2,i=null;if(s<e&&this.heap[s].dist<this.heap[t].dist&&(i=s),h<e&&this.heap[h].dist<(null===i?this.heap[t].dist:this.heap[s].dist)&&(i=h),null===i)break;[this.heap[t],this.heap[i]]=[this.heap[i],this.heap[t]],t=i}}size(){return this.heap.length}
 }
@@ -30,14 +26,16 @@ Page({
     mode: 'auto', 
     brushSize: 35, canvasDisplayWidth: 300, canvasDisplayHeight: 400,
     imageWidth: 0, imageHeight: 0, isComparing: false, bannerUnitId: AD_CONFIG.BANNER_ID,
-    isMoveMode: false, moveX: 0, moveY: 0, moveScale: 1,
-    // 🌟 已去除(余X)等复杂文字，回归纯净标题
+    isMoveMode: false, moveX: 0, moveY: 0, 
+    moveScale: 1,           // 🌟 只用于代码控制复原，不再接收 bindscale 的污染
+    displayScale: '1.0',    // 🌟 专门提供给界面的显示数值
     leftTabTitle: 'AI去水印', rightTabTitle: '纯色去水印',
-    hasMovedOnce: false // 🌟 新增：用于控制气泡引导显示状态
+    hasMovedOnce: false 
   },
 
   canvas: null, ctx: null, maskCanvas: null, maskCtx: null, originalImage: null,
   dpr: 1, videoAd: null, interstitialAd: null, history: [], canvasRect: { left: 0, top: 0 },
+  _currentScale: 1, // 🌟 最高精度的真实底层缩放率，专门用于除法计算，绝不错位
 
   onLoad() {
     this.dpr = wx.getSystemInfoSync().pixelRatio;
@@ -64,7 +62,6 @@ Page({
     }
   },
 
-  // 🌟 通用的额度存取器
   getQuota(key) {
     const today = new Date().toLocaleDateString();
     let r = wx.getStorageSync(key) || { date: today, count: 0, extra: 0 };
@@ -116,7 +113,6 @@ Page({
     }, 300);
   },
 
-  // 🌟 取消了此处的任何额度阻拦，放开畅玩
   startProcess() {
     if (!this.data.imagePath) return;
     if (this.data.isProcessing) return;
@@ -393,11 +389,25 @@ Page({
     });
   },
 
+  // 🌟 统一且安全的重置状态逻辑 (破除底层缩放被锁死的BUG)
+  resetMoveState(extraData = {}) {
+    const targetState = { moveScale: 1, displayScale: '1.0', moveX: 0, moveY: 0, ...extraData };
+    if (this._currentScale !== 1) {
+      // 通过设置 0.999 强制打破框架的渲染缓存，让微信重新接管坐标系
+      this.setData({ moveScale: 0.999 }); 
+      setTimeout(() => { this.setData(targetState); }, 30);
+    } else {
+      this.setData(targetState);
+    }
+    this._currentScale = 1;
+  },
+
   loadImage(path) {
     wx.showLoading({ title: '加载中...' });
     this.history = []; 
-    // 🌟 每次新传图片，重置所有状态，包括气泡提醒
-    this.setData({ moveScale: 1, moveX: 0, moveY: 0, isMoveMode: false, hasMovedOnce: false, resultImage: '' });
+    // 应用重置
+    this.resetMoveState({ isMoveMode: false, hasMovedOnce: false, resultImage: '' });
+    
     wx.getImageInfo({
       src: path,
       success: (info) => {
@@ -445,7 +455,6 @@ Page({
     this.ctx.restore();
   },
 
-  // 🌟 优化：增加交互引导和气泡隐藏逻辑
   toggleMoveMode() { 
     const target = !this.data.isMoveMode;
     this.setData({ isMoveMode: target, hasMovedOnce: true });
@@ -456,24 +465,28 @@ Page({
     }
   },
 
-  // 🌟 优化：使用 setData 同步通知 WXML 更新右上角角标
+  // 🌟 核心修复 2：仅仅在这里捕获真实缩放率用于除法计算，只更新展示角标，绝不污染底层动画！
   onScaleChange(e) { 
-    this.setData({ moveScale: Number(e.detail.scale).toFixed(1) }); 
+    this._currentScale = e.detail.scale; 
+    this.setData({ displayScale: Number(e.detail.scale).toFixed(1) }); 
   },
   
   onTouchStart(e) {
     if (this.data.isMoveMode || !this.ctx) return;
     this.isDrawing = true;
-    const scale = this.data.moveScale || 1;
-    this.lastX = e.touches[0].x / scale; this.lastY = e.touches[0].y / scale;
+    // 🌟 核心修复 3：使用最高精度的 this._currentScale 计算触点！永不错位！
+    const scale = this._currentScale || 1; 
+    this.lastX = e.touches[0].x / scale; 
+    this.lastY = e.touches[0].y / scale;
     this.saveHistory();
     this.drawMaskLine(this.lastX, this.lastY, this.lastX, this.lastY);
   },
   
   onTouchMove(e) {
     if (this.data.isMoveMode || !this.isDrawing) return;
-    const scale = this.data.moveScale || 1;
-    const x = e.touches[0].x / scale; const y = e.touches[0].y / scale;
+    const scale = this._currentScale || 1; // 保持最高精度！
+    const x = e.touches[0].x / scale; 
+    const y = e.touches[0].y / scale;
     this.drawMaskLine(this.lastX, this.lastY, x, y);
     this.lastX = x; this.lastY = y;
   },
@@ -497,7 +510,7 @@ Page({
     if (this.data.mode === targetMode) return;
     this.setData({ mode: targetMode, resultImage: '' });
     this.clearMask(); 
-    this.setData({ moveX: 0, moveY: 0, moveScale: 1, isMoveMode: false });
+    this.resetMoveState({ isMoveMode: false });
     if (this.data.mode === 'manual') setTimeout(() => this.drawCanvas(), 50);
   },
   
@@ -521,19 +534,17 @@ Page({
     this.saveHistory();
     this.maskCtx.clearRect(0, 0, this.maskCanvas.width, this.maskCanvas.height);
     this.drawCanvas();
-    this.setData({ moveX: 0, moveY: 0, moveScale: 1 });
+    this.resetMoveState();
   },
 
-  // 🌟 统一的成功回调（并触发插屏广告）
   handleSuccess(filePath) {
     this.setData({ resultImage: filePath, isProcessing: false });
-    this.setData({ moveScale: 1, moveX: 0, moveY: 0, isMoveMode: false });
     this.clearMask(); 
+    this.resetMoveState({ isMoveMode: false });
     this.hideDynamicLoading();
     wx.pageScrollTo({ selector: '.result-card', duration: 300 });
     wx.showToast({ title: '处理成功', icon: 'success' });
 
-    // 🌟 在图出来的一瞬间，弹插屏
     if (this.interstitialAd) {
       this.interstitialAd.show().catch((err) => console.warn('插屏呼叫失败', err));
     }
@@ -618,7 +629,6 @@ Page({
     });
   },
 
-  // 🌟 统一后置拦截逻辑（只卡保存操作）
   saveImage() {
     if (!this.data.resultImage) return;
     const save = this.getQuota('watermark_save_quota_new');

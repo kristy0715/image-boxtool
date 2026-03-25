@@ -192,3 +192,35 @@ page {
 .loading-spinner { width: 60rpx; height: 60rpx; border: 5rpx solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
 .loading-text { margin-top: 20rpx; font-size: 26rpx; color: #64748b; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* 🌟 新增：微调按钮面板样式 */
+.tune-row {
+  display: flex;
+  align-items: center;
+  margin-top: 24rpx;
+  background: #f8fafc;
+  padding: 12rpx 20rpx;
+  border-radius: 12rpx;
+}
+.tune-btns {
+  display: flex;
+  flex: 1;
+  justify-content: space-around;
+  margin-left: 20rpx;
+}
+.tune-btn {
+  width: 70rpx;
+  height: 60rpx;
+  background: #e2e8f0;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #475569;
+  transition: 0.2s;
+}
+.tune-btn:active {
+  background: #cbd5e1;
+  transform: scale(0.9);
+}

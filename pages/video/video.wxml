@@ -1,76 +1,100 @@
-<view class="container">
+<view class="page-bg">
   <top-tips id="topTips"></top-tips>
 
-  <view class="header">
-    <text class="title">全网无水印提取</text>
-    <text class="subtitle">现已经支持大多数主流平台，完美支持抖音、快手、小红书、微博等图文/视频的高清无水印解析 ✨</text>
-  </view>
-
-  <view class="ad-box" wx:if="{{bannerUnitId}}" style="margin-bottom: 30rpx;">
-    <ad unit-id="{{bannerUnitId}}"></ad>
-  </view>
-
-  <view class="card input-card">
-    <view class="feature-tip">
-      <text>🚀 复制各大主流平台分享链接，打开小程序即可自动提取</text>
-    </view>
-    <textarea 
-      class="url-input" 
-      placeholder="请在此处粘贴分享口令或链接..." 
-      value="{{inputValue}}"
-      bindinput="handleInput"
-      maxlength="-1"
-    ></textarea>
-    <view class="action-row">
-      <view class="clear-btn" bindtap="clearInput" wx:if="{{inputValue}}">清空内容</view>
-      <view class="paste-btn" bindtap="pasteFromClipboard" wx:else>粘贴链接</view>
-    </view>
-  </view>
-
-  <button class="parse-btn {{isProcessing ? 'loading' : ''}}" bindtap="startParse">
-    {{isProcessing ? '解析中...' : '立刻提取无水印资源'}}
-  </button>
-  <view class="retry-hint">💡 小提示：如遇解析或下载失败，请多尝试点击几次提取</view>
-  <view class="card result-card" wx:if="{{videoData}}">
-    <view class="section-title">
-      <text>🎉 解析完成</text>
-      <text class="video-status">高清无水印</text>
-    </view>
+  <view class="container">
     
-    <view class="cover-box" wx:if="{{videoData.type === 'video'}}">
-      <video class="main-video" src="{{videoData.url}}" poster="{{videoData.cover}}" controls></video>
-    </view>
+    <view class="card shadow-card">
+      <view class="card-title">全网无水印提取</view>
+      <view class="card-desc">支持主流平台图片、图集、实况、视频 无水印提取</view>
+      
+      <textarea 
+        class="url-input" 
+        placeholder="请复制分享口令或链接，粘贴到这里" 
+        value="{{inputValue}}"
+        bindinput="handleInput"
+        maxlength="-1"
+      ></textarea>
 
-    <view class="images-box" wx:if="{{videoData.type === 'images'}}">
-      <scroll-view class="image-scroll {{videoData.images.length === 1 ? 'single-mode' : ''}}" scroll-x="true" enable-flex="true">
-        <view class="image-wrapper" wx:for="{{videoData.images}}" wx:key="index">
-          <image class="gallery-img" src="{{item}}" mode="aspectFill" lazy-load="true" bindtap="previewImage" data-index="{{index}}"></image> 
+      <view class="btn-row">
+        <view class="btn clear-btn shadow-btn" bindtap="clearInput">
+          <text>🗑️</text>清空
         </view>
-      </scroll-view>
-      <view class="image-count-tip">左右滑动查看共 {{videoData.images.length}} 张图片</view>
+        <view class="btn paste-btn shadow-btn" bindtap="pasteFromClipboard">
+          <text>📋</text>粘贴
+        </view>
+        <view class="btn parse-btn shadow-btn-blue {{isProcessing ? 'loading' : ''}}" bindtap="startParse">
+          {{isProcessing ? '正在解析...' : '开始解析'}}
+        </view>
+      </view>
     </view>
 
-    <view class="desc-container">
-      <text class="video-desc" selectable="true">{{videoData.title}}</text>
-      <button class="copy-desc-btn" bindtap="copyTitle">📋 复制文案</button>
+    <view class="card shadow-card" wx:if="{{!videoData}}">
+      <view class="guide-title">使用指南</view>
+      <view class="guide-step">
+        <text class="step-num">1</text>
+        <text class="step-text">打开APP，找到想要去水印的内容</text>
+      </view>
+      <view class="guide-step">
+        <text class="step-num">2</text>
+        <text class="step-text">点击分享按钮，选择“复制链接”</text>
+      </view>
+      <view class="guide-step">
+        <text class="step-num">3</text>
+        <text class="step-text">将链接粘贴到上方，点击开始解析</text>
+      </view>
     </view>
-  </view>
 
-  <view class="ad-box" wx:if="{{videoData && bannerUnitId}}" style="margin-bottom: 20rpx;">
-    <ad unit-id="{{bannerUnitId}}"></ad>
-  </view>
+    <view class="card shadow-card result-card" wx:if="{{videoData}}">
+      <view class="success-badge">✨ 解析成功</view>
 
-  <view style="height: 220rpx;"></view>
+      <view class="media-box" wx:if="{{videoData.type === 'video'}}">
+        <video class="result-video" src="{{videoData.url}}" poster="{{videoData.cover}}" controls></video>
+      </view>
+      
+      <view class="media-box" wx:if="{{videoData.type === 'images'}}">
+        <scroll-view class="img-scroll" scroll-x="true">
+          <view class="img-item-wrap" wx:for="{{videoData.images}}" wx:key="index">
+            <image class="res-img" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-index="{{index}}"></image>
+            <view class="img-tools">
+              <view class="img-tool-btn" catchtap="copySingleImageLink" data-url="{{item}}">复制</view>
+              <view class="img-tool-btn download" catchtap="saveSingleImage" data-url="{{item}}">下载</view>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="scroll-hint" wx:if="{{videoData.images.length > 2}}">
+          <text class="hint-icon">👈</text>
+          <text>左右滑动查看剩余图片 (共{{videoData.images.length}}张)</text>
+          <text class="hint-icon">👉</text>
+        </view>
+      </view>
 
-  <view class="bottom-bar" wx:if="{{videoData}}">
-    <view class="btn-group">
-      <button class="btn-action copy-style" bindtap="copyResourceLink">🔗 复制直链</button>
-      <button class="btn-action save-style" bindtap="saveResource">{{downloadProgressText}}</button>
+      <view class="desc-box">
+        <view class="desc-top">
+          <text class="desc-title">提取文案</text>
+          <view class="copy-btn shadow-btn" bindtap="copyTitle">复制</view>
+        </view>
+        <text class="desc-text" selectable="true">{{videoData.title}}</text>
+      </view>
+
+      <view class="bottom-btns">
+        <button class="b-btn outline shadow-btn" bindtap="copyResourceLink">复制链接</button>
+        <button class="b-btn primary shadow-btn" bindtap="saveResource">{{videoData.type === 'images' ? '下载全部' : downloadProgressText}}</button>
+      </view>
     </view>
-  </view>
 
-  <button class="float-share-btn" open-type="share">
-    <text class="icon">✈️</text>
-    <text class="text">分享</text>
-  </button>
+    <view class="local-tools-banner shadow-card" bindtap="goToLocalWatermark">
+      <view class="banner-left">
+        <text class="banner-icon">🖌️</text>
+        <text class="banner-text">本地图片去水印 (消除笔)</text>
+      </view>
+      <view class="banner-right">去体验 ></view>
+    </view>
+
+    <view class="ad-wrap shadow-card" wx:if="{{bannerUnitId}}">
+      <ad unit-id="{{bannerUnitId}}"></ad>
+    </view>
+
+    <view class="bottom-spacer"></view>
+
+  </view>
 </view>
