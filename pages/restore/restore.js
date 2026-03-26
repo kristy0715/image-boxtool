@@ -156,7 +156,7 @@ Page({
       
       const res = await new Promise((resolve, reject) => {
         wx.request({
-          url: BASE_URL + '/hd-fix',
+          url: BASE_URL + '/hd-restore',
           method: 'POST',
           data: { app_tag: APP_TAG, image: base64 },
           timeout: 60000, 
