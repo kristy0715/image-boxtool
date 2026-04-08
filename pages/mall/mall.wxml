@@ -1,0 +1,58 @@
+<view class="container">
+  
+  <view class="asset-card">
+    <view class="asset-header">
+      <text class="asset-title">我的可用积分</text>
+      <view class="record-btn" bindtap="goToRecord">兑换记录 ></view>
+    </view>
+    <view class="asset-body">
+      <text class="points-num">{{ points }}</text>
+      <text class="points-unit">分</text>
+    </view>
+    <view class="asset-footer">
+      <text>每日签到可持续获得积分奖励</text>
+    </view>
+  </view>
+
+  <view class="mall-section">
+    <view class="section-title">特权兑换</view>
+    
+    <view class="goods-grid">
+      <block wx:for="{{ goodsList }}" wx:key="id">
+        <view class="goods-card">
+          <view class="badge {{ item.badgeType }}" wx:if="{{ item.badge }}">{{ item.badge }}</view>
+          
+          <image class="goods-icon-img" src="{{ item.iconUrl }}" mode="aspectFit"></image>
+          <view class="goods-name">{{ item.name }}</view>
+          <view class="goods-desc">{{ item.desc }}</view>
+          
+          <view class="goods-bottom">
+            <view class="price-details">
+              <view class="current-row">
+                <text class="price-num">{{ item.price }}</text>
+                <text class="price-unit">积分</text>
+              </view>
+              <view class="original-row">
+                <text class="original-num">{{ item.originalPrice }}积分</text>
+                <text class="discount-tag">{{ item.discount }}折</text>
+              </view>
+            </view>
+            
+            <view class="buy-btn {{ points >= item.price ? 'active' : 'disabled' }}" bindtap="onRedeem" data-item="{{ item }}">
+              兑换
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+  
+  <view class="bottom-tips">
+    <text>特权兑换后立即生效，可在「我的」页面查看</text>
+  </view>
+
+  <view class="ad-box">
+    <ad unit-id="adunit-ecfcec4c6a0c871b"></ad>
+  </view>
+
+</view>

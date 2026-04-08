@@ -115,13 +115,42 @@ page {
 .copy-btn { font-size: 24rpx; color: #333333; background: #FFFFFF; padding: 10rpx 30rpx; border-radius: 100rpx; font-weight: 500; border: 1px solid #DCDFE6; }
 .desc-text { font-size: 28rpx; color: #555555; line-height: 1.6; word-break: break-all; }
 
-.bottom-btns { display: flex; gap: 30rpx; }
-.b-btn { flex: 1; height: 88rpx; border-radius: 100rpx; font-size: 30rpx; font-weight: bold; display: flex; justify-content: center; align-items: center; margin: 0 !important; border: none; box-sizing: border-box; }
+/* ================= 🌟 修复：复制与下载按钮水平一行 ================= */
+.bottom-btns { 
+  display: flex !important; 
+  flex-direction: row !important;      /* 强制横向水平排列 */
+  justify-content: space-between;      /* 两端平分对齐 */
+  align-items: center;
+  gap: 30rpx; 
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 20rpx;                   /* 和上方描述框稍微拉开一点距离 */
+}
+
+.b-btn { 
+  flex: 1 !important;                  /* 1:1 绝对平分空间 */
+  width: 100% !important;              /* 压制微信 button 原生宽度设定 */
+  height: 88rpx; 
+  border-radius: 100rpx; 
+  font-size: 30rpx; 
+  font-weight: bold; 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  margin: 0 !important;                /* 彻底干掉微信自带的边距干扰 */
+  border: none; 
+  box-sizing: border-box; 
+}
 .b-btn::after { display: none; }
 .b-btn.outline { background: #F2F4F8; color: #333333; border: 1px solid #DCDFE6; }
 .b-btn.primary { background: #2B66FF; color: #FFFFFF; }
 
-.bottom-spacer { height: 120rpx; padding-bottom: env(safe-area-inset-bottom); width: 100%; }
+/* ================= 🌟 修复：防 TabBar 遮挡 ================= */
+.bottom-spacer { 
+  height: 180rpx !important;           /* 加高到 180rpx 避开菜单栏 */
+  padding-bottom: env(safe-area-inset-bottom); 
+  width: 100%; 
+}
 
 .top-tips { position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); z-index: 99999; display: flex; justify-content: center; padding: 24rpx 0; transform: translateY(-100%); transition: 0.3s; }
 .top-tips.show { transform: translateY(0); }
@@ -161,4 +190,31 @@ page {
   color: #2B66FF; 
   font-weight: bold; 
   opacity: 0.8; 
+}
+
+/* ================= 🌟 新增：温馨提示样式 ================= */
+.retry-hint {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 30rpx;
+  padding: 20rpx 24rpx;
+  background: #F8F9FB;
+  border-radius: 12rpx;
+  border: 1px dashed #DCDFE6;
+}
+.hint-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+  margin-top: 2rpx;
+}
+.hint-text {
+  font-size: 24rpx;
+  color: #86909C;
+  line-height: 1.5;
+  flex: 1;
+}
+.retry-hint .highlight {
+  color: #2B66FF;
+  font-weight: bold;
+  margin: 0 4rpx;
 }

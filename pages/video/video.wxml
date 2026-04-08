@@ -42,9 +42,13 @@
         <text class="step-num">3</text>
         <text class="step-text">将链接粘贴到上方，点击开始解析</text>
       </view>
+      <view class="retry-hint" style="margin-top: 0rpx;">
+        <text class="hint-icon">💡</text>
+        <view class="hint-text">如下载失败，请尝试<text class="highlight">多点几次解析</text>或更换链接。</view>
+      </view>
     </view>
 
-    <view class="card shadow-card result-card" wx:if="{{videoData}}">
+    <view id="resultArea" class="card shadow-card result-card" wx:if="{{videoData}}">
       <view class="success-badge">✨ 解析成功</view>
 
       <view class="media-box" wx:if="{{videoData.type === 'video'}}">
@@ -56,8 +60,7 @@
           <view class="img-item-wrap" wx:for="{{videoData.images}}" wx:key="index">
             <image class="res-img" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-index="{{index}}"></image>
             <view class="img-tools">
-              <view class="img-tool-btn" catchtap="copySingleImageLink" data-url="{{item}}">复制</view>
-              <view class="img-tool-btn download" catchtap="saveSingleImage" data-url="{{item}}">下载</view>
+              <view class="img-tool-btn download" style="width: 100%; text-align: center; border-right: none;" catchtap="saveSingleImage" data-url="{{item}}">⬇️ 存入相册</view>
             </view>
           </view>
         </scroll-view>
@@ -77,8 +80,9 @@
       </view>
 
       <view class="bottom-btns">
-        <button class="b-btn outline shadow-btn" bindtap="copyResourceLink">复制链接</button>
-        <button class="b-btn primary shadow-btn" bindtap="saveResource">{{videoData.type === 'images' ? '下载全部' : downloadProgressText}}</button>
+        <button class="b-btn primary shadow-btn" style="width: 100%;" bindtap="saveResource">
+          {{videoData.type === 'images' ? '📥 一键下载全部' : '📥 ' + downloadProgressText}}
+        </button>
       </view>
     </view>
 

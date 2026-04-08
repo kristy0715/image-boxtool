@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container" wx:if="{{isAllowed}}">
   
   <view class="page-header">
     <text class="page-title">AI 画质修复</text>
@@ -54,7 +54,14 @@
       <view class="preview-box" style="width: 100%; display: flex; justify-content: center; background: #fff; padding: 20rpx; border-radius: 32rpx; box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.06); box-sizing: border-box;">
         <image src="{{selectedImage}}" mode="aspectFit" style="width: {{layout.width}}px; height: {{layout.height}}px; border-radius: 20rpx;"></image>
       </view>
-      <view class="instruction-bar" style="margin-top:20rpx; text-align:center;"><text style="font-size: 26rpx; color: #64748b;">准备就绪，点击底部按钮开始修复</text></view>
+      
+      <view class="highlight-panel" style="margin-top: 30rpx; margin-bottom: 0;">
+        <view class="settings-text-group">
+          <text class="settings-title">✨ 加强人脸美颜修复</text>
+          <text class="settings-desc">一键磨皮亮肤，提升五官立体感</text>
+        </view>
+        <switch checked="{{useBeauty}}" bindchange="toggleBeauty" color="#4f46e5"/>
+      </view>
 
       <view class="cross-promote glow-effect" bindtap="goToWatermark" style="margin-top: 30rpx;">
         <view class="cp-icon">💡</view>
@@ -106,7 +113,7 @@
   <view class="loading-overlay" wx:if="{{isProcessing}}">
     <view class="loading-box">
       <view class="loading-spinner"></view>
-      <text class="loading-text">AI 正在注入像素细节...</text>
+      <text class="loading-text">{{loadingText || 'AI 正在注入像素细节...'}}</text>
       <text style="font-size:24rpx; color:#94a3b8; margin-top:10rpx;">大概需要 5-15 秒</text>
     </view>
   </view>

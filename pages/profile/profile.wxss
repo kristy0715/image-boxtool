@@ -1,0 +1,138 @@
+/* 页面底色与全局字体 */
+page { 
+  background-color: #f4f5f7; 
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif; 
+}
+
+/* 🌟 修复遮挡：加大底部留白高度至 180rpx，完美避开自定义 TabBar */
+.container { 
+  padding-bottom: calc(180rpx + env(safe-area-inset-bottom)); 
+}
+
+/* ================= 🌟 统一菜单项底层盒子模型 ================= */
+.btn-reset { 
+  margin: 0; padding: 0; background-color: transparent; line-height: inherit; border-radius: 0; text-align: left; 
+}
+.btn-reset::after { border: none; }
+
+/* 彻底重置微信原生 button 与 view 的样式差异，强制左右两端对齐 */
+.menu-item { 
+  width: 100% !important; 
+  display: flex !important; 
+  justify-content: space-between !important; 
+  align-items: center !important; 
+  padding: 32rpx 0 !important; 
+  border-bottom: 1px solid #f1f5f9 !important; 
+  box-sizing: border-box !important; 
+  background-color: transparent !important; 
+  line-height: normal !important;
+  border-radius: 0 !important;
+}
+.menu-item:last-child { border-bottom: none !important; }
+.menu-item:active { opacity: 0.7; background-color: #f8fafc !important; }
+
+/* 剥离原生 button 边框线 */
+button.menu-item::after { display: none !important; border: none !important; }
+
+.menu-left { display: flex; align-items: center; }
+.menu-icon { font-size: 36rpx; margin-right: 20rpx; }
+.menu-text { font-size: 28rpx; color: #333; font-weight: normal; }
+
+/* 强制统一右侧箭头的字体、粗细和颜色 */
+.menu-arrow { 
+  font-size: 28rpx; 
+  color: #cbd5e1; 
+  font-family: -apple-system, sans-serif !important; 
+  font-weight: 400 !important; 
+}
+
+
+/* ================= 🌟 区域一：VIP 用户信息卡片 ================= */
+.profile-header { margin: 30rpx; border-radius: 24rpx; padding: 40rpx 30rpx; box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.05); transition: all 0.3s; }
+.user-info { display: flex; align-items: center; }
+.avatar-box { margin-right: 30rpx; }
+.avatar { width: 120rpx; height: 120rpx; border-radius: 50%; border: 4rpx solid #fff; background: #e2e8f0; }
+.text-info { flex: 1; }
+.nickname { font-size: 36rpx; font-weight: bold; color: #1e293b; margin-bottom: 12rpx; }
+.expire-date { font-size: 24rpx; color: #94a3b8; }
+
+/* 🌟 修改原有的 .vip-tag，加上 Flex 居中对齐 */
+.vip-tag { 
+  display: inline-flex;  /* 从 inline-block 改为 inline-flex */
+  align-items: center; 
+  padding: 6rpx 20rpx;
+  border-radius: 50rpx; 
+  font-size: 22rpx; 
+  font-weight: bold; 
+  margin-bottom: 12rpx; 
+}
+
+/* 🌟 新增个人中心的 VIP 小图标尺寸 */
+.vip-icon-img {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 8rpx;
+}
+.vip-icon { margin-right: 4rpx; font-size: 22rpx; }
+
+/* --- 动态皮肤：普通会员 --- */
+.tag-gray { background: #e2e8f0; color: #64748b; }
+.normal-mode { background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%); border: 1px solid #e2e8f0; }
+
+/* --- 动态皮肤：银色 VIP --- */
+.tag-silver { background: linear-gradient(90deg, #E2E2E2 0%, #C0C0C0 100%); color: #4A4A4A; box-shadow: 0 2rpx 8rpx rgba(192,192,192,0.4); }
+.silver-mode { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; }
+.silver-mode .avatar { border-color: #C0C0C0; }
+
+/* --- 动态皮肤：金色 VIP --- */
+.tag-gold { background: linear-gradient(90deg, #fcebb6 0%, #f5d491 100%); color: #6b4c0a; box-shadow: 0 2rpx 8rpx rgba(245,212,145,0.4); }
+.gold-mode { background: linear-gradient(135deg, #2c2d31 0%, #1a1a1c 100%); box-shadow: 0 12rpx 30rpx rgba(0,0,0,0.15); }
+.gold-mode .avatar { border-color: #f5d491; }
+.gold-mode .nickname { color: #f5d491; }
+.gold-mode .expire-date { color: rgba(245, 212, 145, 0.6); }
+
+
+/* ================= 🌟 区域二：并排操作卡片 (签到 + 兑换) ================= */
+.action-section { display: flex; justify-content: space-between; margin: 0 30rpx 40rpx 30rpx; gap: 20rpx; }
+.action-card { flex: 1; background: #fff; border-radius: 20rpx; padding: 24rpx; display: flex; align-items: center; box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.03); }
+.action-card:active { transform: scale(0.98); opacity: 0.9; }
+.action-icon { font-size: 40rpx; margin-right: 16rpx; }
+.action-text { flex: 1; display: flex; flex-direction: column; }
+.action-title { font-size: 28rpx; font-weight: bold; color: #334155; }
+.action-desc { font-size: 20rpx; color: #94a3b8; margin-top: 4rpx; }
+.action-arrow { font-size: 28rpx; color: #cbd5e1; font-weight: 300; }
+
+
+/* ================= 🌟 区域三：解析记录统计面板 ================= */
+.stats-card { background: #fff; border-radius: 20rpx; padding: 30rpx; margin: 0 30rpx 30rpx 30rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.02); }
+.stats-card:active { background: #f8fafc; }
+.card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 24rpx; margin-bottom: 24rpx; }
+.card-title { font-size: 30rpx; font-weight: bold; color: #1e293b; display: flex; align-items: center; }
+.title-icon { margin-right: 12rpx; }
+.card-arrow { font-size: 24rpx; color: #94a3b8; }
+
+.stats-data { display: flex; justify-content: space-around; align-items: center; }
+.stat-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.stat-num { font-size: 44rpx; font-weight: bold; color: #333; margin-bottom: 8rpx; font-family: 'DIN Alternate', sans-serif; }
+.stat-label { font-size: 24rpx; color: #64748b; }
+.stat-divider { width: 2rpx; height: 60rpx; background: #e2e8f0; }
+
+
+/* ================= 🌟 区域四：功能入口列表 ================= */
+.menu-list { background: #fff; border-radius: 20rpx; padding: 0 30rpx; margin: 0 30rpx 40rpx 30rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.02); overflow: hidden; }
+
+
+/* ================= 🌟 区域五：广告位 ================= */
+.ad-container { margin: 0 30rpx; border-radius: 16rpx; overflow: hidden; }
+.ad-placeholder { width: 100%; height: 200rpx; background: #e2e8f0; display: flex; justify-content: center; align-items: center; color: #94a3b8; font-size: 28rpx; border: 1px dashed #cbd5e1; box-sizing: border-box; }
+
+/* ================= 🌟 修复与新增 UID 样式 ================= */
+.nickname { margin-bottom: 6rpx; }
+.uid-tag { 
+  display: inline-flex; align-items: center; background: rgba(0,0,0,0.05); 
+  padding: 4rpx 16rpx; border-radius: 20rpx; font-size: 22rpx; color: #64748b; 
+  margin-bottom: 12rpx; font-family: 'DIN Alternate', sans-serif;
+}
+.uid-tag:active { opacity: 0.7; }
+.copy-icon { font-size: 20rpx; margin-left: 6rpx; }
+.gold-mode .uid-tag { background: rgba(245, 212, 145, 0.15); color: rgba(245, 212, 145, 0.8); }

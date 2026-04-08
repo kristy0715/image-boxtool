@@ -13,6 +13,12 @@ Component({
         text: "修图工具",
         iconPath: "/images/tab_home.png",
         selectedIconPath: "/images/tab_home_active.png"
+      },
+      {
+        pagePath: "pages/profile/profile",
+        text: "我的",
+        iconPath: "/images/tab_me.png",
+        selectedIconPath: "/images/tab_me_active.png"
       }
     ]
   },

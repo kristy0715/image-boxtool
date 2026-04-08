@@ -12,8 +12,8 @@ const ALL_TOOLS = [
   {id:'watermark',title:'图片去水印',desc:'无痕去水印 去路人/杂物',icon:'✨',colors:['#f59e0b','#fbbf24']}, 
   {id:'idphoto',title:'最美证件照',desc:'一寸/二寸 智能抠图换底',icon:'📷',colors:['#6366f1','#8b5cf6']},
   {id:'idprint',title:'证件照排版',desc:'排版打印神器 超级省钱',icon:'🖨️',colors:['#8b5cf6','#a78bfa']},
-  {id:'matting',title:'AI智能抠图',desc:'发丝级抠图 一键换背景',icon:'🦋',colors:['#ec4899','#f472b6']}, 
-  {id:'restore', title:'AI高清修复', desc:'模糊变清晰 老照片翻新', icon:'💎', colors:['#6366f1', '#8b5cf6']}, 
+  {id:'matting',title:'智能抠图',desc:'发丝级抠图 一键换背景',icon:'🦋',colors:['#ec4899','#f472b6']}, 
+  {id:'restore', title:'高清修复', desc:'模糊变清晰 老照片翻新', icon:'💎', colors:['#6366f1', '#8b5cf6']}, 
   {id:'grid9',title:'九宫格切图',desc:'朋友圈防折叠 心形拼图',icon:'🍱',colors:['#64748b','#94a3b8']},
   {id:'collage',title:'全能拼图',desc:'多图无缝拼接 宫格海报',icon:'🧩',colors:['#14b8a6','#2dd4bf']},
   {id:'crop',title:'图片裁剪',desc:'自由缩放 社交头像比例',icon:'✂️',colors:['#f59e0b','#fbbf24']},
@@ -26,7 +26,7 @@ const ALL_TOOLS = [
 const ALL_OCR = [
   {id:'text2img',title:'长文转图',desc:'文字生成图片 朋友圈防折叠',icon:'📄',colors:['#10b981','#34d399']},
   {id:'ocr',title:'图片转文字',desc:'OCR拍照取字 智能提取',icon:'🔍',colors:['#3b82f6','#60a5fa']}, 
-  {id:'text',title:'加文字 加水印',desc:'图片加字 防盗打码 加Logo',icon:'✏️',colors:['#8b5cf6','#a78bfa']}, 
+  {id:'text',title:'加文字 加水印 叠加图',desc:'图片加字 防盗打码 加Logo',icon:'✏️',colors:['#8b5cf6','#a78bfa']}, 
   {id:'qrcode',title:'二维码生成',desc:'文本/网址极速转码',icon:'🔳',colors:['#6366f1','#8b5cf6']}
 ];
 
@@ -52,9 +52,9 @@ Page({
     showFortuneModal: false,
     todayFortune: null,
     bannerUnitId: 'adunit-ecfcec4c6a0c871b',
-    toolList: [],
-    ocrList: [],
-    funList: [],
+    toolList: [], // 🌟 真实的渲染变量 1
+    ocrList: [],  // 🌟 真实的渲染变量 2
+    funList: [],  // 🌟 真实的渲染变量 3
     kefuX: 300,
     kefuY: 500
   },
@@ -68,60 +68,60 @@ Page({
         kefuY: sysInfo.windowHeight * 0.65 
       });
     } catch (e) {}
-    this.checkAuditStatus();
     this.initFortune();
     this.initVideoAd();
     this.initInterstitialAd();
   },
 
   onShow() {
-    // 🌟 核心：每次进入首页，主动点亮底部 TabBar 第 2 个按钮
+    // 保证自定义 TabBar 的高亮状态正确
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1 });
+      this.getTabBar().setData({ selected: 0 });
     }
-  },
 
-  checkAuditStatus() {
-    const safeIds = [
-       'video',     // 🌟 核心：确保审核期也有兜底的短视频入口
-       'watermark', 
-       'ocr',       
-       'retouch',   
-       'burst',     
-       'text2img',  
-       'batchwm',   
-       'idphoto',   
-       'idprint',   
-       'grid9',     
-       'collage',   
-       'crop',      
-       'compress',  
-       'mosaic',    
-       'longpic',   
-       'text',      
-       'avatar',    
-       'meme',      
-    ];
-    this.setData({
-        toolList: ALL_TOOLS.filter(i => safeIds.includes(i.id)),
-        ocrList: ALL_OCR.filter(i => safeIds.includes(i.id)),
-        funList: ALL_FUN.filter(i => safeIds.includes(i.id))
+    // 🌟 开启照妖镜：直接把服务器发来的数据弹在屏幕上！
+    Audit.getConfig().then(({ isAudit, blockList }) => {
+      // 执行剔除逻辑
+      const visibleTools = ALL_TOOLS.filter(tool => !blockList.includes(tool.id));
+      const visibleOcr = ALL_OCR.filter(tool => !blockList.includes(tool.id));
+      const visibleFun = ALL_FUN.filter(tool => !blockList.includes(tool.id));
+
+      this.setData({
+        toolList: visibleTools,
+        ocrList: visibleOcr,
+        funList: visibleFun
+      });
     });
-
-    Audit.getConfig()
-      .then(({ isAudit, blockList }) => {
-        if (isAudit) {
-          this.setData({
-            toolList: ALL_TOOLS.filter(item => !blockList.includes(item.id)),
-            ocrList: ALL_OCR.filter(item => !blockList.includes(item.id)),
-            funList: ALL_FUN.filter(item => !blockList.includes(item.id))
-          });
-        } else {
-          this.setData({ toolList: ALL_TOOLS, ocrList: ALL_OCR, funList: ALL_FUN });
-        }
-      })
-      .catch((err) => { console.error('配置拉取失败', err); });
   },
+
+// 🌟 核心大招：统一的动态过滤函数 (已去除测试弹窗)
+refreshToolsByAudit() {
+  // 第一步：在等待网络请求时，先用一套“绝对安全”的白名单兜底
+  const safeIds = [
+     'video', 'watermark', 'ocr', 'retouch', 'burst', 'text2img', 
+     'batchwm', 'idphoto', 'idprint', 'grid9', 'collage', 'crop', 
+     'compress', 'mosaic', 'longpic', 'text', 'avatar', 'meme'
+  ];
+  this.setData({
+      toolList: ALL_TOOLS.filter(i => safeIds.includes(i.id)),
+      ocrList: ALL_OCR.filter(i => safeIds.includes(i.id)),
+      funList: ALL_FUN.filter(i => safeIds.includes(i.id))
+  });
+
+  // 第二步：正式向探针索要服务器下发的最新名单，并过滤图标
+  Audit.getConfig()
+    .then(({ isAudit, blockList }) => {
+      // 使用 filter 语法，将 3 个真实渲染变量中，存在于 blockList 里的图标全部剔除！
+      this.setData({
+        toolList: ALL_TOOLS.filter(item => !blockList.includes(item.id)),
+        ocrList: ALL_OCR.filter(item => !blockList.includes(item.id)),
+        funList: ALL_FUN.filter(item => !blockList.includes(item.id))
+      });
+    })
+    .catch((err) => { 
+      console.error('配置拉取失败', err); 
+    });
+},
 
   initNavBar() {
     try {
@@ -136,7 +136,6 @@ Page({
 
   goToPage(e) {
     const page = e.currentTarget.dataset.page;
-    // 🌟 核心：如果是点视频卡片，必须用 switchTab 拦截跳转！
     if (page === 'video') {
       wx.switchTab({ url: '/pages/video/video' });
       return;

@@ -1,109 +1,119 @@
 // utils/audit.js
 const app = getApp();
 
-// 🔥 你的小程序标识 (不同的小程序填不同的名字)
+// 🔥 你的小程序标识
 const APP_TAG = 'default_app'; 
 
-// 动态拼接 URL，把 app_tag 传给服务器
-const AUDIT_URL = `https://goodgoodstudy-nb.top/api/check-config?app_tag=${APP_TAG}`;
+// 🌟 核心：提审版本号
+const APP_VERSION = '3.1.0'; 
 
-// 兜底的黑名单（当服务器网络异常时，默认隐藏这些最容易被拒的 AI 功能保平安）
-const DEFAULT_BLOCK_LIST = ['art'];
+// 获取带时间戳的防缓存 URL
+const getAuditUrl = () => `https://goodgoodstudy-nb.top/api/v1/wx-proxy/check-config?app_tag=${APP_TAG}&version=${APP_VERSION}&t=${Date.now()}`;
+
+// 网络彻底断开时的最后一道防线
+const DEFAULT_BLOCK_LIST = ['art', 'matting', 'restore', 'watermark'];
+
+let hasFetched = false;
 
 /**
- * 🛡️ 路由守卫 (供子页面使用)
- * 检查当前页面是否允许访问。如果是审核模式，自动踢回首页。
- * @returns {Promise<boolean>} true = 允许访问; false = 已被拦截
+ * 🛡️ 路由守卫 (供子页面如 art/restore 使用)
+ * 🌟 升级版：精确打击！只踢出在 blockList 名单里的页面！
  */
 function checkAccess() {
   return new Promise((resolve) => {
-    // 1. 优先读取全局缓存 (避免重复请求)
-    if (app.globalData && typeof app.globalData.isAuditMode === 'boolean') {
-      if (app.globalData.isAuditMode) {
+    // 自动获取当前所在页面的路径 (例如: "pages/art/art")
+    const pages = getCurrentPages();
+    const currentRoute = pages.length > 0 ? pages[pages.length - 1].route : '';
+
+    // 判断当前页面是否应该被踢出
+    const checkAndKick = (blockList) => {
+      const isBlocked = blockList.some(item => currentRoute.includes(item));
+      if (isBlocked) {
         _kickOut();
         resolve(false);
       } else {
-        resolve(true);
+        resolve(true); // 如果页面不在名单里，哪怕是审核期也放行！
       }
+    };
+
+    if (hasFetched && app.globalData && app.globalData.blockList) {
+      checkAndKick(app.globalData.blockList);
       return;
     }
 
-    // 2. 缓存无值，请求云端
     wx.request({
-      url: AUDIT_URL,
+      url: getAuditUrl(),
       method: 'GET',
       success: (res) => {
-        // 默认为 true (安全模式)，除非明确返回 false
+        hasFetched = true;
         const isAudit = (res.data && res.data.is_audit !== undefined) ? res.data.is_audit : true;
+        let blockList = res.data.hidden_ids || [];
         
-        // 更新全局缓存
-        if (app.globalData) app.globalData.isAuditMode = isAudit;
-
-        if (isAudit) {
-          _kickOut();
-          resolve(false);
-        } else {
-          resolve(true);
+        if (app.globalData) {
+          app.globalData.isAuditMode = isAudit;
+          app.globalData.blockList = blockList;
         }
+        checkAndKick(blockList);
       },
       fail: () => {
-        // 接口挂了，为了安全，默认执行拦截
-        console.error('配置接口请求失败，执行兜底拦截');
-        _kickOut();
-        resolve(false);
+        hasFetched = true;
+        if (app.globalData) {
+          app.globalData.isAuditMode = true;
+          app.globalData.blockList = DEFAULT_BLOCK_LIST;
+        }
+        checkAndKick(DEFAULT_BLOCK_LIST);
       }
     });
   });
 }
 
 /**
- * 📥 获取配置 (供首页使用)
- * 只拉取状态和黑名单，不执行跳转拦截。
- * @returns {Promise<Object>} { isAudit: boolean, blockList: Array }
+ * 📥 获取配置 (供首页获取功能菜单展现状态)
  */
 function getConfig() {
   return new Promise((resolve) => {
+    if (hasFetched && app.globalData && app.globalData.isAuditMode !== null) {
+      resolve({ 
+        isAudit: app.globalData.isAuditMode, 
+        blockList: app.globalData.blockList || [] 
+      });
+      return;
+    }
+
     wx.request({
-      url: AUDIT_URL,
+      url: getAuditUrl(),
       method: 'GET',
       success: (res) => {
+        hasFetched = true;
         const isAudit = (res.data && res.data.is_audit !== undefined) ? res.data.is_audit : true;
         
-        // 2. 获取名单 (兼容 hidden_ids)
-        let blockList = [];
-        if (res.data && res.data.hidden_ids) {
-          blockList = res.data.hidden_ids;
-        }
+        // 🌟 修复：直接信任服务器下发的名单，就算为空也认！
+        let blockList = res.data.hidden_ids || [];
 
-        // 防止因为没配黑名单导致违规功能在审核期暴露
-        if (isAudit && blockList.length === 0) {
-          blockList = DEFAULT_BLOCK_LIST;
+        if (app.globalData) {
+           app.globalData.isAuditMode = isAudit;
+           app.globalData.blockList = blockList;
         }
-
-        // 3. 更新全局变量
-        if (app.globalData) app.globalData.isAuditMode = isAudit;
         resolve({ isAudit, blockList });
       },
       fail: () => {
-        // 接口挂了 -> 默认开启审核模式 + 使用本地死锁名单
-        console.error('配置接口请求失败，使用本地兜底审核配置');
-        if (app.globalData) app.globalData.isAuditMode = true;
-        resolve({ isAudit: true, blockList: DEFAULT_BLOCK_LIST });
+        hasFetched = true;
+        if (app.globalData) {
+            app.globalData.isAuditMode = true;
+            app.globalData.blockList = DEFAULT_BLOCK_LIST;
+        }
+        resolve({ isAudit: true, blockList: DEFAULT_BLOCK_LIST }); // 只有真断网了才用兜底
       }
     });
   });
 }
 
-// 内部函数：踢回首页
 function _kickOut() {
-  console.warn('⛔️ 拦截：审核模式禁止访问此页面');
-  // 加一个微小的延时，让页面有时间完成底层的初始化登记，然后再销毁它
+  console.warn('⛔️ 拦截：该页面已被动态配置隔离');
+  wx.showToast({ title: '功能升级中', icon: 'none' });
   setTimeout(() => {
     wx.reLaunch({ url: '/pages/index/index' });
-  }, 200);
+  }, 1000);
 }
 
-module.exports = {
-  checkAccess,
-  getConfig
-};
+module.exports = { checkAccess, getConfig };

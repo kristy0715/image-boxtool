@@ -27,7 +27,13 @@
     "pages/restore/restore",
     "pages/test/test",
     "pages/qrcode/qrcode",
-    "pages/docscan/docscan"
+    "pages/docscan/docscan",
+    "pages/profile/profile",
+    "pages/sign/sign",
+    "pages/history/history",
+    "pages/mall/mall",
+    "pages/help/help"
+  
   ],
   "window": {
     "backgroundTextStyle": "dark",
@@ -54,6 +60,12 @@
         "text": "修图工具",
         "iconPath": "images/tab_home.png",
         "selectedIconPath": "images/tab_home_active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/tab_me.png",
+        "selectedIconPath": "images/tab_me_active.png"
       }
     ]
   },

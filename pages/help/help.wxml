@@ -1,0 +1,59 @@
+<view class="container">
+  
+  <scroll-view class="header-bar" scroll-x="true" show-scrollbar="false" enable-flex="true">
+    <view class="tabs">
+      <view class="tab-item {{ currentTab === 'doubao' ? 'active' : '' }}" bindtap="switchTab" data-tab="doubao">
+        <text class="tab-text">豆包</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'doubao' }}"></view>
+      </view>
+      <view class="tab-item {{ currentTab === 'qianwen' ? 'active' : '' }}" bindtap="switchTab" data-tab="qianwen">
+        <text class="tab-text">千问</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'qianwen' }}"></view>
+      </view>
+      <view class="tab-item {{ currentTab === 'douyin' ? 'active' : '' }}" bindtap="switchTab" data-tab="douyin">
+        <text class="tab-text">抖音</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'douyin' }}"></view>
+      </view>
+      <view class="tab-item {{ currentTab === 'kuaishou' ? 'active' : '' }}" bindtap="switchTab" data-tab="kuaishou">
+        <text class="tab-text">快手</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'kuaishou' }}"></view>
+      </view>
+      <view class="tab-item {{ currentTab === 'xiaohongshu' ? 'active' : '' }}" bindtap="switchTab" data-tab="xiaohongshu">
+        <text class="tab-text">小红书</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'xiaohongshu' }}"></view>
+      </view>
+      <view class="tab-item {{ currentTab === 'bilibili' ? 'active' : '' }}" bindtap="switchTab" data-tab="bilibili">
+        <text class="tab-text">B站</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'bilibili' }}"></view>
+      </view>
+
+      <view class="tab-item {{ currentTab === 'other' ? 'active' : '' }}" bindtap="switchTab" data-tab="other">
+        <text class="tab-text">其他</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'other' }}"></view>
+      </view>
+      
+    </view>
+  </scroll-view>
+
+  <view class="help-content">
+     <view class="help-card">
+         <view class="help-title">如何获取「{{currentPlatformName}}」链接？</view>
+         
+         <view class="step-box" wx:for="{{helpData[currentTab]}}" wx:key="index">
+            <view class="step-item">
+                <view class="step-num">{{index + 1}}</view>
+                <view class="step-text">{{item.text}}</view>
+            </view>
+            
+            <image 
+                class="step-image" 
+                src="{{item.image}}" 
+                mode="widthFix" 
+                wx:if="{{item.image}}">
+            </image>
+         </view>
+         
+         </view>
+  </view>
+
+</view>

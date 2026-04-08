@@ -4,8 +4,9 @@ const Security = require('../../utils/security.js');
 
 // === 1. 广告配置 ===
 const AD_CONFIG = {
-  BANNER_ID: 'adunit-ecfcec4c6a0c871b',       // 请替换为您的 Banner 广告 ID
-  VIDEO_ID: 'adunit-da175a2014d3443b' // 请替换为您的 激励视频广告 ID
+  BANNER_ID: 'adunit-ecfcec4c6a0c871b',       
+  VIDEO_ID: 'adunit-da175a2014d3443b', 
+  INTERSTITIAL_ID: 'adunit-a9556a7e617c27b7' // 🌟 新增：这里替换成你在微信后台申请的【插屏广告ID】
 };
 
 // === 2. 策略配置 ===
@@ -21,22 +22,29 @@ Page({
     quality: 80,
     isProcessing: false,
     originalFileSize: 0,
-    compressMode: 'quality',  
+    
+    compressMode: 'quality',  // 🌟 现在支持 'quality', 'size', 'pixel'
+    
     targetSize: 200, 
     maxTargetSize: 1000,
+    
+    // 🌟 新增：像素模式专用数据
+    originalWidth: 0,
+    originalHeight: 0,
+    targetWidth: 0,
+    targetHeight: 0,
     
     // 绑定 Banner ID
     bannerUnitId: AD_CONFIG.BANNER_ID
   },
 
   videoAd: null,
-
+  interstitialAd: null, // 🌟 新增插屏广告实例
   onLoad() {
-    // 初始化视频广告
     this.initVideoAd();
+    this.initInterstitialAd(); // 🌟 新增：页面加载时顺便拉取插屏广告
   },
 
-  // === 3. 初始化激励视频 ===
   initVideoAd() {
     if (wx.createRewardedVideoAd) {
       this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
@@ -44,14 +52,11 @@ Page({
       this.videoAd.onError((err) => console.error('激励视频加载失败', err));
       
       this.videoAd.onClose((res) => {
-        // 用户点击了【关闭广告】按钮
         if (res && res.isEnded) {
-          // A. 完整观看：解锁权益并保存
           this.setDailyUnlimited();
           wx.showToast({ title: '已解锁今日无限次', icon: 'success' });
           this.startSaveProcess(); 
         } else {
-          // B. 中途退出：提示
           wx.showModal({
             title: '提示',
             content: '需要完整观看视频才能解锁今日无限次保存权限哦',
@@ -65,25 +70,32 @@ Page({
     }
   },
 
-  // === 4. 额度检查逻辑 (核心拦截) ===
+  // 🌟 新增：初始化插屏广告的独立函数
+  initInterstitialAd() {
+    if (wx.createInterstitialAd) {
+      this.interstitialAd = wx.createInterstitialAd({
+        adUnitId: AD_CONFIG.INTERSTITIAL_ID
+      });
+      this.interstitialAd.onLoad(() => console.log('插屏广告加载成功'));
+      this.interstitialAd.onError((err) => console.error('插屏广告加载失败', err));
+    }
+  },
+
   checkQuotaAndSave() {
     const today = new Date().toLocaleDateString();
-    const storageKey = 'compress_usage_record'; // 注意 key 要独立
+    const storageKey = 'compress_usage_record'; 
     let record = wx.getStorageSync(storageKey) || { date: today, count: 0, isUnlimited: false };
 
-    // 跨天重置
     if (record.date !== today) {
       record = { date: today, count: 0, isUnlimited: false };
       wx.setStorageSync(storageKey, record);
     }
 
-    // 情况A: 已解锁 -> 直接保存
     if (record.isUnlimited) {
       this.startSaveProcess();
       return;
     }
 
-    // 情况B: 有免费次数 -> 扣除并保存
     if (record.count < FREE_COUNT_DAILY) {
       record.count++;
       wx.setStorageSync(storageKey, record);
@@ -96,7 +108,6 @@ Page({
       return;
     }
 
-    // 情况C: 次数用尽 -> 弹广告
     this.showAdModal();
   },
 
@@ -117,7 +128,6 @@ Page({
         success: (res) => {
           if (res.confirm) {
             this.videoAd.show().catch(() => {
-              // 广告加载失败，兜底允许保存
               this.startSaveProcess();
             });
           }
@@ -128,12 +138,9 @@ Page({
     }
   },
 
-  // 监听 Banner 错误
   onAdError(err) {
     console.log('Banner 广告加载失败:', err);
   },
-
-  // === 业务逻辑 ===
 
   chooseImage() {
     wx.chooseMedia({
@@ -149,18 +156,28 @@ Page({
         Security.checkImage(filePath).then((isSafe) => {
           wx.hideLoading();
           if (isSafe) {
-            const fileSize = tempFile.size;
-            const maxTarget = Math.min(Math.floor(fileSize / 1024 * 0.8), 2000);
+            // 🌟 获取图片尺寸信息 (为了支持像素转换)
+            wx.getImageInfo({
+              src: filePath,
+              success: (imgInfo) => {
+                const fileSize = tempFile.size;
+                const maxTarget = Math.min(Math.floor(fileSize / 1024 * 0.8), 2000);
 
-            this.setData({
-              imagePath: filePath,
-              originalSize: this.formatFileSize(fileSize),
-              originalFileSize: fileSize,
-              compressedImage: '',
-              compressedSize: '',
-              compressionRatio: '',
-              maxTargetSize: Math.max(100, maxTarget),
-              targetSize: Math.min(200, Math.floor(maxTarget / 2))
+                this.setData({
+                  imagePath: filePath,
+                  originalWidth: imgInfo.width,
+                  originalHeight: imgInfo.height,
+                  targetWidth: imgInfo.width,    // 默认回显原图宽
+                  targetHeight: imgInfo.height,  // 默认回显原图高
+                  originalSize: this.formatFileSize(fileSize),
+                  originalFileSize: fileSize,
+                  compressedImage: '',
+                  compressedSize: '',
+                  compressionRatio: '',
+                  maxTargetSize: Math.max(100, maxTarget),
+                  targetSize: Math.min(200, Math.floor(maxTarget / 2))
+                });
+              }
             });
           } else {
             console.log('图片违规，停止加载');
@@ -183,41 +200,29 @@ Page({
   },
 
   onQualityChange(e) {
-    this.setData({
-      quality: e.detail.value,
-      compressedImage: '',
-      compressedSize: '',
-      compressionRatio: ''
-    });
+    this.setData({ quality: e.detail.value, compressedImage: '', compressedSize: '', compressionRatio: '' });
   },
 
   onTargetSizeChange(e) {
-    this.setData({
-      targetSize: e.detail.value,
-      compressedImage: '',
-      compressedSize: '',
-      compressionRatio: ''
-    });
+    this.setData({ targetSize: e.detail.value, compressedImage: '', compressedSize: '', compressionRatio: '' });
+  },
+
+  // 🌟 新增：监听输入像素的变化，自动计算高度保持比例
+  onTargetWidthChange(e) {
+    let w = parseInt(e.detail.value) || '';
+    let h = '';
+    if (w && this.data.originalWidth) {
+      h = Math.round(w * (this.data.originalHeight / this.data.originalWidth));
+    }
+    this.setData({ targetWidth: w, targetHeight: h, compressedImage: '', compressedSize: '', compressionRatio: '' });
   },
 
   setQuickQuality(e) {
-    const value = parseInt(e.currentTarget.dataset.value);
-    this.setData({
-      quality: value,
-      compressedImage: '',
-      compressedSize: '',
-      compressionRatio: ''
-    });
+    this.setData({ quality: parseInt(e.currentTarget.dataset.value), compressedImage: '', compressedSize: '', compressionRatio: '' });
   },
 
   setQuickSize(e) {
-    const value = parseInt(e.currentTarget.dataset.value);
-    this.setData({
-      targetSize: value,
-      compressedImage: '',
-      compressedSize: '',
-      compressionRatio: ''
-    });
+    this.setData({ targetSize: parseInt(e.currentTarget.dataset.value), compressedImage: '', compressedSize: '', compressionRatio: '' });
   },
 
   compressImage() {
@@ -228,8 +233,10 @@ Page({
 
     if (this.data.compressMode === 'quality') {
       this.compressByQuality(this.data.quality);
-    } else {
+    } else if (this.data.compressMode === 'size') {
       this.compressBySize();
+    } else if (this.data.compressMode === 'pixel') {
+      this.compressByPixel(); // 🌟 路由到新的像素转换逻辑
     }
   },
 
@@ -238,11 +245,8 @@ Page({
     wx.compressImage({
       src: this.data.imagePath,
       quality: quality,
-      success: (res) => {
-        this.handleCompressResult(res.tempFilePath);
-      },
+      success: (res) => { this.handleCompressResult(res.tempFilePath); },
       fail: (err) => {
-        console.error('压缩失败:', err);
         this.setData({ isProcessing: false });
         wx.showToast({ title: '压缩失败', icon: 'none' });
       }
@@ -250,6 +254,7 @@ Page({
   },
 
   compressBySize() {
+    // 你的原代码完全保持不变...
     this.setData({ isProcessing: true });
     const targetBytes = this.data.targetSize * 1024;
     let minQuality = 10;
@@ -293,9 +298,7 @@ Page({
               }
               tryCompress(nextQuality);
             },
-            fail: () => {
-              this.handleCompressResult(bestPath || res.tempFilePath);
-            }
+            fail: () => { this.handleCompressResult(bestPath || res.tempFilePath); }
           });
         },
         fail: () => {
@@ -307,80 +310,122 @@ Page({
     tryCompress(50);
   },
 
-  handleCompressResult(compressedPath) {
+  // 🌟 新增：像素转换专属处理逻辑
+  compressByPixel() {
+    this.setData({ isProcessing: true });
+    const targetW = parseInt(this.data.targetWidth);
+    const targetH = parseInt(this.data.targetHeight);
+
+    if (!targetW || !targetH) {
+      wx.showToast({ title: '请输入有效的宽高', icon: 'none' });
+      this.setData({ isProcessing: false });
+      return;
+    }
+
+    const query = wx.createSelectorQuery();
+    query.select('#pixelCanvas')
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        if (!res[0] || !res[0].node) {
+          this.setData({ isProcessing: false });
+          return wx.showToast({ title: '处理引擎启动失败', icon: 'none' });
+        }
+        const canvas = res[0].node;
+        const ctx = canvas.getContext('2d');
+        const dpr = wx.getSystemInfoSync().pixelRatio;
+
+        // 设置高清分辨率，防止图片发虚
+        canvas.width = targetW * dpr;
+        canvas.height = targetH * dpr;
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, targetW, targetH);
+
+        const img = canvas.createImage();
+        img.src = this.data.imagePath;
+        img.onload = () => {
+          // 将原图绘制到缩放后的区域
+          ctx.drawImage(img, 0, 0, this.data.originalWidth, this.data.originalHeight, 0, 0, targetW, targetH);
+          
+          wx.canvasToTempFilePath({
+            canvas: canvas,
+            destWidth: targetW,
+            destHeight: targetH,
+            fileType: 'png', // 🌟 必须写 png 才能保持透明图层不黑底！
+            success: (canvasRes) => {
+              this.handleCompressResult(canvasRes.tempFilePath);
+            },
+            fail: (err) => {
+              this.setData({ isProcessing: false });
+              wx.showToast({ title: '尺寸过大，手机内存不足', icon: 'none' });
+            }
+          });
+        };
+        img.onerror = () => {
+          this.setData({ isProcessing: false });
+          wx.showToast({ title: '读取图片失败', icon: 'none' });
+        };
+      });
+  },
+
+handleCompressResult(compressedPath) {
     wx.getFileInfo({
       filePath: compressedPath,
       success: (fileInfo) => {
         const compressedFileSize = fileInfo.size;
-        const ratio = ((1 - compressedFileSize / this.data.originalFileSize) * 100).toFixed(1);
+        let ratioCalc = ((1 - compressedFileSize / this.data.originalFileSize) * 100).toFixed(1);
+        if (ratioCalc < 0) ratioCalc = "变大"; 
+        else ratioCalc += '%';
 
         this.setData({
           compressedImage: compressedPath,
           compressedSize: this.formatFileSize(compressedFileSize),
-          compressionRatio: ratio + '%',
+          compressionRatio: ratioCalc,
           isProcessing: false
         });
-        wx.showToast({ title: '压缩成功', icon: 'success' });
+        wx.showToast({ title: '处理成功', icon: 'success' });
+
+        // ==========================================
+        // 🌟 新增核心：处理成功后，弹出插屏广告变现！
+        // ==========================================
+        if (this.interstitialAd) {
+          this.interstitialAd.show().catch((err) => {
+            console.error('插屏广告展示失败', err);
+          });
+        }
       },
       fail: () => {
-        this.setData({
-          compressedImage: compressedPath,
-          compressedSize: '未知',
-          compressionRatio: '',
-          isProcessing: false
-        });
+        this.setData({ compressedImage: compressedPath, compressedSize: '未知', compressionRatio: '', isProcessing: false });
       }
     });
   },
 
-  // === 5. 点击保存入口 ===
   saveImage() {
     if (!this.data.compressedImage) {
-      wx.showToast({ title: '请先压缩图片', icon: 'none' });
+      wx.showToast({ title: '请先处理图片', icon: 'none' });
       return;
     }
-    // 触发额度检查
     this.checkQuotaAndSave();
   },
 
-  // === 6. 权限检查与保存流程 ===
   startSaveProcess() {
     wx.getSetting({
       success: (res) => {
         if (res.authSetting['scope.writePhotosAlbum']) {
           this.doSaveImage();
         } else if (res.authSetting['scope.writePhotosAlbum'] === false) {
-          wx.showModal({
-            title: '提示',
-            content: '需要您授权保存图片到相册',
-            success: (modalRes) => {
-              if (modalRes.confirm) wx.openSetting();
-            }
-          });
+          wx.showModal({ title: '提示', content: '需要您授权保存图片到相册', success: (modalRes) => { if (modalRes.confirm) wx.openSetting(); } });
         } else {
-          wx.authorize({
-            scope: 'scope.writePhotosAlbum',
-            success: () => this.doSaveImage(),
-            fail: () => wx.showToast({ title: '授权失败', icon: 'none' })
-          });
+          wx.authorize({ scope: 'scope.writePhotosAlbum', success: () => this.doSaveImage(), fail: () => wx.showToast({ title: '授权失败', icon: 'none' }) });
         }
       }
     });
   },
 
-  // === 7. 执行最终保存 ===
   doSaveImage() {
     wx.saveImageToPhotosAlbum({
       filePath: this.data.compressedImage,
-      success: () => {
-        wx.navigateTo({
-          url: `/pages/success/success?path=${encodeURIComponent(this.data.compressedImage)}`
-        });
-      },
-      fail: (err) => {
-        console.error('保存失败:', err);
-        wx.showToast({ title: '保存失败', icon: 'none' });
-      }
+      success: () => { wx.navigateTo({ url: `/pages/success/success?path=${encodeURIComponent(this.data.compressedImage)}` }); },
+      fail: (err) => { console.error('保存失败:', err); wx.showToast({ title: '保存失败', icon: 'none' }); }
     });
   },
 
@@ -390,22 +435,13 @@ Page({
     else return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   },
 
-  // === 分享配置 ===
   onShareAppMessage() {
     const imageUrl = this.data.compressedImage || '/assets/share-cover.png';
-    return {
-      title: '图片无损压缩工具，节省空间不失真！',
-      path: '/pages/compress/compress',
-      imageUrl: imageUrl
-    };
+    return { title: '图片无损压缩与尺寸转换工具，节省空间不失真！', path: '/pages/compress/compress', imageUrl: imageUrl };
   },
 
   onShareTimeline() {
     const imageUrl = this.data.compressedImage || '/assets/share-cover.png';
-    return {
-      title: '图片无损压缩工具，节省空间不失真！',
-      query: '',
-      imageUrl: imageUrl
-    };
+    return { title: '图片无损压缩与尺寸转换工具，节省空间不失真！', query: '', imageUrl: imageUrl };
   }
 });

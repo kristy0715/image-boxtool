@@ -1,0 +1,78 @@
+<view class="container">
+  <view class="header-bg">
+    <view class="points-board">
+      <view class="points-label">当前可用积分</view>
+      <view class="points-value">
+        <text class="num">{{ points }}</text>
+      </view>
+    </view>
+    
+    <view class="sign-btn-wrap">
+      <view class="sign-btn {{ isSignedToday ? 'disabled' : 'active' }}" bindtap="onSignTap">
+        {{ isSignedToday ? '今日已签到' : '立即签到' }}
+      </view>
+      <view class="sign-tips" wx:if="{{ !isSignedToday }}">
+        今日签到可得 <text class="highlight">+{{ todayReward }}</text> 积分
+      </view>
+      <view class="sign-tips" wx:else>
+        明天签到可得 <text class="highlight">+{{ tomorrowReward }}</text> 积分，记得来哦！
+      </view>
+    </view>
+  </view>
+
+  <view class="progress-card">
+    <view class="card-title">
+      <text class="title-text">已连续签到 <text class="highlight-days">{{ continuousDays }}</text> 天</text>
+      <text class="sub-title">断签将重新计算</text>
+    </view>
+    
+    <view class="timeline">
+      <block wx:for="{{ weekList }}" wx:key="day">
+        <view class="day-item {{ item.state }}">
+          <view class="reward-bubble">
+            <text wx:if="{{ item.state === 'past' }}">✓</text>
+            <text wx:else>+{{ item.reward }}</text>
+          </view>
+          <view class="node-dot"></view>
+          <view class="day-text">{{ item.label }}</view>
+        </view>
+      </block>
+      <view class="progress-bar-bg">
+        <view class="progress-bar-active" style="{{ 'width: ' + progressPercent + '%' }}"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="history-card">
+    <view class="card-title">积分变动明细</view>
+    
+    <view class="history-tabs">
+      <view class="tab-item {{ currentTab === 'all' ? 'active' : '' }}" data-tab="all" bindtap="switchTab">全部</view>
+      <view class="tab-item {{ currentTab === 'income' ? 'active' : '' }}" data-tab="income" bindtap="switchTab">收入</view>
+      <view class="tab-item {{ currentTab === 'expense' ? 'active' : '' }}" data-tab="expense" bindtap="switchTab">支出</view>
+    </view>
+    
+    <view class="history-list" wx:if="{{ displayHistory.length > 0 }}">
+      <block wx:for="{{ displayHistory }}" wx:key="index">
+        <view class="history-item">
+          <view class="item-left">
+            <view class="item-title">{{ item.title }}</view>
+            <view class="item-time">{{ item.time }}</view>
+          </view>
+          <view class="item-right {{ item.delta > 0 ? 'plus' : 'minus' }}">
+            {{ item.delta > 0 ? '+' : '' }}{{ item.delta }}
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <view class="empty-state" wx:else>
+      <text class="empty-text">暂无相关记录</text>
+    </view>
+  </view>
+
+  <view class="ad-container" style="margin: 30rpx 30rpx 40rpx; border-radius: 16rpx; overflow: hidden;">
+    <ad unit-id="adunit-ecfcec4c6a0c871b"></ad>
+  </view>
+
+</view>

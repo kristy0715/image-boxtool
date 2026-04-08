@@ -1,0 +1,104 @@
+<view class="container">
+  <view class="profile-header {{ vipClass }}">
+    <view class="user-info" style="display: flex; align-items: flex-start; width: 100%; box-sizing: border-box;">
+      
+      <view style="display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 150rpx; justify-content: center;">
+        
+        <view class="avatar-box" style="width: 130rpx; height: 130rpx; margin: 0 !important; border-radius: 50%; overflow: hidden; box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center;">
+          <image class="avatar" src="{{ vipIconUrl }}" mode="aspectFit" style="width: 100%; height: 100%; margin: 0;"></image>
+        </view>
+        
+        <view class="vip-tag {{ vipTagClass }}" style="margin: 12rpx 0 0 0 !important; padding: 2rpx 16rpx; border-radius: 20rpx; font-size: 20rpx; font-weight: bold; white-space: nowrap; letter-spacing: 1rpx; display: inline-block; text-align: center;">
+          {{ vipTypeName }}
+        </view>
+        
+      </view>
+
+      <view class="text-info" style="flex: 1; min-width: 0; margin-left: 30rpx; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 10rpx;">
+        
+        <view class="nickname" style="font-size: 36rpx; font-weight: bold; margin-bottom: 16rpx; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">微信用户</view>
+        
+        <view style="margin-bottom: 16rpx;">
+          <view class="uid-tag" bindtap="copyUid" style="display: inline-flex; align-items: center; padding: 4rpx 18rpx; border-radius: 8rpx; font-size: 22rpx; margin-left: 0;">
+            UID: {{uid}} <text style="margin-left: 8rpx; font-size: 20rpx;">📋</text>
+          </view>
+        </view>
+
+        <view class="expire-date" style="font-size: 24rpx; white-space: nowrap; font-family: -apple-system, sans-serif;">{{ vipStatusDesc }}</view>
+        
+      </view>
+      
+    </view>
+  </view>
+
+  <view class="action-section">
+    <view class="action-card" bindtap="onSignTap">
+      <view class="action-icon">📅</view>
+      <view class="action-text">
+        <text class="action-title">每日签到</text>
+        <text class="action-desc">签到免费领天数</text>
+      </view>
+      <view class="action-arrow">></view>
+    </view>
+    
+    <view class="action-card" bindtap="goToMall">
+      <view class="action-icon">🛒</view>
+      <view class="action-text">
+        <text class="action-title">卡密兑换</text>
+        <text class="action-desc">输入兑换码解锁特权</text>
+      </view>
+      <view class="action-arrow">></view>
+    </view>
+  </view>
+
+  <view class="stats-card" bindtap="goToHistory">
+    <view class="card-header">
+      <view class="card-title">
+        <text class="title-icon">🗂️</text>
+        <text>解析记录</text>
+      </view>
+      <view class="card-arrow">查看全部 ></view>
+    </view>
+    <view class="stats-data">
+      <view class="stat-item">
+        <text class="stat-num">{{ todayCount }}</text>
+        <text class="stat-label">今日解析(次)</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-num">{{ totalCount }}</text>
+        <text class="stat-label">累计解析(次)</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="menu-list">
+    <button class="menu-item btn-reset" open-type="share">
+      <view class="menu-left">
+        <text class="menu-icon">🎁</text>
+        <text class="menu-text">推荐给好友</text>
+      </view>
+      <view class="menu-arrow">></view>
+    </button>
+    
+    <button class="menu-item btn-reset" open-type="contact">
+      <view class="menu-left">
+        <text class="menu-icon">🎧</text>
+        <text class="menu-text">联系客服</text>
+      </view>
+      <view class="menu-arrow">></view>
+    </button>
+
+    <view class="menu-item " bindtap="goToHelp">
+      <view class="menu-left">
+        <text class="menu-icon">❓</text>
+        <text class="menu-text">帮助中心</text>
+      </view>
+      <view class="menu-arrow">></view>
+    </view>
+  </view>
+
+  <view class="ad-container" style="margin-top: 30rpx; margin-bottom: 40rpx; border-radius: 16rpx; overflow: hidden;">
+    <ad unit-id="adunit-ecfcec4c6a0c871b"></ad>
+  </view>
+</view>

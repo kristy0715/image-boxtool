@@ -1,6 +1,6 @@
 // pages/restore/restore.js
 const app = getApp();
-
+const Audit = require('../../utils/audit.js'); 
 // 引入本地算法(兜底)
 let LocalAlgo = null;
 try { LocalAlgo = require('../../utils/local-algo.js'); } catch (e) {}
@@ -24,14 +24,19 @@ const QUOTA_CONFIG = {
 
 Page({
   data: {
-    selectedImage: '', // 用户选中的原图（待处理状态）
-    originImage: '',   // 用于滑块对比的底图
-    resultImage: '',   // 处理后的结果图
+    isAllowed: false, 
+    selectedImage: '', 
+    originImage: '',   
+    resultImage: '',   
     isProcessing: false,
     sliderValue: 50, 
     bannerUnitId: AD_CONFIG.BANNER_ID,
     layout: { width: 300, height: 400 },
-    boxRect: null
+    boxRect: null,
+
+    // 🌟 新增：美颜状态和动态文案
+    useBeauty: false,
+    loadingText: 'AI 正在注入像素细节...',
   },
 
   videoAd: null,
@@ -40,10 +45,18 @@ Page({
   maxDisplayHeight: 0,
 
   onLoad() {
-    this.initAds(); 
-    this.calcMaxDisplay(); 
-  },
+    Audit.checkAccess().then(allowed => {
+      if (!allowed) return; 
 
+      this.setData({ isAllowed: true }, () => {
+        wx.setNavigationBarTitle({ title: 'AI 画质修复' });
+      });
+
+      this.initAds(); 
+      this.calcMaxDisplay(); 
+    });
+  },
+  
   calcMaxDisplay() {
     try {
       const sys = wx.getSystemInfoSync();
@@ -124,7 +137,11 @@ Page({
 
   updateQuota(key, val) { wx.setStorageSync(key, val); },
 
-  // 选择照片时不再检测任何次数，直接进入“待处理”状态
+  // 🌟 新增：美颜开关切换事件
+  toggleBeauty(e) {
+    this.setData({ useBeauty: e.detail.value });
+  },
+
   chooseImage() {
     wx.chooseMedia({
       count: 1, mediaType: ['image'], sizeType: ['compressed'], 
@@ -141,11 +158,11 @@ Page({
     });
   },
 
-  // 点击“开始高清处理”按钮后触发，前端不拦截次数
+  // 🌟 核心：完整重写了开始处理方法，串联高清和美颜两个接口
   async startRestoration() {
     if (!this.data.selectedImage) return;
     const path = this.data.selectedImage;
-    this.setData({ isProcessing: true });
+    this.setData({ isProcessing: true, loadingText: 'AI 正在注入像素细节...' });
 
     if (TEST_MODE) { this.runLocalAlgo(path); return; }
 
@@ -154,6 +171,7 @@ Page({
       const fs = wx.getFileSystemManager();
       const base64 = fs.readFileSync(compressedPath, 'base64');
       
+      // 第一步：请求高清修复
       const res = await new Promise((resolve, reject) => {
         wx.request({
           url: BASE_URL + '/hd-restore',
@@ -169,10 +187,33 @@ Page({
         if (cleanBase64.startsWith('data:image')) cleanBase64 = cleanBase64.split('base64,')[1];
         cleanBase64 = cleanBase64.replace(/[\r\n\s]/g, "");
 
+        // ================= 🌟 串联：判断是否开启美颜 =================
+        if (this.data.useBeauty) {
+          this.setData({ loadingText: 'AI 正在加强人脸美颜...' });
+          
+          const fixRes = await new Promise((resolve, reject) => {
+            wx.request({
+              url: BASE_URL + '/hd-fix',
+              method: 'POST',
+              data: { app_tag: APP_TAG, image: cleanBase64 },
+              timeout: 60000, 
+              success: resolve, fail: reject
+            });
+          });
+
+          if (fixRes.data && fixRes.data.code === 200) {
+            cleanBase64 = fixRes.data.data.image;
+            if (cleanBase64.startsWith('data:image')) cleanBase64 = cleanBase64.split('base64,')[1];
+            cleanBase64 = cleanBase64.replace(/[\r\n\s]/g, "");
+          } else {
+            throw new Error(fixRes.data?.msg || '人脸美颜处理失败');
+          }
+        }
+        // ==============================================================
+
         const localPath = `${wx.env.USER_DATA_PATH}/restore_cloud_${Date.now()}.png`;
         fs.writeFileSync(localPath, wx.base64ToArrayBuffer(cleanBase64), 'binary');
         
-        // 处理成功出图时，立刻弹出插屏广告
         this.setData({ resultImage: localPath, isProcessing: false }, () => {
             if (this.interstitialAd) {
               this.interstitialAd.show().catch((err) => {
@@ -205,7 +246,6 @@ Page({
                   img.onload = () => {
                       LocalAlgo.process(canvas, ctx, img, imgInfo.width, imgInfo.height, 2)
                           .then(resPath => {
-                              // 本地兜底成功同样弹出插屏
                               this.setData({ resultImage: resPath, isProcessing: false }, () => {
                                   wx.showToast({ title: '本地增强完成', icon: 'success' });
                                   if (this.interstitialAd) {
@@ -243,7 +283,6 @@ Page({
       }, 500);
   },
 
-  // 🌟 修改点：只在点击保存时，检测剩余次数 (每日1次，之后看广告得3次)
   saveImage() {
     if (!this.data.resultImage) return;
     const save = this.getQuota('restore_save_quota');

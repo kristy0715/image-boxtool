@@ -1,0 +1,58 @@
+<view class="container">
+  
+  <view class="header-bar">
+    <view class="tabs">
+      <view class="tab-item {{ currentTab === 'all' ? 'active' : '' }}" bindtap="switchTab" data-tab="all">
+        <text class="tab-text">全部</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'all' }}"></view>
+      </view>
+      <view class="tab-item {{ currentTab === 'video' ? 'active' : '' }}" bindtap="switchTab" data-tab="video">
+        <text class="tab-text">视频</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'video' }}"></view>
+      </view>
+      <view class="tab-item {{ currentTab === 'images' ? 'active' : '' }}" bindtap="switchTab" data-tab="images">
+        <text class="tab-text">图集</text>
+        <view class="tab-line" wx:if="{{ currentTab === 'images' }}"></view>
+      </view>
+    </view>
+    
+    <view class="clear-btn" bindtap="onClearCache" wx:if="{{ historyList.length > 0 }}">
+      <text class="clear-text">清空记录</text>
+    </view>
+  </view>
+
+  <view class="history-list" wx:if="{{ filteredHistory.length > 0 }}">
+    <block wx:for="{{ filteredHistory }}" wx:key="id">
+      <view class="history-card">
+        
+        <view class="cover-box">
+          <image class="cover-img" src="{{ item.cover_url }}" mode="aspectFill"></image>
+          <view class="type-badge">
+            <text>{{ item.type === 'video' ? '▶ 视频' : '▤ 图集' }}</text>
+          </view>
+        </view>
+        
+        <view class="content-box">
+          <view class="text-area">
+            <view class="parsed-text">{{ item.parsed_text || '提取内容暂无文本信息...' }}</view>
+          </view>
+          
+          <view class="bottom-row">
+            <view class="meta-left">
+              <text class="platform-tag">{{ item.platform }}</text>
+              <text class="time-text">{{ item.display_time }}</text>
+            </view>
+            <view class="btn-extract" bindtap="onReParse" data-url="{{ item.original_url }}">一键提取</view>
+          </view>
+        </view>
+        
+      </view>
+    </block>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <view class="empty-icon"><text>( ´ ▽ ` )ﾉ</text></view>
+    <view class="empty-text">暂无解析记录</view>
+    <view class="empty-subtext">提取后的无水印作品会保存在这里</view>
+  </view>
+</view>

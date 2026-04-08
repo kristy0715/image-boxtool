@@ -1,6 +1,6 @@
 // pages/matting/matting.js
 const app = getApp();
-
+const Audit = require('../../utils/audit.js'); // 🌟 新增引入
 const TEST_MODE = false; 
 const SERVER_MATTING_URL = 'https://goodgoodstudy-nb.top/api/v1/wx-proxy/remove-bg'; 
 const APP_TAG = 'default_app'; 
@@ -15,6 +15,7 @@ const QUOTA_CONFIG = { SAVE_FREE: 2, SAVE_REWARD: 5 };
 
 Page({
   data: {
+    isAllowed: false, // 🌟 核心防线
     selectedImage: '', 
     resultImage: '',   
     isProcessing: false,
@@ -43,7 +44,15 @@ Page({
   interstitialAd: null,
 
   onLoad() {
-    this.initAds();
+    Audit.checkAccess().then(allowed => {
+      if (!allowed) return; // 被拦截踢走
+
+      this.setData({ isAllowed: true }, () => {
+        wx.setNavigationBarTitle({ title: 'AI 智能抠图' });
+      });
+
+      this.initAds();
+    });
   },
 
   initAds() {
