@@ -353,12 +353,48 @@ Page({
     wx.setStorageSync('parseHistory', history);
   },
 
-  detectPlatform(url) {
-    if (url.includes('douyin.com')) return '抖音';
-    if (url.includes('xiaohongshu.com')) return '小红书';
-    if (url.includes('kuaishou.com')) return '快手';
-    if (url.includes('weibo.com')) return '微博';
-    if (url.includes('bilibili.com')) return 'B站';
+ detectPlatform(url) {
+    if (!url) return '未知平台';
+    
+    const lowerUrl = url.toLowerCase();
+
+    // 1. 小红书
+    if (lowerUrl.includes('xiaohongshu.com') || lowerUrl.includes('xhscdn.com')) return '小红书';
+
+    // 2. 快手
+    if (lowerUrl.includes('yximgs.com') || lowerUrl.includes('kwimgs.com') || lowerUrl.includes('kwaicdn.com')) return '快手';
+
+    // 3. 微博
+    if (lowerUrl.includes('sinaimg.cn') || lowerUrl.includes('weibocdn.com')) return '微博';
+
+    // 4. B站
+    if (lowerUrl.includes('bilivideo.com') || lowerUrl.includes('bilivideo.cn')) return 'B站';
+
+    // 5. 微信 / 腾讯
+    if (lowerUrl.includes('qpic.cn') || lowerUrl.includes('qq.com')) return '微信/腾讯';
+
+    // 6. 字节跳动系 (分支较多，优先匹配细分，再匹配通用)
+    if (lowerUrl.includes('ixigua.com')) return '西瓜视频';
+    if (lowerUrl.includes('jianying.com') || lowerUrl.includes('jimeng.com')) return '剪映/即梦';
+    if (lowerUrl.includes('doubao.com')) return '豆包';
+    if (lowerUrl.includes('ppxvod.com')) return '皮皮虾';
+    if (lowerUrl.includes('toutiaovod.com')) return '今日头条';
+    // 字节通用特征 (抖音/头条/通用CDN)
+    if (lowerUrl.includes('douyin') || lowerUrl.includes('byteimg.com') || lowerUrl.includes('365yg.com') || lowerUrl.includes('vlabvod.com')) return '抖音';
+
+    // 7. 其他国内平台
+    if (lowerUrl.includes('bdstatic.com')) return '百度';
+    if (lowerUrl.includes('quark.cn')) return '夸克';
+    if (lowerUrl.includes('poizon.com')) return '得物';
+
+    // 8. 海外平台
+    if (lowerUrl.includes('tiktok')) return 'TikTok';
+    if (lowerUrl.includes('cdninstagram.com')) return 'Instagram';
+    if (lowerUrl.includes('twimg.com')) return 'Twitter';
+    if (lowerUrl.includes('googlevideo.com')) return 'YouTube';
+    if (lowerUrl.includes('akamaized.net')) return '海外视频平台';
+
+    // 兜底返回
     return '社交平台';
   },
 

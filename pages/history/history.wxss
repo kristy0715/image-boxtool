@@ -45,3 +45,11 @@ page { background-color: #F7F8FA; font-family: -apple-system, BlinkMacSystemFont
 .empty-icon { font-size: 40rpx; color: #C9CDD4; margin-bottom: 24rpx; font-weight: 300; }
 .empty-text { font-size: 28rpx; font-weight: bold; color: #4E5969; margin-bottom: 12rpx; }
 .empty-subtext { font-size: 24rpx; color: #86909C; }
+
+/* 🌟 新增：Banner 广告容器样式 */
+.ad-container {
+  margin: 20rpx 24rpx 40rpx 24rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(149, 157, 165, 0.06);
+}

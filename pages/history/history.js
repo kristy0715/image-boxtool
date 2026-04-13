@@ -2,7 +2,8 @@ Page({
   data: {
     currentTab: 'all',
     historyList: [],
-    filteredHistory: []
+    filteredHistory: [],
+    bannerAdId: 'adunit-ecfcec4c6a0c871b' // 🌟 新增：请替换为你的 Banner 广告 ID
   },
 
   onShow() {

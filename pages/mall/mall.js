@@ -3,7 +3,8 @@ const api = require('../../utils/api.js');
 Page({
   data: {
     points: 0,
-    goodsList: [] // 🌟 变成空数组，完全由服务器动态接管
+    goodsList: [], // 🌟 完全由服务器动态接管
+    bannerAdId: 'adunit-ecfcec4c6a0c871b' // 🌟 新增：Banner 广告 ID
   },
 
   onShow() {

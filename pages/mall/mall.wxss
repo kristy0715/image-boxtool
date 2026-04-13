@@ -48,4 +48,9 @@ page { background-color: #F7F8FA; font-family: -apple-system, sans-serif; }
 .goods-icon-img { width: 160rpx; height: 160rpx; margin: 10rpx auto 20rpx; display: block; }
 
 /* 🌟 新增：广告容器样式 */
-.ad-box { margin-top: 40rpx; border-radius: 16rpx; overflow: hidden; }
+.ad-box { 
+  margin-top: 40rpx; 
+  border-radius: 16rpx; 
+  overflow: hidden; 
+  box-shadow: 0 4rpx 20rpx rgba(149, 157, 165, 0.06);
+}

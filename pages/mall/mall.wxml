@@ -51,8 +51,8 @@
     <text>特权兑换后立即生效，可在「我的」页面查看</text>
   </view>
 
-  <view class="ad-box">
-    <ad unit-id="adunit-ecfcec4c6a0c871b"></ad>
+  <view class="ad-box" wx:if="{{bannerAdId}}">
+    <ad unit-id="{{bannerAdId}}"></ad>
   </view>
 
 </view>

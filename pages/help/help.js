@@ -1,6 +1,7 @@
 Page({
   data: {
     currentTab: 'doubao',
+    bannerAdId: 'adunit-ecfcec4c6a0c871b', // 🌟 新增：请替换为你的 Banner 广告 ID
     platformNames: {
       doubao: '豆包', qianwen: '千问', douyin: '抖音', kuaishou: '快手', xiaohongshu: '小红书', bilibili: 'B站', other: '其他'
     },

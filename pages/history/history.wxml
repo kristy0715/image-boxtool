@@ -55,4 +55,9 @@
     <view class="empty-text">暂无解析记录</view>
     <view class="empty-subtext">提取后的无水印作品会保存在这里</view>
   </view>
+
+  <view class="ad-container" wx:if="{{bannerAdId}}">
+    <ad unit-id="{{bannerAdId}}"></ad>
+  </view>
+
 </view>

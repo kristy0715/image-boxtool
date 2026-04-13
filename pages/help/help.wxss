@@ -3,11 +3,22 @@ page { background-color: #F7F8FA; font-family: -apple-system, BlinkMacSystemFont
 
 /* 吸顶导航栏 */
 .header-bar { 
-  position: sticky; top: 0; z-index: 100; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); 
+  position: sticky; top: 0; z-index: 100; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px);
   height: 100rpx; border-bottom: 1rpx solid rgba(0,0,0,0.03); 
   white-space: nowrap; width: 100%; box-sizing: border-box; 
 }
-.tabs { display: flex; height: 100%; padding: 0 32rpx; gap: 48rpx; align-items: center; }
+
+/* 🌟 只保留左边的 padding，右边的交给物理占位节点 */
+.tabs { display: flex; height: 100%; padding-left: 32rpx; gap: 48rpx; align-items: center; }
+
+/* 🌟 新增：占位节点的宽度，配合 gap 抵消出完美的右边距 */
+.tab-placeholder {
+  width: 1rpx; 
+  height: 100%;
+  flex-shrink: 0;
+  margin-left: -16rpx; 
+}
+
 .tab-item { position: relative; display: inline-flex; align-items: center; height: 100%; transition: all 0.2s; flex-shrink: 0; }
 .tab-text { font-size: 28rpx; color: #8A8F99; transition: all 0.2s; }
 .tab-item.active .tab-text { font-size: 32rpx; color: #1D2129; font-weight: bold; }
@@ -28,11 +39,19 @@ page { background-color: #F7F8FA; font-family: -apple-system, BlinkMacSystemFont
 
 /* 🌟 新增：示意图样式 */
 .step-image { 
-  width: 100%;                       /* 占满卡片宽度 */
+  width: 100%; /* 占满卡片宽度 */
   border-radius: 16rpx;              /* 圆角 */
   margin-top: 10rpx;                 /* 和文字保持距离 */
-  margin-left: 60rpx;                /* 对齐文字开头（num+margin） */
+  margin-left: 60rpx; /* 对齐文字开头（num+margin） */
   width: calc(100% - 60rpx);         /* 减去左边距后的宽度 */
   box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.03); /* 轻微阴影 */
   border: 1px solid #F1F5F9;         /* 轻微边框线 */
+}
+
+/* 🌟 新增：Banner广告样式 */
+.ad-container {
+  margin: 0 30rpx 30rpx 30rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(149, 157, 165, 0.06);
 }

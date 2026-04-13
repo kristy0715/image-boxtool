@@ -10,7 +10,8 @@ Page({
     vipIcon: '👤',
     vipStatusDesc: '签到兑换免广告特权卡',
     todayCount: 0,
-    totalCount: 0
+    totalCount: 0,
+    bannerAdId: 'adunit-ecfcec4c6a0c871b' // 🌟 新增：Banner 广告 ID
   },
 
   onShow() {
@@ -31,41 +32,41 @@ Page({
     }).catch(() => { wx.hideNavigationBarLoading(); });
   },
 
-// 🌟 核心渲染函数：处理头像变身与信息对齐
-renderUserProfile(data) {
-  const goldExpireStr = data.gold_vip_expire;
-  const silverCount = data.silver_vip_count || 0;
-  let goldTs = 0;
-  if (goldExpireStr) { goldTs = new Date(goldExpireStr.replace(/-/g, '/')).getTime(); }
+  // 🌟 核心渲染函数：处理头像变身与信息对齐
+  renderUserProfile(data) {
+    const goldExpireStr = data.gold_vip_expire;
+    const silverCount = data.silver_vip_count || 0;
+    let goldTs = 0;
+    if (goldExpireStr) { goldTs = new Date(goldExpireStr.replace(/-/g, '/')).getTime(); }
 
-  let vipTypeName = '普通会员', vipTagClass = 'tag-gray', vipClass = 'normal-mode', vipStatusDesc = '签到兑换免广告特权卡';
-  
-  // 🌟 默认头像逻辑：普通用户显示默认灰色头像
-  let vipIconUrl = '/assets/User/default_avatar.png'; 
+    let vipTypeName = '普通会员', vipTagClass = 'tag-gray', vipClass = 'normal-mode', vipStatusDesc = '签到兑换免广告特权卡';
+    
+    // 🌟 默认头像逻辑：普通用户显示默认灰色头像
+    let vipIconUrl = '/assets/User/default_avatar.png'; 
 
-  if (goldTs > Date.now()) {
-    // 金色 VIP 状态
-    vipTypeName = '金色 VIP'; vipTagClass = 'tag-gold'; vipClass = 'gold-mode'; 
-    vipIconUrl = '/assets/Mall/jinvip1.png'; // 头像直接变为金牌图标
-    vipStatusDesc = `特权至：${goldExpireStr.substring(0, 16)}`; // 精确到分钟
-  } else if (silverCount > 0) {
-    // 银色 VIP 状态
-    vipTypeName = '银色 VIP'; vipTagClass = 'tag-silver'; vipClass = 'silver-mode'; 
-    vipIconUrl = '/assets/Mall/yinvip.png'; // 头像直接变为银牌图标
-    vipStatusDesc = `余免广告卡：${silverCount} 张`;
-  }
+    if (goldTs > Date.now()) {
+      // 金色 VIP 状态
+      vipTypeName = '金色 VIP'; vipTagClass = 'tag-gold'; vipClass = 'gold-mode'; 
+      vipIconUrl = '/assets/Mall/jinvip1.png'; // 头像直接变为金牌图标
+      vipStatusDesc = `特权至：${goldExpireStr.substring(0, 16)}`; // 精确到分钟
+    } else if (silverCount > 0) {
+      // 银色 VIP 状态
+      vipTypeName = '银色 VIP'; vipTagClass = 'tag-silver'; vipClass = 'silver-mode'; 
+      vipIconUrl = '/assets/Mall/yinvip.png'; // 头像直接变为银牌图标
+      vipStatusDesc = `余免广告卡：${silverCount} 张`;
+    }
 
-  this.setData({
-    uid: data.uid || '获取中', 
-    points: data.points || 0,
-    todayCount: data.today_parses || 0,
-    totalCount: data.total_parses || 0,
-    vipTypeName, vipTagClass, vipClass, vipIconUrl, vipStatusDesc
-  });
+    this.setData({
+      uid: data.uid || '获取中', 
+      points: data.points || 0,
+      todayCount: data.today_parses || 0,
+      totalCount: data.total_parses || 0,
+      vipTypeName, vipTagClass, vipClass, vipIconUrl, vipStatusDesc
+    });
 
-  wx.setStorageSync('goldVipExpire', goldTs);
-  wx.setStorageSync('silverVipCount', silverCount);
-},
+    wx.setStorageSync('goldVipExpire', goldTs);
+    wx.setStorageSync('silverVipCount', silverCount);
+  },
 
   copyUid() {
     if (!this.data.uid || this.data.uid === '获取中') return;

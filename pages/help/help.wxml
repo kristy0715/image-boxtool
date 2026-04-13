@@ -31,7 +31,7 @@
         <text class="tab-text">其他</text>
         <view class="tab-line" wx:if="{{ currentTab === 'other' }}"></view>
       </view>
-      
+      <view class="tab-placeholder"></view>
     </view>
   </scroll-view>
 
@@ -53,7 +53,11 @@
             </image>
          </view>
          
-         </view>
+     </view>
+  </view>
+
+  <view class="ad-container" wx:if="{{bannerAdId}}">
+    <ad unit-id="{{bannerAdId}}"></ad>
   </view>
 
 </view>
