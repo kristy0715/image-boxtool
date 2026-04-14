@@ -1,0 +1,106 @@
+/* 🌟 让页面占满整屏，禁止页面级滚动 */
+page { height: 100%; background-color: #f5f7fa; overflow: hidden; }
+
+/* 🌟 Flex 隔离结构容器 */
+.page-flex-wrapper { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+/* 🌟 上半部分滚动区域 (占满剩余空间) */
+.main-content { flex: 1; height: 0; } 
+.container { padding: 24rpx; padding-bottom: 40rpx; box-sizing: border-box; }
+
+.card { background: #fff; border-radius: 20rpx; padding: 28rpx; margin-bottom: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03); width: 100%; box-sizing: border-box; }
+.section-title { font-size: 30rpx; font-weight: bold; color: #1e293b; margin-bottom: 24rpx; display: flex; align-items: center; }
+.space-between { justify-content: space-between; }
+
+.type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20rpx; }
+.type-item { display: flex; align-items: center; padding: 16rpx 20rpx; border: 2rpx solid #e2e8f0; border-radius: 12rpx; font-size: 26rpx; color: #475569; background: #f8fafc; transition: all 0.2s; }
+.type-item.active { border-color: #6366f1; background: #eef2ff; color: #4f46e5; font-weight: 500; }
+
+/* 🌟 找回前三个选项的热门高亮底色 */
+.type-item.hot { border-color: #fecdd3; background: #fff1f2; color: #e11d48; }
+.type-item.hot.active { border-color: #6366f1; background: #eef2ff; color: #4f46e5; }
+
+.radio-box { width: 32rpx; height: 32rpx; border-radius: 50%; border: 2rpx solid #cbd5e1; display: flex; align-items: center; justify-content: center; margin-right: 16rpx; flex-shrink: 0; background: #fff; }
+.type-item.active .radio-box { border-color: #6366f1; }
+.radio-inner { width: 16rpx; height: 16rpx; background: #6366f1; border-radius: 50%; }
+
+.count-badge { font-size: 24rpx; color: #94a3b8; font-weight: normal; }
+.image-list-wrapper { width: 100%; box-sizing: border-box; }
+.image-list { display: flex; width: 100%; justify-content: flex-start; gap: 16rpx; box-sizing: border-box; flex-wrap: wrap; }
+
+.image-item { flex: 0 0 calc((100% - 32rpx) / 3); aspect-ratio: 1; border-radius: 12rpx; box-sizing: border-box; border: 4rpx solid transparent; position: relative; transition: border-color 0.2s; }
+.image-item.is-active { border-color: #6366f1; }
+.item-image { width: 100%; height: 100%; border-radius: 8rpx; display: block; }
+
+/* 🌟 彻底剥夺这里的 z-index，让它变成纯粹的绝对定位 */
+.item-delete { position: absolute; top: -12rpx; right: -12rpx; width: 44rpx; height: 44rpx; background: #ef4444; border-radius: 50%; color: #fff; font-size: 28rpx; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 4rpx 8rpx rgba(239, 68, 68, 0.3); }
+.first-tag { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(99, 102, 241, 0.9); color: #fff; font-size: 20rpx; text-align: center; padding: 6rpx 0; border-bottom-left-radius: 8rpx; border-bottom-right-radius: 8rpx; }
+
+.empty-tip { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80rpx 0; background: #f8fafc; border-radius: 16rpx; border: 3rpx dashed #cbd5e1; width: 100%; box-sizing: border-box; }
+.empty-icon { font-size: 80rpx; display: flex; align-items: center; justify-content: center; margin-bottom: 16rpx; line-height: 1; text-align: center; }
+.empty-text { font-size: 26rpx; color: #94a3b8; text-align: center; }
+
+.add-btn-bg { flex: 0 0 calc((100% - 32rpx) / 3); aspect-ratio: 1; background: #f8fafc; display: flex; align-items: center; justify-content: center; border: 3rpx dashed #cbd5e1; border-radius: 12rpx; box-sizing: border-box; }
+.add-icon { font-size: 64rpx; color: #94a3b8; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; margin-top: -6rpx; }
+
+.tool-bar { display: flex; gap: 20rpx; margin-bottom: 20rpx; justify-content: center; }
+.tool-btn { padding: 12rpx 32rpx; border-radius: 40rpx; font-size: 26rpx; background: #f1f5f9; color: #64748b; font-weight: 500; transition: all 0.2s; }
+.tool-btn.active { background: #6366f1; color: #fff; box-shadow: 0 4rpx 12rpx rgba(99, 102, 241, 0.3); }
+
+.canvas-container { position: relative; display: flex; justify-content: center; align-items: center; background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%), linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%); background-size: 20px 20px; background-position: 0 0, 10px 10px; border-radius: 12rpx; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); margin: 0 auto; }
+.move-area { width: 100%; height: 100%; }
+.move-view { display: flex; align-items: center; justify-content: center; }
+.draw-canvas { touch-action: none; background: transparent; }
+
+.zoom-badge { position: absolute; top: 16rpx; right: 16rpx; background: rgba(99, 102, 241, 0.9); color: #fff; padding: 6rpx 18rpx; border-radius: 40rpx; font-size: 22rpx; pointer-events: none; }
+
+.canvas-actions { display: flex; gap: 16rpx; }
+.action-btn { font-size: 22rpx; color: #64748b; background: #f1f5f9; padding: 10rpx 24rpx; border-radius: 30rpx; }
+.action-btn.error { color: #ef4444; background: #fef2f2; }
+.brush-settings { display: flex; align-items: center; margin-top: 24rpx; }
+.setting-label { font-size: 24rpx; color: #64748b; }
+.brush-slider { flex: 1; margin-left: 20rpx; }
+
+.instruction-box { padding: 0 10rpx; }
+.inst-title { font-size: 26rpx; color: #475569; font-weight: bold; margin-bottom: 12rpx; }
+.inst-text { font-size: 24rpx; color: #94a3b8; line-height: 1.8; display: block; }
+
+/* === 🌟 终极物理隔离底部栏，不再使用 position: fixed === */
+.bottom-bar { 
+  background: #fff; 
+  padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom)); 
+  box-shadow: 0 -8rpx 20rpx rgba(0,0,0,0.04); 
+  display: flex; 
+  gap: 20rpx; 
+  box-sizing: border-box;
+  flex-shrink: 0; /* 防止被上方的 flex 区域挤压 */
+  position: relative; /* 仅作为常规排版元素存在 */
+}
+
+.btn-primary { 
+  flex: 1; 
+  height: 96rpx; 
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); 
+  color: #fff; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  border-radius: 48rpx; 
+  font-size: 30rpx; 
+  font-weight: 600; 
+  margin: 0; 
+  box-shadow: 0 8rpx 20rpx rgba(99, 102, 241, 0.25); 
+  border: none; 
+  padding: 0;
+}
+.btn-primary::after { display: none; }
+
+/* 加载弹窗保护 (独立盖在最上方) */
+.loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100000; backdrop-filter: blur(4px); }
+.loading-box { width: 500rpx; background: #fff; border-radius: 24rpx; padding: 40rpx; display: flex; flex-direction: column; align-items: center; }
+.loading-spinner { width: 60rpx; height: 60rpx; border: 6rpx solid #f1f5f9; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 24rpx; }
+.loading-text { font-size: 30rpx; color: #1e293b; font-weight: bold; margin-bottom: 12rpx; }
+.loading-sub { font-size: 24rpx; color: #64748b; margin-bottom: 30rpx; text-align: center; }
+.progress-bar { width: 100%; height: 12rpx; background: #f1f5f9; border-radius: 6rpx; overflow: hidden; }
+.progress-inner { height: 100%; background: #6366f1; transition: width 0.3s; }
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -27,13 +27,14 @@
     "pages/restore/restore",
     "pages/test/test",
     "pages/qrcode/qrcode",
-    "pages/docscan/docscan",
     "pages/profile/profile",
     "pages/sign/sign",
     "pages/history/history",
     "pages/mall/mall",
-    "pages/help/help"
-  
+    "pages/help/help",
+    "pages/batch-watermark/batch-watermark",
+    "pages/erase/erase"
+
   ],
   "window": {
     "backgroundTextStyle": "dark",

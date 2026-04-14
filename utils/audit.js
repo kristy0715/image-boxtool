@@ -5,7 +5,7 @@ const app = getApp();
 const APP_TAG = 'default_app'; 
 
 // 🌟 核心：提审版本号
-const APP_VERSION = '3.1.0'; 
+const APP_VERSION = '3.1.1'; 
 
 // 获取带时间戳的防缓存 URL
 const getAuditUrl = () => `https://goodgoodstudy-nb.top/api/v1/wx-proxy/check-config?app_tag=${APP_TAG}&version=${APP_VERSION}&t=${Date.now()}`;

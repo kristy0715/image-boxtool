@@ -1,0 +1,76 @@
+<view class="container">
+
+  <!-- 顶部提示条 -->
+  <view class="guide-banner" wx:if="{{!resultImage}}">
+    <view class="guide-content">
+      <text class="guide-icon">💡</text>
+      <text class="guide-text" wx:if="{{!imagePath}}">提示：光线均匀处垂直拍摄，效果更佳</text>
+      <text class="guide-text" wx:elif="{{isProcessing}}">AI 正在分析并擦除手写字迹，请稍候...</text>
+    </view>
+  </view>
+
+  <!-- 主卡片 -->
+  <view class="card editor-card">
+
+    <!-- 未选图：上传区 -->
+    <view class="upload-area" bindtap="chooseImage" wx:if="{{!imagePath}}">
+      <text class="upload-icon">📝</text>
+      <text class="upload-text">点击拍摄 / 上传试卷图</text>
+      <text class="upload-hint">支持 JPG / PNG 格式</text>
+    </view>
+
+    <!-- 已选图，处理中或等待中：显示原图 -->
+    <view class="preview-container" wx:if="{{imagePath && !resultImage}}">
+      <image src="{{imagePath}}" style="width:100%; display:block;" mode="widthFix"></image>
+    </view>
+
+    <!-- 已有结果图 -->
+    <view class="result-box" wx:if="{{resultImage}}">
+      <view class="section-title" style="padding: 20rpx;">
+        <text>🎉 试卷还原成功</text>
+        <view class="compare-btn"
+          bindtouchstart="startCompare"
+          bindtouchend="endCompare"
+          bindtouchcancel="endCompare">
+          👀 长按对比原图
+        </view>
+      </view>
+      <view style="position: relative;">
+        <image
+          class="result-image"
+          src="{{isComparing ? imagePath : resultImage}}"
+          mode="widthFix"
+          style="width: 100%; display: block;">
+        </image>
+        <view class="compare-tag" wx:if="{{isComparing}}">原图</view>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- Banner广告 -->
+  <view class="ad-container" style="padding: 0 0 20rpx 0;" wx:if="{{bannerUnitId}}">
+    <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+  </view>
+
+  <view style="height: 250rpx; width: 100%; display: block;"></view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar" wx:if="{{imagePath}}">
+    <view class="action-row">
+      <button class="btn-secondary" bindtap="chooseImage">重选图片</button>
+      <button class="btn-warn" bindtap="retryImage" wx:if="{{resultImage}}">重新擦除</button>
+      <button class="btn-primary" bindtap="saveImage" wx:if="{{resultImage}}">保存到相册</button>
+    </view>
+  </view>
+
+  <!-- 加载遮罩 -->
+  <view class="loading-overlay" wx:if="{{isProcessing}}">
+    <view class="loading-box">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">{{loadingText}}</text>
+      <text class="loading-sub">处理时间约15-30秒</text>
+    </view>
+  </view>
+
+</view>

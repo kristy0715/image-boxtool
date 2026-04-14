@@ -20,14 +20,16 @@ const ALL_TOOLS = [
   {id:'compress',title:'图片压缩',desc:'高清无损缩小 突破限制',icon:'📦',colors:['#ec4899','#f472b6']},
   {id:'mosaic',title:'图片马赛克',desc:'隐私极速打码 局部模糊',icon:'🔲',colors:['#64748b','#94a3b8']},
   {id:'longpic',title:'长图拼接',desc:'聊天截图/台词 智能拼接',icon:'📜',colors:['#06b6d4','#22d3ee']},
-  {id:'batchwm',title:'批量加水印',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']}
+  {id:'batchwm',title:'批量加水印',desc:'微商防盗图 一键加Logo',icon:'💧',colors:['#ef4444','#f87171']},
+  {id:'batch-watermark',title:'批量去水印',desc:'多图全自动无痕消除',icon:'✨',colors:['#14b8a6','#2dd4bf']},
 ];
 
 const ALL_OCR = [
   {id:'text2img',title:'长文转图',desc:'文字生成图片 朋友圈防折叠',icon:'📄',colors:['#10b981','#34d399']},
   {id:'ocr',title:'图片转文字',desc:'OCR拍照取字 智能提取',icon:'🔍',colors:['#3b82f6','#60a5fa']}, 
   {id:'text',title:'加文字 加水印 叠加图',desc:'图片加字 防盗打码 加Logo',icon:'✏️',colors:['#8b5cf6','#a78bfa']}, 
-  {id:'qrcode',title:'二维码生成',desc:'文本/网址极速转码',icon:'🔳',colors:['#6366f1','#8b5cf6']}
+  {id:'qrcode',title:'二维码生成',desc:'文本/网址极速转码',icon:'🔳',colors:['#6366f1','#8b5cf6']},
+  //{id:'erase',title:'试卷翻新',desc:'试卷翻新',icon:'🔳',colors:['#6366f1','#8b5cf6']}
 ];
 
 const ALL_FUN = [
@@ -76,7 +78,7 @@ Page({
   onShow() {
     // 保证自定义 TabBar 的高亮状态正确
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 0 });
+      this.getTabBar().setData({ selected: 1 });
     }
 
     // 🌟 开启照妖镜：直接把服务器发来的数据弹在屏幕上！

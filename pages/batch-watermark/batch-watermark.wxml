@@ -1,0 +1,112 @@
+<view class="page-flex-wrapper">
+  
+  <scroll-view class="main-content" scroll-y="true">
+    <view class="container">
+      
+      <view class="card">
+        <view class="section-title">请选择去水印方式</view>
+        <view class="section-hint" style="font-size: 24rpx; color: #94a3b8; margin-bottom: 20rpx;">如自动去水印效果不佳，可切换到手动涂抹</view>
+        <view class="type-grid">
+          <view class="type-item {{currentMode === item.id ? 'active' : (item.hot ? 'hot' : '')}}" 
+                wx:for="{{modeList}}" wx:key="id" 
+                bindtap="switchMode" data-id="{{item.id}}">
+            <view class="radio-box">
+              <view class="radio-inner" wx:if="{{currentMode === item.id}}"></view>
+            </view>
+            <text>{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="card">
+        <view class="section-title space-between">
+          <text>选择图片 (点击可设为参照图)</text>
+          <text class="count-badge">({{imageList.length}}/3)</text>
+        </view>
+        
+        <view class="image-list-wrapper">
+          <view class="image-list" wx:if="{{imageList.length > 0}}">
+            <view class="image-item {{activeImgIdx === index ? 'is-active' : ''}}" 
+                  wx:for="{{imageList}}" wx:key="index" 
+                  bindtap="selectActiveImage" data-index="{{index}}">
+              <image class="item-image" src="{{item}}" mode="aspectFill"></image>
+              <view class="item-delete" catchtap="removeImage" data-index="{{index}}">×</view>
+              <view class="first-tag" wx:if="{{activeImgIdx === index}}">当前参照图</view>
+            </view>
+            <view class="image-item add-btn-bg" bindtap="addImages" wx:if="{{imageList.length < 3}}">
+              <text class="add-icon">+</text>
+            </view>
+          </view>
+
+          <view class="empty-tip" wx:else bindtap="addImages">
+            <text class="empty-icon">📸</text>
+            <text class="empty-text">点击添加图片 (最多 3 张)</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="card" wx:if="{{currentMode === 'manual' && imageList.length > 0}}">
+        <view class="section-title space-between" style="margin-bottom: 20rpx;">
+          <text>🖌️ 涂抹水印位置</text>
+          <view class="canvas-actions">
+            <view class="action-btn" bindtap="undoAction">撤销</view>
+            <view class="action-btn error" bindtap="clearMask">清空</view>
+          </view>
+        </view>
+
+        <view class="tool-bar">
+          <view class="tool-btn {{!isMoveMode ? 'active' : ''}}" bindtap="toggleMoveMode" data-move="false">🖌️ 涂抹</view>
+          <view class="tool-btn {{isMoveMode ? 'active' : ''}}" bindtap="toggleMoveMode" data-move="true">🖐️ 拖拽 / 缩放</view>
+        </view>
+        
+        <view class="canvas-container" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;">
+          <view class="zoom-badge" wx:if="{{displayScale > 1.05}}">
+            <text>🔍 {{displayScale}}x 局部</text>
+          </view>
+          <movable-area class="move-area" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;">
+            <movable-view 
+              class="move-view" direction="all" scale="true" scale-min="1" scale-max="4" 
+              x="{{moveX}}" y="{{moveY}}" scale-value="{{moveScale}}"
+              disabled="{{!isMoveMode}}" damping="40" friction="2" bindscale="onScaleChange"
+              style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;">
+              <canvas type="2d" id="editCanvas" class="draw-canvas"
+                style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+                catchtouchstart="{{!isMoveMode ? 'onTouchStart' : ''}}"
+                catchtouchmove="{{!isMoveMode ? 'onTouchMove' : ''}}"
+                catchtouchend="{{!isMoveMode ? 'onTouchEnd' : ''}}">
+              </canvas>
+            </movable-view>
+          </movable-area>
+        </view>
+
+        <view class="brush-settings">
+          <text class="setting-label">笔刷大小:</text>
+          <slider class="brush-slider" min="10" max="60" value="{{brushSize}}" bindchange="onBrushChange" activeColor="#6366f1" block-size="16"/>
+        </view>
+      </view>
+      
+      <view class="ad-container" style="padding: 10rpx 0; margin-bottom: 20rpx;">
+        <ad unit-id="{{bannerUnitId}}" binderror="onAdError"></ad>
+      </view>
+
+      <view class="instruction-box">
+        <view class="inst-title">功能说明与免责声明</view>
+        <text class="inst-text">1. 自动抹除图片中的水印，不支持与核心内容重叠过深的水印。\n2. 处理效果受水印复杂度、透明度等因素影响。\n3. 使用该功能即代表您已阅读、理解并同意以上条款。</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="bottom-bar" wx:if="{{imageList.length > 0}}">
+    <button class="btn-primary" bindtap="batchProcess">批量消除并保存 ({{imageList.length}}张)</button>
+  </view>
+
+</view>
+
+<view class="loading-overlay" wx:if="{{isProcessing}}">
+  <view class="loading-box">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">{{loadingText}}</text>
+    <text class="loading-sub">{{loadingSubText}}</text>
+    <view class="progress-bar"><view class="progress-inner" style="width: {{progressPercent}}%;"></view></view>
+  </view>
+</view>
