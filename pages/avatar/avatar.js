@@ -1,24 +1,20 @@
 // pages/avatar/avatar.js
+const Audit = require('../../utils/audit.js'); 
 
-const Security = require('../../utils/security.js');
-
-// === 1. 广告配置 ===
 const AD_CONFIG = {
-  BANNER_ID: 'adunit-ecfcec4c6a0c871b',       // Banner 广告 ID
-  VIDEO_ID: 'adunit-da175a2014d3443b'         // 激励视频广告 ID
+  BANNER_ID: 'adunit-ecfcec4c6a0c871b', 
+  VIDEO_ID: 'adunit-da175a2014d3443b'
 };
 
-// === 2. 策略配置 ===
-const FREE_COUNT_DAILY = 2; // 每天免费保存 2 次
+const FREE_COUNT_DAILY = 2;
 
 Page({
   data: {
+    isAllowed: false, // 🔥 审核隔离锁
     imagePath: '',
     selectedFrame: 'flag',
     frameColor: '#ff0000',
-    generatedPath: '',
-    
-    // 广告数据
+    generatedPath: '', // 用于分享封面
     bannerUnitId: AD_CONFIG.BANNER_ID,
     
     frameList: [
@@ -26,119 +22,21 @@ Page({
       { id: 'flag', name: '国旗', icon: '🇨🇳', preview: '#ffebeb' },
       { id: 'heart', name: '爱心', icon: '❤️', preview: '#ffe0e6' },
       { id: 'star', name: '星星', icon: '⭐', preview: '#fff8e0' },
-      { id: 'rainbow', name: '彩虹', icon: '🌈', preview: 'linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3)' },
-      { id: 'christmas', name: '圣诞', icon: '🎄', preview: '#e8f5e9' },
-      { id: 'newyear', name: '新年', icon: '🧧', preview: '#ffebee' },
-      { id: 'birthday', name: '生日', icon: '🎂', preview: '#fff3e0' }
+      { id: 'rainbow', name: '彩虹', icon: '🌈', preview: 'linear-gradient(135deg, #ff6b6b, #4ecdc4)' },
+      { id: 'v', name: '加V', icon: '✔', preview: '#fff5d1' }
     ],
-    colorList: ['#ff0000', '#ff6b6b', '#feca57', '#1dd1a1', '#48dbfb', '#5f27cd', '#ff9ff3', '#222222']
+    colorList: ['#ff0000', '#ff4d4f', '#ff7875', '#ffffff', '#000000', '#40a9ff', '#52c41a', '#fadb14']
   },
-
-  videoAd: null, // 广告实例
 
   onLoad() {
-    this.dpr = wx.getSystemInfoSync().pixelRatio;
-    this.initVideoAd();
-  },
-
-  onReady() {
-    this.initCanvas();
-  },
-
-  // === 3. 初始化激励视频 ===
-  initVideoAd() {
-    if (wx.createRewardedVideoAd) {
-      this.videoAd = wx.createRewardedVideoAd({ adUnitId: AD_CONFIG.VIDEO_ID });
-      this.videoAd.onLoad(() => console.log('激励视频加载成功'));
-      this.videoAd.onError((err) => console.error('激励视频加载失败', err));
+    // 🌟 修复：使用正确的 checkAccess()，不再瞎改标题
+    Audit.checkAccess().then(isAllowed => {
+      if (!isAllowed) return; // 已经被踢回首页了，代码终止
       
-      this.videoAd.onClose((res) => {
-        // 用户点击了【关闭广告】按钮
-        if (res && res.isEnded) {
-          // A. 完整观看：解锁权益并保存
-          this.setDailyUnlimited();
-          wx.showToast({ title: '已解锁今日无限次', icon: 'success' });
-          this.realSaveProcess(); 
-        } else {
-          // B. 中途退出：提示
-          wx.showModal({
-            title: '提示',
-            content: '需要完整观看视频才能解锁今日无限次保存权限哦',
-            confirmText: '继续观看',
-            success: (m) => {
-              if (m.confirm) this.videoAd.show();
-            }
-          });
-        }
-      });
-    }
-  },
-
-  // === 4. 额度检查逻辑 (核心) ===
-  checkQuotaAndSave() {
-    const today = new Date().toLocaleDateString();
-    const storageKey = 'avatar_usage_record'; // 独立 Key
-    let record = wx.getStorageSync(storageKey) || { date: today, count: 0, isUnlimited: false };
-
-    // 跨天重置
-    if (record.date !== today) {
-      record = { date: today, count: 0, isUnlimited: false };
-      wx.setStorageSync(storageKey, record);
-    }
-
-    // 情况A: 已解锁 -> 直接保存
-    if (record.isUnlimited) {
-      this.realSaveProcess();
-      return;
-    }
-
-    // 情况B: 有免费次数 -> 扣除并保存
-    if (record.count < FREE_COUNT_DAILY) {
-      record.count++;
-      wx.setStorageSync(storageKey, record);
-      
-      const left = FREE_COUNT_DAILY - record.count;
-      if (left > 0) {
-        wx.showToast({ title: `今日剩余免费${left}次`, icon: 'none' });
-      }
-      this.realSaveProcess();
-      return;
-    }
-
-    // 情况C: 次数用尽 -> 弹广告
-    this.showAdModal();
-  },
-
-  setDailyUnlimited() {
-    const today = new Date().toLocaleDateString();
-    const storageKey = 'avatar_usage_record';
-    const record = { date: today, count: 999, isUnlimited: true };
-    wx.setStorageSync(storageKey, record);
-  },
-
-  showAdModal() {
-    if (this.videoAd) {
-      wx.showModal({
-        title: '免费次数已用完',
-        content: '观看一次视频，即可解锁【今日无限次】免费保存权限',
-        confirmText: '免费解锁',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            this.videoAd.show().catch(() => {
-              // 广告加载失败，兜底允许保存
-              this.realSaveProcess();
-            });
-          }
-        }
-      });
-    } else {
-      this.realSaveProcess();
-    }
-  },
-
-  onAdError(err) {
-    console.log('Banner 广告加载失败:', err);
+      // 身份合法，解开面纱，开始渲染
+      this.setData({ isAllowed: true });
+      this.initCanvas();
+    });
   },
 
   initCanvas() {
@@ -146,15 +44,16 @@ Page({
     query.select('#avatarCanvas')
       .fields({ node: true, size: true })
       .exec((res) => {
-        if (res[0]) {
-          this.canvas = res[0].node;
-          this.ctx = this.canvas.getContext('2d');
-          
-          const dpr = this.dpr;
-          this.canvas.width = 300 * dpr;
-          this.canvas.height = 300 * dpr;
-          this.ctx.scale(dpr, dpr);
-        }
+        if (!res[0]) return;
+        const canvas = res[0].node;
+        const ctx = canvas.getContext('2d');
+        const dpr = wx.getSystemInfoSync().pixelRatio;
+        canvas.width = res[0].width * dpr;
+        canvas.height = res[0].height * dpr;
+        ctx.scale(dpr, dpr);
+        this.canvas = canvas;
+        this.ctx = ctx;
+        this.dpr = dpr;
       });
   },
 
@@ -163,212 +62,68 @@ Page({
       count: 1,
       mediaType: ['image'],
       success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath;
-
-        wx.showLoading({ title: '安全检测中...' });
-
-        Security.checkImage(tempFilePath).then((isSafe) => {
-          wx.hideLoading();
-
-          if (isSafe) {
-            this.setData({ imagePath: tempFilePath });
-            setTimeout(() => {
-              if (!this.canvas) this.initCanvas();
-              setTimeout(() => this.drawAvatar(), 150);
-            }, 100);
-          } else {
-            console.log('图片违规，停止处理');
-          }
-        }).catch(err => {
-          wx.hideLoading();
-          console.error('检测流程异常', err);
+        this.setData({ imagePath: res.tempFiles[0].tempFilePath }, () => {
+          this.drawAvatar();
         });
       }
     });
   },
 
   selectFrame(e) {
-    this.setData({ selectedFrame: e.currentTarget.dataset.id });
-    this.drawAvatar();
+    this.setData({ selectedFrame: e.currentTarget.dataset.id }, () => {
+      this.drawAvatar();
+    });
   },
 
   selectColor(e) {
-    this.setData({ frameColor: e.currentTarget.dataset.color });
-    this.drawAvatar();
+    this.setData({ frameColor: e.currentTarget.dataset.color }, () => {
+      this.drawAvatar();
+    });
   },
 
-  drawAvatar() {
-    if (!this.canvas || !this.data.imagePath) return;
-
+  async drawAvatar() {
+    if (!this.data.imagePath || !this.ctx) return;
     const ctx = this.ctx;
-    const size = 300; 
-    const { selectedFrame, frameColor } = this.data;
+    ctx.clearRect(0, 0, 300, 300);
 
-    ctx.clearRect(0, 0, size, size);
-
+    // 1. 画头像
     const img = this.canvas.createImage();
-    img.onload = () => {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(size / 2, size / 2, size / 2 - 15, 0, Math.PI * 2);
-      ctx.clip();
-
-      const imgRatio = img.width / img.height;
-      let sx, sy, sw, sh;
-      if (imgRatio > 1) {
-        sh = img.height;
-        sw = sh;
-        sx = (img.width - sw) / 2;
-        sy = 0;
-      } else {
-        sw = img.width;
-        sh = sw;
-        sx = 0;
-        sy = (img.height - sh) / 2;
-      }
-
-      ctx.drawImage(img, sx, sy, sw, sh, 15, 15, size - 30, size - 30);
-      ctx.restore();
-
-      if (selectedFrame !== 'none') {
-        this.drawFrame(ctx, size, selectedFrame, frameColor);
-      }
-
-      setTimeout(() => {
-        wx.canvasToTempFilePath({
-          canvas: this.canvas,
-          width: 300,
-          height: 300,
-          destWidth: 300 * this.dpr, 
-          destHeight: 300 * this.dpr,
-          success: (res) => {
-            this.setData({ generatedPath: res.tempFilePath });
-          }
-        });
-      }, 100);
-    };
     img.src = this.data.imagePath;
-  },
+    await new Promise(r => img.onload = r);
+    ctx.drawImage(img, 0, 0, 300, 300);
 
-  drawFrame(ctx, size, frameType, color) {
-    const centerX = size / 2;
-    const centerY = size / 2;
-    const radius = size / 2 - 8;
+    // 2. 画挂件/边框
+    const { selectedFrame, frameColor } = this.data;
+    if (selectedFrame === 'none') return;
 
-    ctx.lineWidth = 12;
+    ctx.strokeStyle = frameColor;
+    ctx.lineWidth = 15;
 
-    switch (frameType) {
-      case 'flag':
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0.3 * Math.PI, 0.7 * Math.PI);
-        ctx.strokeStyle = '#ff0000';
-        ctx.stroke();
-        ctx.fillStyle = '#ffde00';
-        this.drawStar(ctx, size * 0.2, size * 0.75, 8);
-        break;
-
-      case 'heart':
-        ctx.fillStyle = color;
-        for (let i = 0; i < 8; i++) {
-          const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
-          const x = centerX + Math.cos(angle) * (radius + 5);
-          const y = centerY + Math.sin(angle) * (radius + 5);
-          this.drawHeart(ctx, x, y, 12);
-        }
-        break;
-
-      case 'star':
-        ctx.fillStyle = color;
-        for (let i = 0; i < 8; i++) {
-          const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
-          const x = centerX + Math.cos(angle) * (radius + 5);
-          const y = centerY + Math.sin(angle) * (radius + 5);
-          this.drawStar(ctx, x, y, 10);
-        }
-        break;
-
-      case 'rainbow':
-        const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1', '#5f27cd'];
-        colors.forEach((c, i) => {
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, radius - i * 2, 0, Math.PI * 2);
-          ctx.strokeStyle = c;
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        });
-        break;
-
-      case 'christmas':
-        ctx.strokeStyle = '#2ecc71';
-        ctx.lineWidth = 10;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.fillStyle = '#e74c3c';
-        for (let i = 0; i < 6; i++) {
-          const angle = (i / 6) * Math.PI * 2;
-          const x = centerX + Math.cos(angle) * radius;
-          const y = centerY + Math.sin(angle) * radius;
-          ctx.beginPath();
-          ctx.arc(x, y, 8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        break;
-
-      case 'newyear':
-        ctx.strokeStyle = '#e74c3c';
-        ctx.lineWidth = 12;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.stroke();
-        break;
-
-      case 'birthday':
-        const bdColors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#1dd1a1'];
-        ctx.lineWidth = 12;
-        for (let i = 0; i < 10; i++) {
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, radius, (i / 10) * Math.PI * 2, ((i + 1) / 10) * Math.PI * 2);
-          ctx.strokeStyle = bdColors[i % bdColors.length];
-          ctx.stroke();
-        }
-        break;
+    if (selectedFrame === 'flag') {
+      ctx.strokeRect(0, 0, 300, 300);
+      ctx.fillStyle = frameColor;
+      ctx.font = 'bold 40px Arial';
+      ctx.fillText('🇨🇳', 240, 50);
+    } else if (selectedFrame === 'v') {
+      ctx.fillStyle = '#ff9c00';
+      ctx.beginPath();
+      ctx.arc(260, 260, 25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 30px Arial';
+      ctx.fillText('V', 248, 272);
+    } else {
+      ctx.strokeRect(0, 0, 300, 300);
     }
   },
 
-  drawStar(ctx, x, y, r) {
-    ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-      const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
-      const px = x + r * Math.cos(angle);
-      const py = y + r * Math.sin(angle);
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fill();
-  },
-
-  drawHeart(ctx, x, y, s) {
-    ctx.beginPath();
-    ctx.moveTo(x, y + s / 4);
-    ctx.bezierCurveTo(x, y, x - s / 2, y, x - s / 2, y + s / 4);
-    ctx.bezierCurveTo(x - s / 2, y + s / 2, x, y + s * 0.75, x, y + s);
-    ctx.bezierCurveTo(x, y + s * 0.75, x + s / 2, y + s / 2, x + s / 2, y + s / 4);
-    ctx.bezierCurveTo(x + s / 2, y, x, y, x, y + s / 4);
-    ctx.fill();
-  },
-
-  // === 5. 点击保存入口 ===
   saveImage() {
     if (!this.canvas) return;
-    this.checkQuotaAndSave();
+    this.realSaveProcess();
   },
 
-  // === 6. 真正的保存逻辑 ===
   realSaveProcess() {
     wx.showLoading({ title: '保存中...' });
-    
     wx.canvasToTempFilePath({
       canvas: this.canvas,
       width: 300,
@@ -380,7 +135,8 @@ Page({
           filePath: res.tempFilePath,
           success: () => {
             wx.hideLoading();
-            // 跳转到统一成功页
+            // 存一下路径，让分享卡片能显示用户做好的图
+            this.setData({ generatedPath: res.tempFilePath }); 
             wx.navigateTo({
               url: `/pages/success/success?path=${encodeURIComponent(res.tempFilePath)}`
             });
@@ -400,22 +156,19 @@ Page({
     });
   },
 
-  // === 分享配置 ===
   onShareAppMessage() {
     const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
     return {
-      title: '定制专属头像挂件，节日氛围拉满！',
+      title: '快来领取你的专属节日头像挂件吧！',
       path: '/pages/avatar/avatar',
       imageUrl: imageUrl
     };
   },
 
   onShareTimeline() {
-    const imageUrl = this.data.generatedPath || '/assets/share-cover.png';
     return {
-      title: '定制专属头像挂件，节日氛围拉满！',
-      query: '',
-      imageUrl: imageUrl
+      title: '快来领取你的专属节日头像挂件吧！',
+      query: ''
     };
   }
 });

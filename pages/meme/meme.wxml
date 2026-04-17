@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container" wx:if="{{isAllowed}}">
   <view class="page-header">
     <text class="page-title">表情包制作</text>
     <text class="page-subtitle">自由拖拽旋转 · 创意无限</text>
@@ -22,40 +22,24 @@
         <block wx:for="{{textList}}" wx:key="id">
           <view 
             class="text-item {{currentTextId === item.id ? 'active' : ''}}"
-            style="left: {{item.x}}px; top: {{item.top}}px; transform: translate(-50%, -50%) rotate({{item.angle}}deg); font-size: {{item.size}}px; color: {{item.color}}; text-shadow: {{item.stroke ? '0 0 4px ' + item.strokeColor : 'none'}}; z-index: {{item.zIndex}};"
+            style="left: {{item.x}}px; top: {{item.top}}px; transform: translate(-50%, -50%) rotate({{item.angle}}deg); font-size: {{item.size}}px; color: {{item.color}}; text-shadow: {{item.stroke ? '0 0 4px ' + item.strokeColor : 'none'}}; z-index: {{item.id === currentTextId ? 10 : 1}};"
+            catchtap="selectText"
             data-id="{{item.id}}"
-            catchtouchstart="onTextTouchStart"
           >
-            {{item.text || '点击输入文字'}}
-            
-            <view 
-              class="rotate-handle" 
-              wx:if="{{currentTextId === item.id}}"
-              catchtouchstart="onRotateStart"
-            >↻</view>
-
-            <view 
-              class="delete-handle" 
-              wx:if="{{currentTextId === item.id}}"
-              catchtap="deleteText"
-              data-id="{{item.id}}"
-            >×</view>
+            {{item.text}}
           </view>
         </block>
       </view>
     </view>
   </view>
 
-  <view class="card" wx:if="{{imagePath}}">
-    <view class="tool-bar">
-      <button class="tool-btn add-btn" bindtap="addText">
-        <text class="icon">+</text> 添加文本
-      </button>
+  <view class="card edit-panel" wx:if="{{imagePath}}">
+    <view class="action-row">
+      <button class="btn-secondary" bindtap="addText" style="flex: 1; margin-right: 20rpx;">添加文字</button>
+      <button class="btn-danger" bindtap="removeText" wx:if="{{currentTextId}}" style="flex: 1;">删除文字</button>
     </view>
 
-    <view class="attr-panel" wx:if="{{currentTextId}}">
-      <view class="panel-title">文字样式调整</view>
-      
+    <view class="text-editor" wx:if="{{currentTextId}}">
       <view class="input-row">
         <text class="label">内容</text>
         <input class="text-input" value="{{currentText.text}}" bindinput="onTextInput" placeholder="请输入文字"/>
@@ -97,9 +81,6 @@
   </view>
 
   <view class="bottom-bar" wx:if="{{imagePath}}">
-    <button class="btn-icon" bindtap="chooseImage">🔄</button>
-    <button class="btn-primary" style="flex:1;" bindtap="saveImage">保存表情包</button>
+    <button class="btn-primary" bindtap="saveMeme" style="width: 100%;">保存相册</button>
   </view>
-
-  <view class="safe-bottom" style="height: 180rpx;" wx:if="{{imagePath}}"></view>
 </view>

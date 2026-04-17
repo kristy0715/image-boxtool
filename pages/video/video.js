@@ -288,6 +288,23 @@ Page({
     this.executeSaveResource();
   },
 
+  // 跳转到批量去水印页面
+  jumpToBatchWatermark() {
+    wx.navigateTo({
+      // 这里的路径请确保和你 app.json 里配置的一致
+      url: '/pages/batch-watermark/batch-watermark',
+      fail: (err) => {
+        console.error('跳转批量去水印失败', err);
+        // 如果它是一个 tab 页，需要用 wx.switchTab
+        if (err.errMsg.includes('tabbar')) {
+          wx.switchTab({ url: '/pages/batch-watermark/batch-watermark' });
+        } else {
+          wx.showToast({ title: '页面正在开发中', icon: 'none' });
+        }
+      }
+    });
+  },
+
   executeSaveResource() {
     if (this.data.videoData && this.data.videoData.isSaved) {
       this.proceedToSaveAuth(() => {

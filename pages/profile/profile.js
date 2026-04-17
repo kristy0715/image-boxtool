@@ -14,6 +14,8 @@ Page({
     bannerAdId: 'adunit-ecfcec4c6a0c871b' // 🌟 新增：Banner 广告 ID
   },
 
+  isNavigating: false, // 🌟 新增：页面跳转防抖锁，防止疯狂连点
+
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 });
@@ -85,6 +87,22 @@ Page({
   
   // 🌟 修复：打通帮助中心跳转
   goToHelp() { wx.navigateTo({ url: '/pages/help/help' }); },
-  
+  // ================= 🌟 新增：跳往新小程序（备用链接） =================
+  jumpToNewApp() {
+    if (this.isNavigating) return; // 拦截连点
+    this.isNavigating = true;      // 上锁
+    
+    wx.navigateToMiniProgram({
+      // ⚠️ 请去你【新小程序】的微信公众平台后台，获取一下 shortLink 填在这里
+      shortLink: '#小程序://豆梦去水印/pzvaWJjPmrCqUyy', 
+      success: () => { console.log('成功拉起新小程序'); },
+      fail: (err) => { console.error('拉起新小程序失败', err); },
+      complete: () => { 
+        // 800毫秒后解锁，保证用户下次还能点
+        setTimeout(() => { this.isNavigating = false; }, 800); 
+      }
+    });
+  },
+
   contactService() { wx.showToast({ title: '正在呼叫客服...', icon: 'none' }); }
 });

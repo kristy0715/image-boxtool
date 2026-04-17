@@ -54,3 +54,29 @@ page { background-color: #F7F8FA; font-family: -apple-system, sans-serif; }
   overflow: hidden; 
   box-shadow: 0 4rpx 20rpx rgba(149, 157, 165, 0.06);
 }
+
+/* ================= 🌟 新增：温馨提示公告栏 ================= */
+.notice-box {
+  display: flex;
+  align-items: flex-start;
+  background: #EEF2FF; /* 极浅的紫蓝色背景 */
+  border: 2rpx solid #C7D2FE; /* 柔和的边框 */
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 40rpx; /* 与下方的商品列表拉开间距 */
+  box-shadow: 0 4rpx 12rpx rgba(79, 70, 229, 0.05);
+}
+
+.notice-icon {
+  font-size: 28rpx;
+  margin-right: 16rpx;
+  line-height: 1.4;
+}
+
+.notice-text {
+  font-size: 24rpx;
+  color: #4F46E5; /* 主题深紫色文字 */
+  line-height: 1.5;
+  flex: 1;
+  text-align: justify;
+}

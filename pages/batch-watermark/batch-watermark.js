@@ -453,6 +453,6 @@ Page({
   },
 
   abortProcess(msg) { this.setData({ isProcessing: false }); wx.showToast({ title: msg, icon: 'none' }); },
-  onShareAppMessage() { return { title: '太好用了！批量消除图文水印神器', path: '/pages/batchrmwm/batchrmwm' }; },
+  onShareAppMessage() { return { title: '太好用了！批量消除图文水印神器', path: '/pages/batch-watermark/batch-watermark' }; },
   onShareTimeline() { return { title: '太好用了！批量消除图文水印神器', query: '' }; }
 });

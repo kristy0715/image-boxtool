@@ -94,6 +94,14 @@
       <view class="banner-right">去体验 ></view>
     </view>
 
+    <view class="local-tools-banner purple-banner shadow-card" bindtap="jumpToBatchWatermark">
+      <view class="banner-left">
+        <text class="banner-icon">🎨</text>
+        <text class="banner-text">批量去水印 (文字消除)</text>
+      </view>
+      <view class="banner-right">去体验 ></view>
+    </view>
+
     <view class="ad-wrap shadow-card" wx:if="{{bannerUnitId}}">
       <ad unit-id="{{bannerUnitId}}"></ad>
     </view>

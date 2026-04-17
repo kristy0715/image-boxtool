@@ -102,7 +102,7 @@ refreshToolsByAudit() {
   const safeIds = [
      'video', 'watermark', 'ocr', 'retouch', 'burst', 'text2img', 
      'batchwm', 'idphoto', 'idprint', 'grid9', 'collage', 'crop', 
-     'compress', 'mosaic', 'longpic', 'text', 'avatar', 'meme'
+     'compress', 'mosaic', 'longpic', 'text', 'avatar'
   ];
   this.setData({
       toolList: ALL_TOOLS.filter(i => safeIds.includes(i.id)),

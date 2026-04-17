@@ -73,6 +73,7 @@
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">美颜</text>
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">滤镜</text>
       <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">九宫格冲出特效</text>
+      <text style="font-size: 20rpx; color: #94a3b8; background: #f1f5f9; padding: 4rpx 12rpx; border-radius: 8rpx;">批量去水印</text>
     </view>
   </view>
 

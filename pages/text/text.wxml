@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container" wx:if="{{isAllowed}}">
   <view class="page-header">
     <text class="page-title">全能创作工坊</text>
     <text class="page-subtitle">自制表情包 · 加字加图 · 贴纸水印</text>
@@ -55,7 +55,6 @@
           <view class="delete-handle" catchtouchstart="deleteElement" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">×</view>
           <view class="transform-handle" catchtouchstart="onTransformStart" catchtouchmove="onTransformMove" catchtouchend="onTransformEnd" data-id="{{item.id}}" wx:if="{{activeId === item.id}}">⤡</view>
         </view>
-
       </block>
     </view>
   </view>

@@ -13,12 +13,32 @@ page { height: 100%; background-color: #f5f7fa; overflow: hidden; }
 .space-between { justify-content: space-between; }
 
 .type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20rpx; }
-.type-item { display: flex; align-items: center; padding: 16rpx 20rpx; border: 2rpx solid #e2e8f0; border-radius: 12rpx; font-size: 26rpx; color: #475569; background: #f8fafc; transition: all 0.2s; }
+/* 🌟 1. 在原有的 type-item 中加上 position: relative; */
+.type-item { 
+  display: flex; align-items: center; padding: 16rpx 20rpx; border: 2rpx solid #e2e8f0; border-radius: 12rpx; font-size: 26rpx; color: #475569; background: #f8fafc; transition: all 0.2s; 
+  position: relative; /* ⚠️ 必须加上这个，用来管住右上角的角标 */
+}
 .type-item.active { border-color: #6366f1; background: #eef2ff; color: #4f46e5; font-weight: 500; }
-
-/* 🌟 找回前三个选项的热门高亮底色 */
 .type-item.hot { border-color: #fecdd3; background: #fff1f2; color: #e11d48; }
 .type-item.hot.active { border-color: #6366f1; background: #eef2ff; color: #4f46e5; }
+
+/* 🌟 2. 新增：HOT角标的专属精美样式 */
+.hot-badge {
+  position: absolute;
+  top: -16rpx;
+  right: -12rpx;
+  background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+  color: #fff;
+  font-size: 18rpx;
+  font-weight: 900;
+  padding: 4rpx 10rpx;
+  border-radius: 20rpx 20rpx 20rpx 0; /* 左下角直角，像一个小气泡 */
+  box-shadow: 0 4rpx 10rpx rgba(255, 77, 79, 0.4);
+  z-index: 10;
+  line-height: 1.2;
+  border: 2rpx solid #fff; /* 加一点白边，显得更立体高级 */
+  transform: scale(0.9);
+}
 
 .radio-box { width: 32rpx; height: 32rpx; border-radius: 50%; border: 2rpx solid #cbd5e1; display: flex; align-items: center; justify-content: center; margin-right: 16rpx; flex-shrink: 0; background: #fff; }
 .type-item.active .radio-box { border-color: #6366f1; }

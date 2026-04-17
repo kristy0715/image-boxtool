@@ -218,3 +218,11 @@ page {
   font-weight: bold;
   margin: 0 4rpx;
 }
+
+/* ================= 🌟 新增：高级修图工具箱(紫粉渐变) ================= */
+.purple-banner {
+  background: linear-gradient(90deg, #F3E8FF, #E0D1FF) !important;
+  border: 1px solid #D8B4FE !important;
+}
+.purple-banner .banner-text { color: #7E22CE !important; }
+.purple-banner .banner-right { color: #7E22CE !important; }

@@ -5,13 +5,15 @@ const app = getApp();
 const APP_TAG = 'default_app'; 
 
 // 🌟 核心：提审版本号
-const APP_VERSION = '3.1.1'; 
+const APP_VERSION = '3.1.2'; 
 
 // 获取带时间戳的防缓存 URL
 const getAuditUrl = () => `https://goodgoodstudy-nb.top/api/v1/wx-proxy/check-config?app_tag=${APP_TAG}&version=${APP_VERSION}&t=${Date.now()}`;
 
 // 网络彻底断开时的最后一道防线
-const DEFAULT_BLOCK_LIST = ['art', 'matting', 'restore', 'watermark'];
+// utils/audit.js
+// 🌟 修复：把 avatar(挂件), meme(表情包), text(全能创作) 加上，防止断网时泄露
+const DEFAULT_BLOCK_LIST = ['art', 'matting', 'restore', 'watermark', 'avatar', 'text'];
 
 let hasFetched = false;
 

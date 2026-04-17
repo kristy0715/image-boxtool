@@ -10,6 +10,7 @@
           <view class="type-item {{currentMode === item.id ? 'active' : (item.hot ? 'hot' : '')}}" 
                 wx:for="{{modeList}}" wx:key="id" 
                 bindtap="switchMode" data-id="{{item.id}}">
+                <view class="hot-badge" wx:if="{{item.hot}}">🔥 HOT</view>
             <view class="radio-box">
               <view class="radio-inner" wx:if="{{currentMode === item.id}}"></view>
             </view>

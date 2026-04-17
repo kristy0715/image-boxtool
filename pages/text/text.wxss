@@ -19,14 +19,13 @@ page { background-color: #f7f8fa; height: 100%; }
 .drag-element.active { border-color: #fff; background-color: rgba(0,0,0,0.1); }
 .drag-element.active::after { content: ''; position: absolute; top: -4rpx; left: -4rpx; right: -4rpx; bottom: -4rpx; border: 4rpx solid rgba(255,255,255,0.8); pointer-events: none; }
 
-/* 🌟 防止文字被删光后变成不可点击的黑洞，并增加背景色圆角和边距 */
 .text-element { 
-  white-space: pre; /* 🌟 核心修复：改成 pre。强制不自动换行，只有按下回车键才换行，保持和保存结果 100% 一致！ */
+  white-space: pre;
   text-align: center; 
   min-width: 60rpx; 
   min-height: 50rpx;
-  padding: 12rpx 24rpx; /* 新增背景内边距撑开 */
-  border-radius: 16rpx; /* 新增圆角 */
+  padding: 12rpx 24rpx;
+  border-radius: 16rpx; 
   box-sizing: border-box;
 }
 
@@ -57,7 +56,6 @@ page { background-color: #f7f8fa; height: 100%; }
 .color-item { width: 64rpx; height: 64rpx; border-radius: 50%; border: 2rpx solid rgba(0,0,0,0.1); flex-shrink: 0; position: relative; }
 .check-mark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32rpx; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
 
-/* 🌟 补充：表示“无背景”的棋盘格图案，以及在浅色块上能看清对勾的深色样式 */
 .transparent-bg { background: repeating-conic-gradient(#e2e8f0 0% 25%, #ffffff 0% 50%) 50% / 20rpx 20rpx !important; }
 .dark-check { color: #333 !important; text-shadow: none !important; }
 

@@ -14,6 +14,11 @@
     </view>
   </view>
 
+  <view class="notice-box">
+    <text class="notice-icon">📢</text>
+    <text class="notice-text">温馨提示：免广告卡当前仅适用于「短视频图文无水印提取」功能，后续将陆续接入更多特权场景，敬请期待！</text>
+  </view>
+
   <view class="mall-section">
     <view class="section-title">特权兑换</view>
     

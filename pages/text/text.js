@@ -1,5 +1,5 @@
 // pages/text/text.js
-const Security = require('../../utils/security.js'); 
+const Audit = require('../../utils/audit.js'); 
 
 const AD_CONFIG = {
   BANNER_ID: 'adunit-ecfcec4c6a0c871b', 
@@ -23,6 +23,8 @@ const uuid = () => 'id-' + Math.random().toString(36).substr(2, 9);
 
 Page({
   data: {
+    isAllowed: false, // 🔥 审核隔离锁
+    
     imagePath: '', 
     viewWidth: 300, viewHeight: 300,
     rawWidth: 0, rawHeight: 0,
@@ -40,7 +42,7 @@ Page({
     tempFontSize: 30,
     tempColor: '#ffffff',
     tempStroke: true,
-    tempBgColor: 'transparent', // 🌟 新增：当前选中的文字背景色
+    tempBgColor: 'transparent',
     tempStickerSize: 80,
 
     bannerUnitId: AD_CONFIG.BANNER_ID,
@@ -50,7 +52,6 @@ Page({
       { color: '#10b981', name: '绿' }, { color: '#3b82f6', name: '蓝' },
       { color: '#6366f1', name: '紫' }, { color: '#ec4899', name: '粉' }
     ],
-    // 🌟 新增：文字背景色列表（加入透明和半透明黑白选项）
     bgColorList: [
       { color: 'transparent', name: '无' },
       { color: '#000000', name: '纯黑' }, { color: 'rgba(0,0,0,0.5)', name: '半透黑' },
@@ -64,8 +65,14 @@ Page({
   videoAd: null, 
 
   onLoad() {
-    this.initVideoAd();
-    this.updateStickerList(); 
+    // 🌟 核心修复：纯净版 checkAccess 拦截，剔除冗余标题闪烁逻辑
+    Audit.checkAccess().then(isAllowed => {
+      if (!isAllowed) return; // 黑名单直接中断，等待 kickOut 踢回首页
+
+      this.setData({ isAllowed: true });
+      this.initVideoAd();
+      this.updateStickerList(); 
+    });
   },
 
   chooseImage() {
@@ -102,7 +109,6 @@ Page({
     });
   },
 
-  // ⭐ 核心工具：智能同步面板数据，绝不丢失状态
   syncPanelData(item, forceTab = null) {
     if (!item) return;
     const targetTab = forceTab || item.type;
@@ -113,21 +119,20 @@ Page({
       updates.tempFontSize = item.fontSize;
       updates.tempColor = item.color;
       updates.tempStroke = item.hasStroke;
-      updates.tempBgColor = item.bgColor || 'transparent'; // 🌟 补充同步背景色
+      updates.tempBgColor = item.bgColor || 'transparent';
     } else if (item.type === 'sticker') {
       updates.tempStickerSize = item.size;
     }
     this.setData(updates);
   },
 
-  // === 元素添加逻辑 ===
   addNewText() {
     const id = uuid();
     const newText = {
       id, type: 'text', content: '双击修改',
       x: this.data.viewWidth / 2, y: this.data.viewHeight / 2,
       fontSize: 30, color: '#ffffff', hasStroke: true, angle: 0,
-      bgColor: 'transparent' // 🌟 默认无背景
+      bgColor: 'transparent'
     };
     
     this.setData({ elements: [...this.data.elements, newText] }, () => {
@@ -198,7 +203,6 @@ Page({
   onTextInput(e) { this.setData({ tempText: e.detail.value }); this.updateActiveElement('content', e.detail.value); },
   onFontSizeChange(e) { this.setData({ tempFontSize: e.detail.value }); this.updateActiveElement('fontSize', e.detail.value); },
   selectColor(e) { const color = e.currentTarget.dataset.color; this.setData({ tempColor: color }); this.updateActiveElement('color', color); },
-  // 🌟 新增：背景色选择事件
   selectBgColor(e) { 
     const color = e.currentTarget.dataset.color; 
     this.setData({ tempBgColor: color }); 
@@ -207,7 +211,6 @@ Page({
   onStrokeChange(e) { this.setData({ tempStroke: e.detail.value }); this.updateActiveElement('hasStroke', e.detail.value); },
   onStickerSizeChange(e) { this.setData({ tempStickerSize: e.detail.value }); this.updateActiveElement('size', e.detail.value); },
 
-  // === 拖拽与形变逻辑 ===
   onTouchStart(e) {
     const id = e.currentTarget.dataset.id;
     const item = this.data.elements.find(el => el.id === id);
@@ -380,7 +383,6 @@ Page({
           const lines = el.content.split('\n');
           const lh = fs * 1.2;
           
-          // 🌟 核心：如果有背景色，先画背景圆角矩形
           if (el.bgColor && el.bgColor !== 'transparent') {
             const textHeight = lines.length * lh;
             let maxLineWidth = 0;
@@ -389,14 +391,13 @@ Page({
               if (w > maxLineWidth) maxLineWidth = w;
             });
             
-            // 计算背景框的大小（加入动态内边距）
             const padX = fs * 0.7; 
             const padY = fs * 0.4;
             const bgW = maxLineWidth + padX * 2;
             const bgH = textHeight + padY * 2;
             const bgX = -bgW / 2;
             const bgY = -bgH / 2;
-            const radius = fs * 0.3; // 圆角弧度
+            const radius = fs * 0.3; 
             
             ctx.fillStyle = el.bgColor;
             ctx.beginPath();
@@ -413,7 +414,6 @@ Page({
             ctx.fill();
           }
 
-          // 画字
           const startY = -((lines.length - 1) * lh) / 2;
           lines.forEach((line, i) => {
             const ly = startY + i * lh;

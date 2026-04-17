@@ -66,6 +66,15 @@
   </view>
 
   <view class="menu-list">
+  
+    <view class="menu-item" bindtap="jumpToNewApp">
+      <view class="menu-left">
+        <text class="menu-icon">🔗</text>
+        <text class="menu-text">备用链接 (去水印极速版)</text>
+      </view>
+      <view class="menu-arrow">></view>
+    </view>
+    
     <button class="menu-item btn-reset" open-type="share">
       <view class="menu-left">
         <text class="menu-icon">🎁</text>
